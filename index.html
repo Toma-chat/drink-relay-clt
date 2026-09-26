@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f97316">
+    <title>Drink Relay</title>
+    <link rel="preload" as="audio" href="./sounds/news-title.mp3">
+    <link rel="preload" as="audio" href="./sounds/decision-button.mp3">
+    <link rel="preload" as="audio" href="./sounds/level-up.mp3">
+    <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
+    <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
+    <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
+    <link rel="stylesheet" href="./styles.css?v=2026092316">
+    <script src="./store-config.js"></script>
+    <script src="./initial-settings.js"></script>
+    <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script defer src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="./app.js?v=2026092316"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-menu-bar">
+        <div class="header-view-switcher" aria-label="画面切り替え">
+          <div class="view-title-wrap">
+            <button id="headerReceptionButton" class="header-view-button active" type="button" aria-current="page">
+              <span id="currentViewLabel">受付（通常）</span>
+            </button>
+            <button id="receptionModeButton" class="reception-mode-button" type="button" aria-label="受付メニューを切り替え" aria-expanded="false" aria-controls="receptionModeMenu">
+              <i data-lucide="chevron-down" aria-hidden="true"></i>
+            </button>
+            <div id="receptionModeMenu" class="reception-mode-menu" hidden>
+              <button type="button" data-reception-mode="normal">受付（通常）</button>
+              <button type="button" data-reception-mode="custom">受付（カスタム）</button>
+            </div>
+          </div>
+          <button id="headerBarButton" class="header-view-button" type="button">
+            <span>バー</span>
+            <span id="barOrderBadge" class="bar-order-badge" aria-label="未提供オーダー数" hidden></span>
+          </button>
+        </div>
+        <span id="syncBadge" class="sync-badge is-local">デモ同期</span>
+        <button id="headerSoundPreviewButton" class="header-config-button" type="button" aria-label="通知音を試聴" title="通知音を試聴">
+          <i data-lucide="bell-ring" aria-hidden="true"></i>
+        </button>
+        <button id="headerConfigButton" class="header-config-button" type="button" aria-label="設定を開く" title="設定">
+          <i data-lucide="settings" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <main>
+        <section id="view-reception" class="view active" aria-label="受付">
+          <div class="workbench sender-workbench solo-workbench">
+            <form class="order-form" data-source="reception" autocomplete="off" aria-label="受付送信">
+              <fieldset class="control-group first-group">
+                <legend>届け先</legend>
+                <div class="segmented destination-row">
+                  <label><input type="radio" name="target" value="ring"><span>リング</span></label>
+                  <label><input type="radio" name="target" value="tournament" checked><span>トーナメント</span></label>
+                  <label><input type="radio" name="target" value="bar"><span>バーカウンター</span></label>
+                  <label><input type="radio" name="target" value="cast"><span>キャスドリ</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="control-group drink-choice-panel" data-drink-picker aria-label="ドリンクメニュー">
+                <input name="drinkName" type="hidden">
+                <input name="drinkCategoryId" type="hidden">
+                <input name="drinkItemId" type="hidden">
+                <input name="customDrink" type="hidden">
+                <input name="quantity" type="hidden" value="1">
+                <div class="menu-picker">
+                  <div class="menu-category-list" data-menu-categories aria-label="カテゴリ選択"></div>
+                  <div class="choice-grid menu-item-grid" data-drink-buttons aria-label="商品選択"></div>
+                </div>
+              </fieldset>
+
+              <div class="form-actions sticky-form-actions">
+                <div id="orderSendStatus" class="order-send-status" role="status" aria-live="polite" hidden></div>
+                <button class="button button-primary confirm-button" type="submit" data-confirm-button disabled>
+                  <i data-lucide="clipboard-check" aria-hidden="true"></i>
+                  <span data-confirm-label>商品を選択してください</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section id="view-bar" class="view" aria-labelledby="barTitle">
+          <div class="bar-board">
+            <div class="section-head">
+              <div>
+                <h2 id="barTitle">バー受信</h2>
+                <p>未提供オーダーを古い順で表示</p>
+              </div>
+              <div class="bar-actions">
+                <div class="segmented small" role="group" aria-label="表示対象">
+                  <button class="filter active" type="button" data-filter="open">未提供</button>
+                  <button class="filter" type="button" data-filter="all">すべて</button>
+                </div>
+                <button class="icon-button" type="button" data-action="refresh" aria-label="更新" title="更新">
+                  <i data-lucide="refresh-cw" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="stats-row" aria-label="受信状況">
+              <div>
+                <span id="openCount" class="stat-value">0</span>
+                <span class="stat-label">未提供</span>
+              </div>
+              <div>
+                <span id="oldestElapsed" class="stat-value">-</span>
+                <span class="stat-label">最長待ち</span>
+              </div>
+              <div>
+                <span id="uncollectedCount" class="stat-value">0</span>
+                <span class="stat-label">未徴収</span>
+              </div>
+            </div>
+
+            <div id="barOrders" class="orders-list"></div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <div id="itemSheetLayer" class="sheet-layer" hidden>
+      <button class="sheet-scrim" type="button" data-sheet-close aria-label="閉じる"></button>
+      <section class="item-sheet" role="dialog" aria-modal="true" aria-labelledby="itemSheetTitle">
+        <div class="sheet-head">
+          <div>
+            <h2 id="itemSheetTitle"></h2>
+          </div>
+          <button id="itemSheetClose" class="sheet-close" type="button" aria-label="閉じる">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="itemSheetOptions" class="sheet-options"></div>
+        <div class="sheet-footer">
+          <div class="quantity-stepper" aria-label="数量">
+            <button id="quantityMinus" class="quantity-button" type="button" aria-label="数量を減らす">
+              <i data-lucide="minus" aria-hidden="true"></i>
+            </button>
+            <span id="itemSheetQuantity">1</span>
+            <button id="quantityPlus" class="quantity-button" type="button" aria-label="数量を増やす">
+              <i data-lucide="plus" aria-hidden="true"></i>
+            </button>
+          </div>
+          <button id="itemSheetConfirm" class="button button-primary sheet-confirm-button" type="button">
+            <span>カートに入れる</span>
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <dialog id="confirmDialog">
+      <form class="confirm-modal" method="dialog">
+        <div class="section-head compact">
+          <h2>確認</h2>
+          <button class="icon-button" value="cancel" type="submit" aria-label="閉じる" title="閉じる">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="confirmSummary" class="confirm-summary"></div>
+        <div id="confirmLocation" class="confirm-location-shell"></div>
+        <div id="confirmItems" class="confirm-items"></div>
+        <section class="confirm-payment-panel" aria-label="会計確認">
+          <fieldset class="control-group">
+            <legend>会計</legend>
+            <div class="segmented payment-paid-row">
+              <label><input type="radio" name="confirmPaymentStatus" value="paid"><span>徴収済み</span></label>
+            </div>
+          </fieldset>
+          <fieldset id="confirmPaymentMethodWrap" class="confirm-payment-method">
+            <legend>未徴収</legend>
+            <div class="payment-method-choice-grid" data-payment-method-picker="confirmPaymentMethod"></div>
+          </fieldset>
+        </section>
+        <div class="modal-actions confirm-actions">
+          <button id="backToOrder" class="button button-quiet" type="button">
+            <i data-lucide="arrow-left" aria-hidden="true"></i>
+            <span>戻る</span>
+          </button>
+          <button id="sendConfirmedOrder" class="button button-primary" type="button">
+            <i data-lucide="send" aria-hidden="true"></i>
+            <span>バーへ送信</span>
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="orderEditDialog">
+      <form class="order-edit-modal" method="dialog">
+        <div class="section-head compact">
+          <h2>オーダー修正</h2>
+          <button id="orderEditClose" class="icon-button" value="cancel" type="button" aria-label="閉じる" title="閉じる">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="orderEditSummary" class="order-edit-summary"></div>
+        <fieldset class="control-group">
+          <legend>届け先</legend>
+          <div class="segmented destination-row">
+            <label><input type="radio" name="editTarget" value="ring"><span>リング</span></label>
+            <label><input type="radio" name="editTarget" value="tournament"><span>トーナメント</span></label>
+            <label><input type="radio" name="editTarget" value="bar"><span>バーカウンター</span></label>
+            <label><input type="radio" name="editTarget" value="cast"><span>キャスドリ</span></label>
+          </div>
+        </fieldset>
+        <div id="orderEditLocation" class="order-edit-location"></div>
+        <section class="confirm-payment-panel" aria-label="会計修正">
+          <fieldset class="control-group">
+            <legend>会計</legend>
+            <div class="segmented payment-paid-row">
+              <label><input type="radio" name="editPaymentStatus" value="paid"><span>徴収済み</span></label>
+            </div>
+          </fieldset>
+          <fieldset id="orderEditPaymentMethodWrap" class="confirm-payment-method">
+            <legend>未徴収</legend>
+            <div class="payment-method-choice-grid" data-payment-method-picker="orderEditPaymentMethod"></div>
+          </fieldset>
+        </section>
+        <div class="modal-actions confirm-actions">
+          <button id="deleteOrderEdit" class="button button-danger" type="button">削除</button>
+          <button id="orderEditCancel" class="button button-quiet" type="button">キャンセル</button>
+          <button id="saveOrderEdit" class="button button-primary" type="button">
+            <i data-lucide="save" aria-hidden="true"></i>
+            <span>上書き保存</span>
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="alcoholManualDialog">
+      <section class="alcohol-manual-modal" aria-labelledby="alcoholManualTitle">
+        <div class="section-head compact">
+          <h2 id="alcoholManualTitle">お酒作成マニュアル</h2>
+          <button id="alcoholManualClose" class="icon-button" type="button" aria-label="閉じる" title="閉じる">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="alcoholManualContent" class="alcohol-manual-content"></div>
+      </section>
+    </dialog>
+
+    <dialog id="configDialog">
+      <form class="config-modal" method="dialog">
+        <div class="config-sticky-head">
+          <h2>設定</h2>
+          <button id="saveConfig" class="button button-primary config-save-button" value="default" type="submit">
+            <i data-lucide="save" aria-hidden="true"></i>
+            <span>保存</span>
+          </button>
+          <button id="configCloseButton" class="icon-button" type="button" aria-label="閉じる" title="閉じる">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <nav class="config-section-tabs" aria-label="設定項目">
+          <button class="active" type="button" data-config-section="drinks" aria-pressed="true">ドリンク</button>
+          <button type="button" data-config-section="bell" aria-pressed="false">ベル</button>
+          <button type="button" data-config-section="manual" aria-pressed="false">お酒作成M</button>
+        </nav>
+
+        <div class="config-content">
+          <section class="config-section active" data-config-section-panel="drinks">
+            <div class="menu-editor" id="menuEditor" aria-label="メニュー編集"></div>
+            <div class="setting-inline-actions">
+              <button id="addMenuCategory" class="button button-quiet" type="button">
+                <i data-lucide="plus" aria-hidden="true"></i>
+                <span>カテゴリ追加</span>
+              </button>
+            </div>
+            <div class="sync-settings">
+              <label>
+                <span>Supabase URL</span>
+                <input id="supabaseUrl" type="url" placeholder="https://xxxx.supabase.co">
+              </label>
+              <label>
+                <span>Supabase anon key</span>
+                <input id="supabaseAnonKey" type="password" placeholder="public anon key">
+              </label>
+              <button id="clearConfig" class="button button-quiet" type="button">
+                <i data-lucide="refresh-cw" aria-hidden="true"></i>
+                <span>共有同期に戻す</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="config-section" data-config-section-panel="bell" hidden>
+            <div class="setting-row sound-setting-row">
+              <div>
+                <span class="setting-label">バー受信通知音</span>
+                <span id="soundStatus" class="setting-status">オン</span>
+              </div>
+              <button id="soundToggle" class="button button-quiet" type="button" aria-pressed="true">
+                <i data-lucide="bell-ring" aria-hidden="true"></i>
+                <span>通知音</span>
+              </button>
+            </div>
+            <div class="sound-category-list" aria-label="種類別の通知音設定">
+              <div class="sound-category-setting">
+                <strong>ソフドリ</strong>
+                <label class="sound-choice-field">
+                  <span>効果音</span>
+                  <select data-sound-choice="soft">
+                    <option value="news-title">ニュースタイトル表示</option>
+                    <option value="decision-button">決定ボタン</option>
+                    <option value="level-up">レベルアップ</option>
+                    <option value="bell">ベル（高音）</option>
+                    <option value="ramen-stall">ラーメン屋台登場</option>
+                    <option value="nurse-call">ナースコール</option>
+                  </select>
+                </label>
+                <button class="button button-quiet" type="button" data-sound-preview="soft">
+                  <i data-lucide="volume-2" aria-hidden="true"></i>
+                  <span>試聴</span>
+                </button>
+              </div>
+              <div class="sound-category-setting">
+                <strong>アルコール</strong>
+                <label class="sound-choice-field">
+                  <span>効果音</span>
+                  <select data-sound-choice="alcohol">
+                    <option value="news-title">ニュースタイトル表示</option>
+                    <option value="decision-button">決定ボタン</option>
+                    <option value="level-up">レベルアップ</option>
+                    <option value="bell">ベル（高音）</option>
+                    <option value="ramen-stall">ラーメン屋台登場</option>
+                    <option value="nurse-call">ナースコール</option>
+                  </select>
+                </label>
+                <button class="button button-quiet" type="button" data-sound-preview="alcohol">
+                  <i data-lucide="volume-2" aria-hidden="true"></i>
+                  <span>試聴</span>
+                </button>
+              </div>
+              <div class="sound-category-setting">
+                <strong>フード</strong>
+                <label class="sound-choice-field">
+                  <span>効果音</span>
+                  <select data-sound-choice="food">
+                    <option value="news-title">ニュースタイトル表示</option>
+                    <option value="decision-button">決定ボタン</option>
+                    <option value="level-up">レベルアップ</option>
+                    <option value="bell">ベル（高音）</option>
+                    <option value="ramen-stall">ラーメン屋台登場</option>
+                    <option value="nurse-call">ナースコール</option>
+                  </select>
+                </label>
+                <button class="button button-quiet" type="button" data-sound-preview="food">
+                  <i data-lucide="volume-2" aria-hidden="true"></i>
+                  <span>試聴</span>
+                </button>
+              </div>
+              <div class="sound-category-setting">
+                <strong>キャスドリ</strong>
+                <label class="sound-choice-field">
+                  <span>効果音</span>
+                  <select data-sound-choice="cast">
+                    <option value="news-title">ニュースタイトル表示</option>
+                    <option value="decision-button">決定ボタン</option>
+                    <option value="level-up">レベルアップ</option>
+                    <option value="bell">ベル（高音）</option>
+                    <option value="ramen-stall">ラーメン屋台登場</option>
+                    <option value="nurse-call">ナースコール</option>
+                  </select>
+                </label>
+                <button class="button button-quiet" type="button" data-sound-preview="cast">
+                  <i data-lucide="volume-2" aria-hidden="true"></i>
+                  <span>試聴</span>
+                </button>
+              </div>
+              <div class="sound-category-setting">
+                <strong>未作成10分</strong>
+                <label class="sound-choice-field">
+                  <span>効果音</span>
+                  <select data-sound-choice="unmade10">
+                    <option value="news-title">ニュースタイトル表示</option>
+                    <option value="decision-button">決定ボタン</option>
+                    <option value="level-up">レベルアップ</option>
+                    <option value="bell">ベル（高音）</option>
+                    <option value="ramen-stall">ラーメン屋台登場</option>
+                    <option value="nurse-call">ナースコール</option>
+                  </select>
+                </label>
+                <button class="button button-quiet" type="button" data-sound-preview="unmade10">
+                  <i data-lucide="volume-2" aria-hidden="true"></i>
+                  <span>試聴</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="config-section" data-config-section-panel="manual" hidden>
+            <div class="manual-setting-intro">
+              <strong>アルコール作成メモ</strong>
+              <span>1行ごとに手順を入力できます</span>
+            </div>
+            <div id="alcoholManualEditor" class="alcohol-manual-editor"></div>
+          </section>
+
+          <div id="configUnsavedPrompt" class="unsaved-prompt" hidden>
+            <p>保存していない変更があります。保存しますか？</p>
+            <div class="unsaved-actions">
+              <button id="configPromptCancel" class="button button-quiet" type="button">キャンセル</button>
+              <button id="configPromptSave" class="button button-primary" type="button">
+                <i data-lucide="save" aria-hidden="true"></i>
+                <span>保存</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+  </body>
+</html>
