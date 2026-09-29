@@ -11,7 +11,7 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026092902">
+    <link rel="stylesheet" href="./styles.css?v=2026092904">
     <script src="./store-config.js"></script>
     <script src="./initial-settings.js"></script>
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -20,7 +20,7 @@
     <script defer src="./app.js?v=2026092901"></script>
     <script defer src="./unlimited-config.js?v=2026092902"></script>
     <script defer src="./unlimited-shared.js?v=2026092902"></script>
-    <script defer src="./unlimited-admin.js?v=2026092902"></script>
+    <script defer src="./unlimited-admin.js?v=2026092904"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -82,11 +82,19 @@
                   <select id="unlimitedCardPlan" required></select>
                 </label>
                 <label>
-                  <span>カード識別名</span>
-                  <input id="unlimitedCardLabel" type="text" maxlength="30" placeholder="例：ソフト2時間 1番" required>
+                  <span>カード名（任意）</span>
+                  <input id="unlimitedCardLabel" type="text" maxlength="30" placeholder="未入力ならプラン名">
                 </label>
-                <button id="unlimitedCreateCard" class="button button-primary" type="submit">QRカードを発行</button>
+                <label>
+                  <span>発行枚数</span>
+                  <input id="unlimitedCardQuantity" type="number" inputmode="numeric" min="1" max="20" value="20" required>
+                </label>
+                <button id="unlimitedCreateCard" class="button button-primary" type="submit">選択プランを発行</button>
               </form>
+              <div class="unlimited-card-bulk-actions">
+                <button id="unlimitedCreateAllCards" class="button button-primary" type="button">全8プランを各20枚まで用意</button>
+                <button id="unlimitedPrintCards" class="button button-quiet" type="button">QR一覧を印刷</button>
+              </div>
               <p id="unlimitedCardOriginNote" class="unlimited-card-origin-note"></p>
               <div id="unlimitedCardList" class="unlimited-card-list">
                 <p class="unlimited-session-empty">発行済みカードを読み込んでいます...</p>

@@ -23,6 +23,8 @@
     form.addEventListener("submit", activateByCode);
     $("#unlimitedSessionList")?.addEventListener("click", handleSessionAction);
     $("#unlimitedCardForm")?.addEventListener("submit", createFixedCard);
+    $("#unlimitedCreateAllCards")?.addEventListener("click", createAllFixedCards);
+    $("#unlimitedPrintCards")?.addEventListener("click", printFixedCards);
     $("#unlimitedCardList")?.addEventListener("click", handleCardAction);
 
     try {
@@ -86,25 +88,17 @@
     if (!gateway) return;
     const planId = $("#unlimitedCardPlan").value;
     const labelInput = $("#unlimitedCardLabel");
-    const label = labelInput.value.trim();
+    const quantity = normalizeCardQuantity($("#unlimitedCardQuantity").value);
     const plan = U.findPlan(menu, planId);
-    if (!plan || !label) return;
+    if (!plan) return;
+    const baseLabel = labelInput.value.trim() || plan.name;
     const button = $("#unlimitedCreateCard");
     button.disabled = true;
     try {
-      cards = await gateway.saveCards([
-        ...cards,
-        {
-          id: U.makeId(),
-          label,
-          planId,
-          token: U.makeCardToken(),
-          createdAt: new Date(gateway.now()).toISOString(),
-        },
-      ]);
+      cards = await appendCards([{ planId, planName: plan.name, baseLabel }], quantity);
       labelInput.value = "";
       renderCards();
-      setStatus(`${label} の固定QRカードを発行しました`, "success");
+      setStatus(`${plan.name} の固定QRカードを${quantity}枚発行しました`, "success");
     } catch (error) {
       setStatus(error.message || "固定QRカードを発行できませんでした", "error");
     } finally {
@@ -112,12 +106,99 @@
     }
   }
 
+  async function createAllFixedCards() {
+    if (!gateway) return;
+    const button = $("#unlimitedCreateAllCards");
+    const targetQuantity = 20;
+    const plans = (menu.find((category) => category?.id === "all-you-can-drink")?.items || [])
+      .filter((plan) => U.CONFIG.planRules?.[plan.id])
+      .map((plan) => ({ planId: plan.id, planName: plan.name, baseLabel: plan.name }));
+    if (!plans.length) return;
+    button.disabled = true;
+    try {
+      const result = await ensureCardsPerPlan(plans, targetQuantity);
+      cards = result.cards;
+      renderCards();
+      setStatus(
+        result.addedCount
+          ? `既存QRを維持し、不足分${result.addedCount}枚を追加しました（各${targetQuantity}枚）`
+          : `全${plans.length}プランとも固定QRカードは各${targetQuantity}枚用意済みです`,
+        "success"
+      );
+    } catch (error) {
+      setStatus(error.message || "固定QRカードを一括発行できませんでした", "error");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function ensureCardsPerPlan(planInputs, targetQuantity) {
+    const loaded = await gateway.loadCards();
+    const current = loaded.map((card) => ({ ...card, url: card.url || customerUrlFor(card.token, card.planId), immutable: true }));
+    const migratedExistingCards = current.some((card, index) => card.url !== loaded[index]?.url || loaded[index]?.immutable !== true);
+    const createdAt = new Date(gateway.now()).toISOString();
+    const additions = planInputs.flatMap(({ planId, planName, baseLabel }) => {
+      const existingCount = current.filter((card) => card.planId === planId).length;
+      const missingCount = Math.max(0, targetQuantity - existingCount);
+      return Array.from({ length: missingCount }, (_, index) =>
+        createCardRecord(`${baseLabel || planName} ${existingCount + index + 1}番`, planId, createdAt)
+      );
+    });
+    if (!additions.length && !migratedExistingCards) return { cards: current, addedCount: 0 };
+    const saved = await gateway.saveCards([...current, ...additions]);
+    return { cards: saved, addedCount: additions.length };
+  }
+
+  async function appendCards(planInputs, quantity) {
+    const loaded = await gateway.loadCards();
+    const current = loaded.map((card) => ({ ...card, url: card.url || customerUrlFor(card.token, card.planId), immutable: true }));
+    const createdAt = new Date(gateway.now()).toISOString();
+    const additions = planInputs.flatMap(({ planId, planName, baseLabel }) => {
+      const existingCount = current.filter((card) => card.planId === planId).length;
+      return Array.from({ length: quantity }, (_, index) =>
+        createCardRecord(`${baseLabel || planName} ${existingCount + index + 1}番`, planId, createdAt)
+      );
+    });
+    return gateway.saveCards([...current, ...additions]);
+  }
+
+  function createCardRecord(label, planId, createdAt) {
+    const token = U.makeCardToken();
+    return {
+      id: U.makeId(),
+      label,
+      planId,
+      token,
+      url: customerUrlFor(token, planId),
+      createdAt,
+      immutable: true,
+    };
+  }
+
+  function normalizeCardQuantity(value) {
+    return Math.max(1, Math.min(20, Number.parseInt(value, 10) || 20));
+  }
+
+  function printFixedCards() {
+    const details = $(".unlimited-card-manager");
+    if (!cards.length) {
+      setStatus("印刷する固定QRカードがありません", "error");
+      return;
+    }
+    if (details) details.open = true;
+    window.print();
+  }
+
   function fixedCardUrl(card) {
+    return card.url || customerUrlFor(card.token, card.planId);
+  }
+
+  function customerUrlFor(token, planId) {
     const url = new URL("./unlimited-customer.html", location.href);
     url.search = "";
     url.hash = "";
-    url.searchParams.set("card", card.token);
-    url.searchParams.set("plan", card.planId);
+    url.searchParams.set("card", token);
+    url.searchParams.set("plan", planId);
     return url.href;
   }
 
