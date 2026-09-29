@@ -93,30 +93,48 @@
         return;
       }
       if (session.status === "pending") {
-        if (!sameDevice) {
-          showError("このQRカードは別の端末で使用中です", "同時に利用できる端末は1台です。受付スタッフへお声がけください。");
+        if (Date.parse(session.requestExpiresAt) <= now) {
+          if (createIfMissing) {
+            const renewed = await createActivationRequest();
+            state.session = renewed;
+            showActivation(renewed);
+            return;
+          }
+          showError("アクティベーションコードの期限が切れました", "新しい4桁コードを発行して、受付スタッフへお伝えください。", true);
           return;
         }
-        if (Date.parse(session.requestExpiresAt) <= now) {
-          showError("アクティベーションコードの期限が切れました", "新しい4桁コードを発行して、受付スタッフへお伝えください。", true);
+        if (!sameDevice) {
+          showError("このQRカードは別の端末で使用中です", "同時に利用できる端末は1台です。受付スタッフへお声がけください。");
           return;
         }
         showActivation(session);
         return;
       }
       if (session.status === "active") {
-        if (!sameDevice) {
-          showError("このQRカードは使用済みです", "同時に利用できる端末は1台です。受付スタッフへお声がけください。");
+        if (Date.parse(session.expiresAt) <= now) {
+          if (!sameDevice && createIfMissing) {
+            const renewed = await createActivationRequest();
+            state.session = renewed;
+            showActivation(renewed);
+            return;
+          }
+          showEnded();
           return;
         }
-        if (Date.parse(session.expiresAt) <= now) {
-          showEnded();
+        if (!sameDevice) {
+          showError("このQRカードは使用済みです", "同時に利用できる端末は1台です。受付スタッフへお声がけください。");
           return;
         }
         showOrder(session);
         return;
       }
       if (session.status === "revoked") {
+        if (createIfMissing) {
+          const renewed = await createActivationRequest();
+          state.session = renewed;
+          showActivation(renewed);
+          return;
+        }
         showError("このQRカードは無効です", "利用が停止されています。受付スタッフへカードをご提示ください。");
         return;
       }
