@@ -219,7 +219,20 @@
 .unlimited-session-state { color: #9a3412; font-size: .75rem; font-weight: 850; }
 .unlimited-session-card.is-active .unlimited-session-state { color: #15803d; }
 .unlimited-session-card .button { min-height: 44px; flex: 0 0 auto; }
+.unlimited-session-card .unlimited-revoke-button {
+  border: 2px solid #991b1b;
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, .24);
+  font-weight: 900;
+}
+.unlimited-session-card .unlimited-revoke-button:hover { background: #b91c1c; }
+.unlimited-session-card .unlimited-revoke-button:focus-visible {
+  outline: 4px solid rgba(220, 38, 38, .28);
+  outline-offset: 2px;
+}
 .unlimited-session-empty { margin: 4px 0; color: var(--muted); font-size: .86rem; }
+.unlimited-url-print-sheet { display: none; }
 
 @media (max-width: 760px) {
   .unlimited-activation-panel { grid-template-columns: 1fr; }
@@ -266,6 +279,39 @@
   .unlimited-card-qr { width: 40mm; min-height: 40mm; border: 0; padding: 0; }
   .unlimited-card-info > span { color: #333; }
   .unlimited-card-info > strong { font-size: 14pt; }
+
+  body.print-unlimited-urls .unlimited-card-manager { display: none !important; }
+  body.print-unlimited-urls .unlimited-url-print-sheet,
+  body.print-unlimited-urls .unlimited-url-print-sheet * { visibility: visible !important; }
+  body.print-unlimited-urls .unlimited-url-print-sheet {
+    display: block !important;
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    color: #111;
+  }
+  body.print-unlimited-urls .unlimited-url-print-sheet h1 { margin: 0 0 2mm; font-size: 16pt; }
+  body.print-unlimited-urls .unlimited-url-print-sheet p { margin: 0 0 4mm; font-size: 9pt; }
+  body.print-unlimited-urls .unlimited-url-print-sheet table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 7.5pt;
+  }
+  body.print-unlimited-urls .unlimited-url-print-sheet th,
+  body.print-unlimited-urls .unlimited-url-print-sheet td {
+    padding: 1.6mm;
+    border: 1px solid #777;
+    vertical-align: top;
+    text-align: left;
+  }
+  body.print-unlimited-urls .unlimited-url-print-sheet th:nth-child(1),
+  body.print-unlimited-urls .unlimited-url-print-sheet td:nth-child(1) { width: 8mm; text-align: right; }
+  body.print-unlimited-urls .unlimited-url-print-sheet th:nth-child(2),
+  body.print-unlimited-urls .unlimited-url-print-sheet td:nth-child(2) { width: 42mm; }
+  body.print-unlimited-urls .unlimited-url-print-sheet th:nth-child(3),
+  body.print-unlimited-urls .unlimited-url-print-sheet td:nth-child(3) { width: 42mm; }
+  body.print-unlimited-urls .unlimited-print-url { overflow-wrap: anywhere; word-break: break-all; font-family: ui-monospace, monospace; }
 }
 
 * {

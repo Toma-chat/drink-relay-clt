@@ -25,6 +25,7 @@
     $("#unlimitedCardForm")?.addEventListener("submit", createFixedCard);
     $("#unlimitedCreateAllCards")?.addEventListener("click", createAllFixedCards);
     $("#unlimitedPrintCards")?.addEventListener("click", printFixedCards);
+    $("#unlimitedPrintUrls")?.addEventListener("click", printFixedCardUrls);
     $("#unlimitedCardList")?.addEventListener("click", handleCardAction);
 
     try {
@@ -187,6 +188,42 @@
     }
     if (details) details.open = true;
     window.print();
+  }
+
+  function printFixedCardUrls() {
+    if (!cards.length) {
+      setStatus("印刷する固定QRカードがありません", "error");
+      return;
+    }
+    const sorted = sortCardsForOutput(cards);
+    const rows = $("#unlimitedUrlPrintRows");
+    const summary = $("#unlimitedUrlPrintSummary");
+    rows.innerHTML = sorted.map((card, index) => {
+      const plan = U.findPlan(menu, card.planId);
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(plan?.name || card.planId)}</td>
+          <td>${escapeHtml(card.label)}</td>
+          <td class="unlimited-print-url">${escapeHtml(fixedCardUrl(card))}</td>
+        </tr>`;
+    }).join("");
+    summary.textContent = `${sorted.length}枚 · ${location.origin}`;
+    document.body.classList.add("print-unlimited-urls");
+    window.addEventListener("afterprint", () => document.body.classList.remove("print-unlimited-urls"), { once: true });
+    window.print();
+  }
+
+  function sortCardsForOutput(values) {
+    const planOrder = new Map(
+      (menu.find((category) => category?.id === "all-you-can-drink")?.items || [])
+        .map((plan, index) => [plan.id, index])
+    );
+    return [...values].sort((a, b) => {
+      const planDifference = (planOrder.get(a.planId) ?? 999) - (planOrder.get(b.planId) ?? 999);
+      if (planDifference) return planDifference;
+      return String(a.label).localeCompare(String(b.label), "ja", { numeric: true });
+    });
   }
 
   function fixedCardUrl(card) {
@@ -357,7 +394,7 @@
               <strong>${escapeHtml(name)}</strong>
               <small>${pending ? "コード期限" : "残り"} ${escapeHtml(U.formatRemaining(Date.parse(limit) - now))}</small>
             </div>
-            ${pending ? "" : `<button type="button" class="button button-quiet" data-unlimited-session-action="revoke" data-session-id="${escapeHtml(session.sessionId)}">利用停止</button>`}
+            ${pending ? "" : `<button type="button" class="button unlimited-revoke-button" data-unlimited-session-action="revoke" data-session-id="${escapeHtml(session.sessionId)}">利用停止</button>`}
           </article>`;
       }).join("");
     } catch (error) {

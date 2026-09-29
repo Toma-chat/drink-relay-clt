@@ -11,7 +11,7 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026092904">
+    <link rel="stylesheet" href="./styles.css?v=2026092905">
     <script src="./store-config.js"></script>
     <script src="./initial-settings.js"></script>
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -20,7 +20,7 @@
     <script defer src="./app.js?v=2026092901"></script>
     <script defer src="./unlimited-config.js?v=2026092902"></script>
     <script defer src="./unlimited-shared.js?v=2026092902"></script>
-    <script defer src="./unlimited-admin.js?v=2026092904"></script>
+    <script defer src="./unlimited-admin.js?v=2026092905"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -93,7 +93,8 @@
               </form>
               <div class="unlimited-card-bulk-actions">
                 <button id="unlimitedCreateAllCards" class="button button-primary" type="button">全8プランを各20枚まで用意</button>
-                <button id="unlimitedPrintCards" class="button button-quiet" type="button">QR一覧を印刷</button>
+                <button id="unlimitedPrintCards" class="button button-quiet" type="button">QRカードを印刷</button>
+                <button id="unlimitedPrintUrls" class="button button-quiet" type="button">全URL一覧を印刷</button>
               </div>
               <p id="unlimitedCardOriginNote" class="unlimited-card-origin-note"></p>
               <div id="unlimitedCardList" class="unlimited-card-list">
@@ -175,6 +176,17 @@
 
       </main>
     </div>
+
+    <section id="unlimitedUrlPrintSheet" class="unlimited-url-print-sheet" aria-hidden="true">
+      <h1>飲み放題 固定QRカードURL一覧</h1>
+      <p id="unlimitedUrlPrintSummary"></p>
+      <table>
+        <thead>
+          <tr><th>No.</th><th>プラン</th><th>カード名</th><th>お客様用URL</th></tr>
+        </thead>
+        <tbody id="unlimitedUrlPrintRows"></tbody>
+      </table>
+    </section>
 
     <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
