@@ -14,7 +14,7 @@
   const SOUND_CHOICE_KEY = `${STORAGE_PREFIX}-sound-choice-v1`;
   const SOUND_CHOICES_KEY = `${STORAGE_PREFIX}-sound-choices-v2`;
   const SOUND_PREVIEWED_KEY = `${STORAGE_PREFIX}-sound-previewed-v1`;
-  const MENU_KEY = `${STORAGE_PREFIX}-menu-v1`;
+  const MENU_KEY = `${STORAGE_PREFIX}-menu-v2`;
   const OPTION_TEMPLATES_KEY = `${STORAGE_PREFIX}-option-templates-v1`;
   const RECEPTION_MENU_MODE_KEY = `${STORAGE_PREFIX}-reception-menu-mode-v1`;
   const LEGACY_DRINKS_KEY = `${STORAGE_PREFIX}-drinks-v1`;
@@ -22,6 +22,7 @@
   const SETTINGS_ROW_ID = "main";
   const SOUND_SETTINGS_ROW_ID = "notification-sounds";
   const OPTION_TEMPLATE_SETTINGS_ROW_ID = "option-templates";
+  const REQUIRED_MENU_CATEGORY_IDS = ["all-you-can-drink"];
   const CAST_STORAGE_TARGET = "tournament";
   const CAST_STORAGE_SEAT = "__cast__";
   const DEFAULT_SUPABASE_URL = String(STORE_CONFIG.supabaseUrl || "").trim();
@@ -2169,7 +2170,7 @@
 
   function applySharedSettings(row, options = {}) {
     if (sharedSettingsHasMenu(row)) {
-      state.menu = normalizeMenu(row.menu, { allowEmpty: true });
+      state.menu = ensureRequiredMenuCategories(row.menu);
       localStorage.setItem(MENU_KEY, JSON.stringify(state.menu));
       renderMenuPickers();
     }
@@ -3223,12 +3224,12 @@
     try {
       const saved = JSON.parse(localStorage.getItem(MENU_KEY) || "null");
       if (saved) {
-        return normalizeMenu(saved, { allowEmpty: true });
+        return ensureRequiredMenuCategories(saved);
       }
 
       const legacyDrinks = JSON.parse(localStorage.getItem(LEGACY_DRINKS_KEY) || "null");
       if (Array.isArray(legacyDrinks)) {
-        return normalizeMenu([
+        return ensureRequiredMenuCategories([
           {
             id: "soft",
             label: "ソフドリ",
@@ -3240,15 +3241,15 @@
       }
 
       if (Array.isArray(INITIAL_SETTINGS.menu) && INITIAL_SETTINGS.menu.length) {
-        return normalizeMenu(INITIAL_SETTINGS.menu, { allowEmpty: true });
+        return ensureRequiredMenuCategories(INITIAL_SETTINGS.menu);
       }
     } catch {
     }
 
     if (Array.isArray(INITIAL_SETTINGS.menu) && INITIAL_SETTINGS.menu.length) {
-      return normalizeMenu(INITIAL_SETTINGS.menu, { allowEmpty: true });
+      return ensureRequiredMenuCategories(INITIAL_SETTINGS.menu);
     }
-    return normalizeMenu(DEFAULT_MENU);
+    return ensureRequiredMenuCategories(DEFAULT_MENU);
   }
 
   function readOptionTemplates() {
@@ -3353,6 +3354,20 @@
       .filter(Boolean);
 
     return normalized.length ? normalized : cloneDefaultMenu();
+  }
+
+  function ensureRequiredMenuCategories(menu) {
+    const normalized = normalizeMenu(menu, { allowEmpty: true });
+    const initialCategories = Array.isArray(INITIAL_SETTINGS.menu) ? INITIAL_SETTINGS.menu : [];
+    const missingCategories = initialCategories.filter((initialCategory) =>
+      REQUIRED_MENU_CATEGORY_IDS.includes(initialCategory?.id)
+      && !normalized.some((category) =>
+        category.id === initialCategory.id || category.label === initialCategory.label
+      )
+    );
+
+    if (!missingCategories.length) return normalized;
+    return normalizeMenu([...normalized, ...missingCategories], { allowEmpty: true });
   }
 
   function cloneDefaultMenu() {

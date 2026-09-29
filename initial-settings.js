@@ -2501,6 +2501,86 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
       ]
     },
     {
+      "id": "all-you-can-drink",
+      "items": [
+        {
+          "id": "unlimited-soft-2h",
+          "name": "2時間ソフトドリンク飲み放題",
+          "price": 1500,
+          "recipe": "",
+          "optionGroups": [],
+          "subcategory_id": "two-hours"
+        },
+        {
+          "id": "unlimited-soft-sp-2h",
+          "name": "2時間ソフトドリンク飲み放題SP",
+          "price": 2000,
+          "recipe": "",
+          "optionGroups": [],
+          "subcategory_id": "two-hours"
+        },
+        {
+          "id": "unlimited-alcohol-2h",
+          "name": "2時間アルコール飲み放題",
+          "price": 2500,
+          "recipe": "",
+          "optionGroups": [],
+          "subcategory_id": "two-hours"
+        },
+        {
+          "id": "unlimited-alcohol-sp-2h",
+          "name": "2時間アルコール飲み放題SP",
+          "price": 3000,
+          "recipe": "",
+          "optionGroups": [],
+          "subcategory_id": "two-hours"
+        },
+        {
+          "id": "unlimited-soft-all-day",
+          "name": "終日ソフトドリンク飲み放題",
+          "price": 3000,
+          "recipe": "",
+          "optionGroups": [],
+          "subcategory_id": "all-day"
+        },
+        {
+          "id": "unlimited-soft-sp-all-day",
+          "name": "終日ソフトドリンク飲み放題SP",
+          "price": 3500,
+          "recipe": "",
+          "optionGroups": [],
+          "subcategory_id": "all-day"
+        },
+        {
+          "id": "unlimited-alcohol-all-day",
+          "name": "終日アルコール飲み放題",
+          "price": 4000,
+          "recipe": "",
+          "optionGroups": [],
+          "subcategory_id": "all-day"
+        },
+        {
+          "id": "unlimited-alcohol-sp-all-day",
+          "name": "終日アルコール飲み放題SP",
+          "price": 5000,
+          "recipe": "",
+          "optionGroups": [],
+          "subcategory_id": "all-day"
+        }
+      ],
+      "label": "飲み放題",
+      "subcategories": [
+        {
+          "id": "two-hours",
+          "label": "2時間"
+        },
+        {
+          "id": "all-day",
+          "label": "終日"
+        }
+      ]
+    },
+    {
       "id": "other",
       "items": [
         {
@@ -2609,3 +2689,262 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
     }
   ]
 });
+
+// Revised store menu (2026-09-28). This final assignment is the active initial menu.
+(() => {
+  const option = (id, label, choices, required = false) => ({ id, label, choices, required });
+  const item = (id, name, price, subcategory_id, optionGroups = [], recipe = "") => ({
+    id,
+    name,
+    price,
+    recipe,
+    optionGroups: optionGroups.map((group) => ({ ...group, choices: [...group.choices] })),
+    subcategory_id,
+  });
+
+  const hot = option("hot", "hot", ["hot"]);
+  const ice = option("ice", "氷", ["氷少なめ", "氷なし"]);
+  const iceIn = option("ice-in", "氷", ["氷あり"]);
+  const straw = option("straw", "ストロー", ["ストローあり"]);
+  const strength = option("strength", "濃さ", ["濃いめ"]);
+  const whiskeyMix = option(
+    "whiskey-mix",
+    "割り方",
+    ["ロック", "ストレート", "炭酸", "水", "お湯", "コーラ", "ジンジャーエール"],
+    true
+  );
+  const spiritMix = option(
+    "spirit-mix",
+    "割り方",
+    ["ストレート", "ロック", "炭酸", "コーラ", "オレンジジュース"],
+    true
+  );
+
+  const whiskeyRecipe =
+    "水割り・お湯割り・炭酸割り・コーラ割り・ジンジャーエール割り：ウイスキー30mlを入れ、割り材で満たす\nロック：ウイスキー45mlを氷入りグラスに注ぐ";
+
+  const menu = [
+    {
+      id: "soft",
+      label: "ソフトドリンク",
+      subcategories: [
+        { id: "water-tea", label: "水、お茶" },
+        { id: "juice", label: "ジュース・その他" },
+        { id: "energy", label: "エナジードリンク" },
+      ],
+      items: [
+        item("oolong-tea", "水", 500, "water-tea", [option("room-temperature", "常温", ["常温"])]),
+        item("green-tea", "緑茶", 500, "water-tea", [ice, hot]),
+        item("item-1783049172799", "烏龍茶", 500, "water-tea", [ice, hot]),
+        item("item-1783049181927", "紅茶", 500, "water-tea", [ice, hot]),
+        item("item-1783049320701", "ジャスミン茶", 500, "water-tea", [hot, ice]),
+        item("item-1783049326313", "梅昆布茶", 500, "water-tea"),
+        item("item-1790128481339", "tomaテスト中", 0, "water-tea"),
+
+        item("cola", "コーヒー", 500, "juice", [
+          hot,
+          ice,
+          option("milk", "ミルク", ["ミルクあり"]),
+          option("gum-syrup", "ガムシロップ", ["ガムシロップあり", "ガムシロップ2個"]),
+        ]),
+        item("ginger-ale", "カフェオレ", 500, "juice", [
+          option("more-milk", "牛乳", ["牛乳多め"]),
+          hot,
+          ice,
+          option("gum-syrup", "ガムシロップ", ["ガムシロップあり", "ガムシロップ2個"]),
+        ]),
+        item("orange-juice", "ココア", 500, "juice", [option("more-milk", "牛乳", ["牛乳多め"]), hot, ice]),
+        item("iced-coffee", "コーラ", 500, "juice", [ice]),
+        item("melon-soda", "メロンソーダ", 500, "juice", [ice]),
+        item("item-1783049531455", "ジンジャーエール", 500, "juice", [ice]),
+        item("item-1783049570152", "カルピス", 500, "juice", [
+          option("calpis-mix", "割り方", ["ソーダ", "牛乳"]),
+          strength,
+          ice,
+          hot,
+        ]),
+        item("item-1783049580653", "マンゴージュース", 500, "juice", [
+          option("mango-mix", "割り方", ["ソーダ", "牛乳"]),
+          ice,
+        ]),
+        item("item-1783049599311", "オレンジジュース", 500, "juice", [ice]),
+        item("item-1783049610093", "グレープフルーツジュース", 500, "juice", [ice]),
+        item("apple-juice", "リンゴジュース", 500, "juice", [ice]),
+        item("item-1783049632280", "ペリエ", 600, "juice"),
+        item("item-1783049641395", "牛乳", 500, "juice", [iceIn]),
+        item("corn-potage", "コーンポタージュ", 500, "juice"),
+        item("onion-soup", "オニオンスープ", 500, "juice"),
+        item("bottle-cola", "瓶コーラ", 600, "juice", [option("bottle", "瓶", ["瓶のまま"])]),
+        item("bottle-cola-zero", "瓶コーラゼロ", 500, "juice", [option("bottle", "瓶", ["瓶のまま"])]),
+
+        item("item-1783049677236", "レッドブル（ノーマル）", 700, "energy"),
+        item("item-1790095632221", "レッドブル（ノンシュガー）", 700, "energy"),
+      ],
+    },
+    {
+      id: "alcohol",
+      label: "アルコール",
+      subcategories: [
+        { id: "beer", label: "ビール" },
+        { id: "whiskey", label: "ウィスキー" },
+        { id: "sour", label: "サワー" },
+        { id: "cocktail", label: "カクテル" },
+        { id: "gin", label: "ジン" },
+        { id: "vodka", label: "ウォッカ" },
+        { id: "rum", label: "ラム" },
+        { id: "shot", label: "ショット" },
+        { id: "cast-drink", label: "キャストドリンク" },
+      ],
+      items: [
+        item(
+          "beer",
+          "生ビール",
+          800,
+          "beer",
+          [iceIn, option("beer-foam", "泡", ["泡なし"])],
+          "生ビール入れる\nそのあと生ビールを入れて\n最後に生ビールを入れる"
+        ),
+        item("highball", "コロナビール", 800, "beer", [
+          option("lemon-lime", "レモンライム", ["レモン", "ライム", "なし"], true),
+        ]),
+        item(
+          "item-1783052901930",
+          "シャンディガフ",
+          800,
+          "beer",
+          [iceIn],
+          "生ビールとジンジャーエールを1:1で注ぐ\n軽くステアする"
+        ),
+        item(
+          "item-1783052913210",
+          "ビアコーク",
+          800,
+          "beer",
+          [ice],
+          "生ビールとコーラを1:1で注ぐ\n軽くステアする"
+        ),
+
+        item("item-1783052940322", "ブラックニッカ", 800, "whiskey", [whiskeyMix, strength], whiskeyRecipe),
+        item("item-1783052950604", "メーカーズマーク", 800, "whiskey", [whiskeyMix, strength], whiskeyRecipe),
+        item("item-1783052961537", "ジャックダニエル", 800, "whiskey", [
+          whiskeyMix,
+          strength,
+          option("lemon", "レモン", ["レモンあり"]),
+        ], whiskeyRecipe),
+
+        item("item-1783053231839", "レモンサワー", 800, "sour", [strength, straw, ice], "レモンサワーのもと30mlを入れる\n炭酸で満たして軽くステアする"),
+        item("item-1783053242905", "グレープフルーツサワー", 800, "sour", [strength, straw, ice], "サワーベース30mlとグレープフルーツジュース30mlを入れる\n炭酸で満たして軽くステアする"),
+        item("item-1783053258647", "ウーロンハイ", 800, "sour", [strength, straw, ice], "サワーベース30mlを入れる\nウーロン茶で満たして軽くステアする"),
+        item("item-1783053270509", "紅茶ハイ", 800, "sour", [strength, straw, ice]),
+        item("item-1783053301898", "緑茶ハイ", 800, "sour", [strength, straw, ice], "サワーベース30mlを入れる\n緑茶で満たして軽くステアする"),
+        item("item-1783053313814", "ジャスミンハイ", 800, "sour", [strength, straw, ice], "サワーベース30mlを入れる\nジャスミン茶で満たして軽くステアする"),
+
+        item("item-1783053335099", "カシス", 800, "cocktail", [
+          option("cassis-mix", "割り方", ["炭酸", "オレンジジュース", "グレープフルーツジュース", "烏龍茶", "牛乳"], true),
+          straw,
+          ice,
+        ], "カシスソーダ：カシス30mlを炭酸で満たす\nカシスオレンジ：カシス30mlをオレンジジュースで満たす\nカシスグレープフルーツ：カシス30mlをグレープフルーツジュースで満たす"),
+        item("item-1783053343148", "ピーチ", 800, "cocktail", [
+          option("peach-mix", "割り方", ["オレンジジュース", "烏龍茶", "紅茶", "炭酸", "牛乳"], true),
+          straw,
+          ice,
+        ], "ピーチウーロン：ピーチ30mlをウーロン茶で満たす\nファジーネーブル：ピーチ30mlをオレンジジュースで満たす"),
+        item("item-1783053351523", "マリブ", 800, "cocktail", [
+          option("malibu-mix", "割り方", ["コーラ", "牛乳", "マンゴージュース"], true),
+          straw,
+          ice,
+        ], "マリブコーク：マリブ30mlをコーラで満たす\nマリブミルク：マリブ30mlを牛乳で満たす"),
+        item("item-1783053374220", "カルーア", 800, "cocktail", [
+          option("kahlua-mix", "割り方", ["牛乳", "コーヒー", "ウォッカ"], true),
+          straw,
+          ice,
+        ], "カルーア30mlを牛乳で満たして軽くステアする"),
+        item("amaretto", "アマレット", 800, "cocktail", [
+          option("amaretto-mix", "割り方", ["ロック", "炭酸", "ジンジャーエール", "オレンジジュース", "牛乳"], true),
+          straw,
+          ice,
+        ]),
+
+        item("item-1783053519044", "ジン", 800, "gin", [spiritMix, straw, ice]),
+        item("item-1783053527395", "ジントニック", 800, "gin", [straw, ice], "ジン30mlを入れる\nトニックウォーターで満たす\nライムを添えて軽くステアする"),
+        item("item-1783053542344", "ジンバック", 800, "gin", [straw, ice], "ジン30mlを入れる\nジンジャーエールで満たす\nライムを添えて軽くステアする"),
+        item("item-1783053550529", "ジンリッキー", 800, "gin", [straw, ice]),
+
+        item("item-1783053581016", "ウォッカ", 800, "vodka", [spiritMix, straw, ice]),
+        item("item-1783053600099", "ウォッカトニック", 800, "vodka", [straw, ice], "ウォッカ30mlを入れる\nトニックウォーターで満たす\nライムを添えて軽くステアする"),
+        item("item-1783053614958", "スクリュードライバー", 800, "vodka", [straw, iceIn], "ウォッカ30mlを入れる\nオレンジジュースで満たして軽くステアする"),
+        item("item-1783053634194", "モスコミュール", 800, "vodka", [straw, ice], "ウォッカ30mlとライムジュース1tspを入れる\nジンジャーエールで満たす\nライムを添えて軽くステアする"),
+        item("item-1783053789682", "レッドブルウォッカ", 800, "vodka", [
+          option("red-bull", "レッドブル種類", ["ノーマル", "ノンシュガー"], true),
+          straw,
+          ice,
+        ]),
+
+        item("item-1783053717209", "ラムコーク", 800, "rum", [straw, ice], "ラム30mlを入れる\nコーラで満たす\nライムを添えて軽くステアする"),
+        item("rum-tonic", "ラムトニック", 800, "rum", [straw, ice]),
+        item("rum-cocoa", "ラムココア", 800, "rum", [straw, ice]),
+        item("sol-cubano", "ソルクバーノ", 800, "rum", [straw, ice]),
+
+        item("item-1783053833910", "テキーラ", 1000, "shot"),
+        item("cast-drink", "キャストドリンク", 1000, "cast-drink"),
+      ],
+    },
+    {
+      id: "all-you-can-drink",
+      label: "飲み放題",
+      subcategories: [
+        { id: "two-hours", label: "2時間" },
+        { id: "all-day", label: "終日" },
+      ],
+      items: [
+        item("unlimited-soft-2h", "2時間ソフトドリンク飲み放題", 1500, "two-hours"),
+        item("unlimited-soft-sp-2h", "2時間ソフトドリンク飲み放題SP", 2000, "two-hours"),
+        item("unlimited-alcohol-2h", "2時間アルコール飲み放題", 2500, "two-hours"),
+        item("unlimited-alcohol-sp-2h", "2時間アルコール飲み放題SP", 3000, "two-hours"),
+        item("unlimited-soft-all-day", "終日ソフトドリンク飲み放題", 3000, "all-day"),
+        item("unlimited-soft-sp-all-day", "終日ソフトドリンク飲み放題SP", 3500, "all-day"),
+        item("unlimited-alcohol-all-day", "終日アルコール飲み放題", 4000, "all-day"),
+        item("unlimited-alcohol-sp-all-day", "終日アルコール飲み放題SP", 5000, "all-day"),
+      ],
+    },
+    {
+      id: "other",
+      label: "その他",
+      subcategories: [{ id: "default", label: "サービス" }],
+      items: [item("item-1783054117700", "ストロー", 0, "default")],
+    },
+  ];
+
+  window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
+    menu,
+    soundChoices: {
+      cast: "bell",
+      food: "bell",
+      soft: "bell",
+      alcohol: "bell",
+      unmade10: "nurse-call",
+    },
+    optionTemplates: [
+      hot,
+      ice,
+      option("bottle", "瓶", ["瓶のまま"]),
+      option("mix", "割り方", [
+        "ソーダ",
+        "牛乳",
+        "ロック",
+        "ストレート",
+        "炭酸",
+        "水",
+        "お湯",
+        "コーラ",
+        "ジンジャーエール",
+        "オレンジジュース",
+        "紅茶",
+        "烏龍茶",
+      ]),
+      strength,
+      option("lemon-lime", "レモンライム", ["レモン", "ライム", "なし"]),
+      straw,
+    ],
+  });
+})();
