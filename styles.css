@@ -216,8 +216,22 @@
 .unlimited-session-card small { display: block; }
 .unlimited-session-card strong { overflow: hidden; margin-top: 2px; text-overflow: ellipsis; white-space: nowrap; }
 .unlimited-session-card small { margin-top: 3px; color: var(--muted); }
+.unlimited-session-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
 .unlimited-session-state { color: #9a3412; font-size: .75rem; font-weight: 850; }
 .unlimited-session-card.is-active .unlimited-session-state { color: #15803d; }
+.unlimited-session-card-number {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 3px 9px;
+  border: 1px solid #fdba74;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: .78rem;
+  font-weight: 900;
+  line-height: 1;
+}
 .unlimited-session-card .button { min-height: 44px; flex: 0 0 auto; }
 .unlimited-session-card .unlimited-revoke-button {
   border: 2px solid #991b1b;

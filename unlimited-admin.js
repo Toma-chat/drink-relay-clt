@@ -7,6 +7,8 @@
   let gateway;
   let menu = [];
   let cards = [];
+  let cardLookupSource = null;
+  let cardLookupPromise = null;
   let refreshTimer = null;
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -371,6 +373,7 @@
     if (!gateway) return;
     try {
       const now = gateway.now();
+      const cardByHash = await buildCardLookup();
       const sessions = (await gateway.listSessions())
         .filter((session) => {
           if (session.status === "pending") return Date.parse(session.requestExpiresAt) > now;
@@ -385,12 +388,17 @@
       $("#unlimitedSessionList").innerHTML = sessions.map((session) => {
         const plan = U.findPlan(menu, session.planId);
         const name = session.planName || plan?.name || session.planId;
+        const card = cardByHash.get(session.cardHash);
+        const cardNumber = formatCardNumber(card);
         const pending = session.status === "pending";
         const limit = pending ? session.requestExpiresAt : session.expiresAt;
         return `
           <article class="unlimited-session-card ${pending ? "is-pending" : "is-active"}">
             <div>
-              <span class="unlimited-session-state">${pending ? `待機中 · ${escapeHtml(session.activationCode)}` : "利用中"}</span>
+              <div class="unlimited-session-heading">
+                <span class="unlimited-session-state">${pending ? `待機中 · ${escapeHtml(session.activationCode)}` : "利用中"}</span>
+                <span class="unlimited-session-card-number">${escapeHtml(cardNumber)}</span>
+              </div>
               <strong>${escapeHtml(name)}</strong>
               <small>${pending ? "コード期限" : "残り"} ${escapeHtml(U.formatRemaining(Date.parse(limit) - now))}</small>
             </div>
@@ -400,6 +408,24 @@
     } catch (error) {
       renderEmpty(error.message || "カード情報を読み込めません");
     }
+  }
+
+  async function buildCardLookup() {
+    if (cardLookupSource !== cards || !cardLookupPromise) {
+      cardLookupSource = cards;
+      cardLookupPromise = Promise.all(cards.map(async (card) => [
+        await U.digest(`${U.STORE_ID}:${card.token}`),
+        card,
+      ])).then((entries) => new Map(entries));
+    }
+    return cardLookupPromise;
+  }
+
+  function formatCardNumber(card) {
+    if (!card) return "カード番号不明";
+    const label = String(card.label || "").trim();
+    const match = label.match(/(?:no\.?|番号?|番)\s*(\d+)/i) || label.match(/(\d+)\s*番/i);
+    return match ? `カード No.${match[1]}` : `カード ${label || "番号不明"}`;
   }
 
   function renderEmpty(message) {
