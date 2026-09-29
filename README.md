@@ -68,5 +68,8 @@ window.DRINK_RELAY_STORE_CONFIG = Object.freeze({
 - `initial-settings.js`: 初回用メニュー・通知音・作り方設定
 - `supabase-schema.sql`: 店舗専用データベースの作成SQL
 - `DISTRIBUTION-NOTES.md`: 1店舗向け提供条件のひな形
+- `unlimited-customer.html`: 飲み放題利用者向けのモバイル注文画面
+- `unlimited-config.js`: プラン別の商品対象・時間設定
+- `UNLIMITED-DRINKS.md`: 固定QRの作り方、運用、セキュリティ上の注意
 
 Supabase未設定の間はローカルデモモードで動きますが、別端末への注文共有は行われません。

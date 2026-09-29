@@ -18,6 +18,219 @@
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+/* 飲み放題カードの受付操作。既存の受付フォームとは独立して配置する。 */
+.unlimited-activation-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, .8fr) minmax(300px, 1.2fr);
+  gap: 18px 28px;
+  margin: 0 0 18px;
+  padding: 18px;
+  border: 1px solid #fed7aa;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fffaf6, #fff);
+  box-shadow: 0 5px 18px rgba(124, 45, 18, .07);
+  width: min(1220px, 100%);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.unlimited-activation-copy h2 {
+  margin: 3px 0 5px;
+  color: var(--ink);
+  font-size: 1.12rem;
+}
+
+.unlimited-activation-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .86rem;
+}
+
+.unlimited-activation-kicker {
+  color: #c2410c;
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.unlimited-activation-form > label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.unlimited-code-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 190px) minmax(160px, 1fr);
+  gap: 10px;
+}
+
+.unlimited-code-row input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  border: 2px solid #fdba74;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: .2em;
+  text-align: center;
+}
+
+.unlimited-code-row button { min-height: 52px; }
+
+.unlimited-activation-status {
+  min-height: 20px;
+  margin-top: 7px;
+  font-size: .8rem;
+  font-weight: 800;
+}
+
+.unlimited-activation-status[data-state="error"] { color: #b91c1c; }
+.unlimited-activation-status[data-state="success"] { color: #15803d; }
+.unlimited-activation-status[data-state="loading"] { color: #9a3412; }
+
+.unlimited-session-details {
+  grid-column: 1 / -1;
+  border-top: 1px solid #fed7aa;
+  padding-top: 12px;
+}
+
+.unlimited-card-manager {
+  grid-column: 1 / -1;
+  border-top: 1px solid #fed7aa;
+  padding-top: 4px;
+}
+
+.unlimited-session-details summary {
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 44px;
+}
+
+.unlimited-card-manager summary {
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 44px;
+}
+
+.unlimited-card-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fff7ed;
+}
+
+.unlimited-card-form label span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: .76rem;
+  font-weight: 800;
+}
+
+.unlimited-card-form select,
+.unlimited-card-form input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 11px;
+  border: 1px solid #d6d3d1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.unlimited-card-form .button { min-height: 48px; }
+.unlimited-card-origin-note { margin: 8px 2px 12px; color: var(--muted); font-size: .78rem; }
+.unlimited-card-origin-note.is-warning { color: #9a3412; font-weight: 750; }
+.unlimited-card-list { display: grid; gap: 10px; }
+.unlimited-fixed-card {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+.unlimited-card-qr {
+  display: grid;
+  place-items: center;
+  width: 152px;
+  min-height: 152px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: .75rem;
+  text-align: center;
+}
+.unlimited-card-qr img,
+.unlimited-card-qr canvas { max-width: 100%; height: auto !important; }
+.unlimited-card-info { min-width: 0; }
+.unlimited-card-info > span { color: #c2410c; font-size: .76rem; font-weight: 800; }
+.unlimited-card-info > strong { display: block; margin: 3px 0 9px; font-size: 1.05rem; }
+.unlimited-card-info code {
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 9px;
+  border-radius: 8px;
+  background: #f5f5f4;
+  color: #44403c;
+  font-size: .72rem;
+  user-select: all;
+}
+.unlimited-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.unlimited-card-actions .button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; text-decoration: none; }
+
+.unlimited-session-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.unlimited-session-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 5px solid #16a34a;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.unlimited-session-card.is-pending { border-left-color: var(--teal); }
+.unlimited-session-card > div { min-width: 0; }
+.unlimited-session-card strong,
+.unlimited-session-card small { display: block; }
+.unlimited-session-card strong { overflow: hidden; margin-top: 2px; text-overflow: ellipsis; white-space: nowrap; }
+.unlimited-session-card small { margin-top: 3px; color: var(--muted); }
+.unlimited-session-state { color: #9a3412; font-size: .75rem; font-weight: 850; }
+.unlimited-session-card.is-active .unlimited-session-state { color: #15803d; }
+.unlimited-session-card .button { min-height: 44px; flex: 0 0 auto; }
+.unlimited-session-empty { margin: 4px 0; color: var(--muted); font-size: .86rem; }
+
+@media (max-width: 760px) {
+  .unlimited-activation-panel { grid-template-columns: 1fr; }
+  .unlimited-session-details,
+  .unlimited-card-manager { grid-column: 1; }
+  .unlimited-card-form { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .unlimited-code-row { grid-template-columns: 1fr; }
+  .unlimited-fixed-card { grid-template-columns: 1fr; }
+}
+
 * {
   box-sizing: border-box;
   scrollbar-width: none;
@@ -1578,11 +1791,32 @@ button:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-left: 6px solid var(--amber);
-  border-radius: 8px;
+  min-height: 156px;
+  padding: 18px;
+  border: 2px solid #d9d4ce;
+  border-left: 10px solid var(--amber);
+  border-radius: 12px;
   background: #ffffff;
+  box-shadow: 0 4px 12px rgba(47, 47, 47, 0.08);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 100ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.order-card:not(.is-static):hover {
+  border-color: #bdb6ae;
+  box-shadow: 0 7px 18px rgba(47, 47, 47, 0.13);
+}
+
+.order-card:not(.is-static):active {
+  transform: scale(0.985);
+}
+
+.order-card:focus-visible {
+  outline: 4px solid rgba(249, 115, 22, 0.34);
+  outline-offset: 2px;
 }
 
 .order-card.payment-cash {
@@ -1702,13 +1936,34 @@ button:focus-visible {
 }
 
 .order-card.status-served {
-  border-left-color: var(--green);
-  opacity: 0.72;
+  border-color: #aeb3b7;
+  border-left-color: #7d858b;
+  background: #e4e6e8;
+  opacity: 0.88;
 }
 
 .order-card.status-canceled {
   border-left-color: var(--rose);
   opacity: 0.68;
+  cursor: default;
+}
+
+.order-card.is-completing {
+  border-color: #737b81 !important;
+  border-left-color: #737b81 !important;
+  background: #b9bec2 !important;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.order-card.is-completing::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: 3;
+  border-radius: inherit;
+  background: rgba(104, 112, 118, 0.58);
+  pointer-events: none;
 }
 
 .order-card.payment-uncollected {
@@ -1797,15 +2052,17 @@ button:focus-visible {
 }
 
 .order-title {
-  font-size: 1.18rem;
-  font-weight: 850;
+  font-size: clamp(1.35rem, 2vw, 1.72rem);
+  font-weight: 900;
+  line-height: 1.18;
   overflow-wrap: anywhere;
 }
 
 .order-time {
-  color: var(--muted);
-  font-size: 0.88rem;
-  font-weight: 700;
+  margin-left: auto;
+  color: #57524d;
+  font-size: 1rem;
+  font-weight: 850;
   white-space: nowrap;
 }
 
@@ -1873,8 +2130,8 @@ button:focus-visible {
 
 #barOrders .order-card {
   grid-template-columns: 1fr;
-  gap: 12px;
-  padding: 14px;
+  gap: 14px;
+  padding: 18px;
 }
 
 #barOrders .order-side {

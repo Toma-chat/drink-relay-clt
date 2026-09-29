@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f97316">
+    <title>飲み放題オーダー | Drink Relay</title>
+    <link rel="stylesheet" href="./unlimited-customer.css?v=2026092901">
+    <script src="./store-config.js"></script>
+    <script src="./initial-settings.js"></script>
+    <script src="./unlimited-config.js?v=2026092902"></script>
+    <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script defer src="./unlimited-shared.js?v=2026092902"></script>
+    <script defer src="./unlimited-customer.js?v=2026092901"></script>
+  </head>
+  <body>
+    <main id="customerApp" class="customer-app">
+      <section id="loadingState" class="customer-state centered-state" aria-live="polite">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <h1>カードを確認しています</h1>
+        <p>このまま少々お待ちください</p>
+      </section>
+
+      <section id="activationState" class="customer-state centered-state" hidden>
+        <span class="state-mark waiting-mark" aria-hidden="true">•••</span>
+        <p class="eyebrow">受付での操作が必要です</p>
+        <h1>アクティベーション待ち</h1>
+        <p>このコードを受付スタッフへお伝えください</p>
+        <output id="activationCode" class="activation-code" aria-label="4桁のアクティベーションコード"></output>
+        <div class="waiting-pill"><span aria-hidden="true"></span>アクティベートを待っています</div>
+        <div id="activationPlanName" class="plan-preview"></div>
+      </section>
+
+      <section id="errorState" class="customer-state centered-state" hidden>
+        <span class="state-mark error-mark" aria-hidden="true">!</span>
+        <p class="eyebrow">カードを確認できません</p>
+        <h1 id="errorTitle">このQRは利用できません</h1>
+        <p id="errorMessage">受付スタッフへカードをご提示ください。</p>
+        <button id="retryActivation" class="primary-action" type="button" hidden>もう一度確認する</button>
+      </section>
+
+      <section id="orderState" class="customer-state order-state" hidden>
+        <header class="order-header">
+          <div class="plan-heading">
+            <span>飲み放題プラン</span>
+            <strong id="activePlanName"></strong>
+          </div>
+          <div id="remainingTime" class="remaining-time" role="timer" aria-live="off">
+            <span>残り時間</span>
+            <strong>--分</strong>
+          </div>
+        </header>
+
+        <nav id="categoryNav" class="category-nav" aria-label="ドリンクカテゴリ"></nav>
+
+        <div id="menuLoading" class="inline-state">
+          <div class="loading-spinner small" aria-hidden="true"></div>
+          <p>メニューを読み込んでいます</p>
+        </div>
+        <div id="menuError" class="inline-state error-inline" hidden>
+          <strong>メニューを読み込めませんでした</strong>
+          <p>通信状態を確認して、もう一度お試しください。</p>
+          <button id="retryMenu" class="secondary-action" type="button">再読み込み</button>
+        </div>
+        <div id="menuEmpty" class="inline-state" hidden>
+          <strong>注文できる商品がありません</strong>
+          <p>受付スタッフへお声がけください。</p>
+        </div>
+        <div id="menuSections" class="menu-sections"></div>
+
+        <div class="cart-dock-wrap">
+          <button id="openCart" class="cart-dock" type="button" disabled>
+            <span class="cart-dock-label"><span aria-hidden="true">🛒</span> カートを確認</span>
+            <span id="cartCount" class="cart-count">0</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="endedState" class="customer-state centered-state" hidden>
+        <span class="state-mark ended-mark" aria-hidden="true">✓</span>
+        <p class="eyebrow">ご利用ありがとうございました</p>
+        <h1>飲み放題は終了しました</h1>
+        <p>注文受付は終了しています。</p>
+        <div class="return-card-message">QRカードを受付へご返却ください</div>
+      </section>
+    </main>
+
+    <dialog id="itemDialog" class="customer-dialog item-dialog">
+      <form method="dialog" id="itemForm">
+        <header class="dialog-header">
+          <div><span>カスタム・数量</span><h2 id="itemDialogTitle"></h2></div>
+          <button class="close-button" value="cancel" type="submit" aria-label="閉じる">×</button>
+        </header>
+        <div id="itemOptions" class="item-options"></div>
+        <div class="quantity-row">
+          <span>数量</span>
+          <div class="quantity-stepper">
+            <button id="itemMinus" type="button" aria-label="数量を減らす">−</button>
+            <output id="itemQuantity">1</output>
+            <button id="itemPlus" type="button" aria-label="数量を増やす">＋</button>
+          </div>
+        </div>
+        <button id="addToCart" class="primary-action" type="button">カートに追加</button>
+      </form>
+    </dialog>
+
+    <dialog id="cartDialog" class="customer-dialog cart-dialog">
+      <section>
+        <header class="dialog-header sticky-dialog-header">
+          <div><span>注文確認</span><h2>ご注文内容</h2></div>
+          <button id="closeCart" class="close-button" type="button" aria-label="閉じる">×</button>
+        </header>
+        <div id="cartItems" class="cart-items"></div>
+        <fieldset class="destination-fieldset">
+          <legend>届け先（必要な場合）</legend>
+          <div class="destination-buttons">
+            <label><input type="radio" name="customerTarget" value="bar" checked><span>バーカウンター</span></label>
+            <label><input type="radio" name="customerTarget" value="tournament"><span>トーナメント</span></label>
+            <label><input type="radio" name="customerTarget" value="ring"><span>リング</span></label>
+          </div>
+          <div id="locationFields" class="location-fields" hidden>
+            <label>テーブル<input id="customerTable" type="text" maxlength="4" placeholder="例 A"></label>
+            <label>席番号<input id="customerSeat" type="text" maxlength="4" inputmode="numeric" placeholder="例 3"></label>
+          </div>
+        </fieldset>
+        <p class="paid-note">お支払いは完了しています。支払方法の選択は不要です。</p>
+        <div id="sendStatus" class="send-status" role="status" aria-live="assertive"></div>
+        <button id="submitOrder" class="primary-action order-submit" type="button">注文する</button>
+      </section>
+    </dialog>
+
+    <div id="customerToast" class="customer-toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

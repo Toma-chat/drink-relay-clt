@@ -11,12 +11,16 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026092316">
+    <link rel="stylesheet" href="./styles.css?v=2026092902">
     <script src="./store-config.js"></script>
     <script src="./initial-settings.js"></script>
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026092316"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script defer src="./app.js?v=2026092901"></script>
+    <script defer src="./unlimited-config.js?v=2026092902"></script>
+    <script defer src="./unlimited-shared.js?v=2026092902"></script>
+    <script defer src="./unlimited-admin.js?v=2026092902"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -50,6 +54,45 @@
 
       <main>
         <section id="view-reception" class="view active" aria-label="受付">
+          <section class="unlimited-activation-panel" aria-labelledby="unlimitedActivationTitle">
+            <div class="unlimited-activation-copy">
+              <span class="unlimited-activation-kicker">飲み放題カード</span>
+              <h2 id="unlimitedActivationTitle">お客様端末をアクティベート</h2>
+              <p>お客様画面に表示された4桁コードを入力してください。</p>
+            </div>
+            <form id="unlimitedActivationForm" class="unlimited-activation-form" autocomplete="off">
+              <label for="unlimitedActivationCode">4桁コード</label>
+              <div class="unlimited-code-row">
+                <input id="unlimitedActivationCode" name="activationCode" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="0000" aria-describedby="unlimitedActivationStatus" required>
+                <button id="unlimitedActivateButton" class="button button-primary" type="submit">アクティベート</button>
+              </div>
+              <div id="unlimitedActivationStatus" class="unlimited-activation-status" role="status" aria-live="polite"></div>
+            </form>
+            <details class="unlimited-session-details">
+              <summary>利用中・待機中のカード</summary>
+              <div id="unlimitedSessionList" class="unlimited-session-list">
+                <p class="unlimited-session-empty">読み込み中...</p>
+              </div>
+            </details>
+            <details class="unlimited-card-manager">
+              <summary>固定QRカードのURLを発行</summary>
+              <form id="unlimitedCardForm" class="unlimited-card-form" autocomplete="off">
+                <label>
+                  <span>プラン</span>
+                  <select id="unlimitedCardPlan" required></select>
+                </label>
+                <label>
+                  <span>カード識別名</span>
+                  <input id="unlimitedCardLabel" type="text" maxlength="30" placeholder="例：ソフト2時間 1番" required>
+                </label>
+                <button id="unlimitedCreateCard" class="button button-primary" type="submit">QRカードを発行</button>
+              </form>
+              <p id="unlimitedCardOriginNote" class="unlimited-card-origin-note"></p>
+              <div id="unlimitedCardList" class="unlimited-card-list">
+                <p class="unlimited-session-empty">発行済みカードを読み込んでいます...</p>
+              </div>
+            </details>
+          </section>
           <div class="workbench sender-workbench solo-workbench">
             <form class="order-form" data-source="reception" autocomplete="off" aria-label="受付送信">
               <fieldset class="control-group first-group">

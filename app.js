@@ -239,6 +239,7 @@
     audioUnlockPromise: null,
     soundSavePromise: Promise.resolve(false),
     iconRefreshTimer: null,
+    pendingServeTimers: new Map(),
     configSnapshot: "",
     configSection: "drinks",
     configActiveCategoryId: "",
@@ -752,6 +753,7 @@
     });
 
     $("#barOrders").addEventListener("click", handleOrderAction);
+    $("#barOrders").addEventListener("keydown", handleOrderKeydown);
     $("#alcoholManualClose").addEventListener("click", closeAlcoholManual);
     document.addEventListener("pointerdown", (event) => {
       const dialog = $("#alcoholManualDialog");
@@ -2430,20 +2432,71 @@
       openAlcoholManual(manualButton.closest("[data-order-id]")?.dataset.orderId, manualButton);
       return;
     }
-    const button = event.target.closest("[data-order-action]");
-    if (!button) return;
-    const id = button.closest("[data-order-id]")?.dataset.orderId;
-    const action = button.dataset.orderAction;
+
+    const card = event.target.closest("[data-order-id]");
+    if (!card) return;
+    toggleOrderServed(card.dataset.orderId);
+  }
+
+  function handleOrderKeydown(event) {
+    if (!['Enter', ' '].includes(event.key) || event.target.closest("[data-order-manual]")) return;
+    const card = event.target.closest("[data-order-id]");
+    if (!card) return;
+    event.preventDefault();
+    toggleOrderServed(card.dataset.orderId);
+  }
+
+  function toggleOrderServed(id) {
     if (!id) return;
     const order = state.orders.find((item) => item.id === id);
     if (!order) return;
 
-    if (action === "making") updateOrder(id, { status: "making" });
-    if (action === "made") updateOrder(id, { status: "made" });
-    if (action === "edit") openOrderEdit(id);
-    if (action === "served") updateOrder(id, { status: "served" });
-    if (action === "paid") updateOrder(id, { payment_status: "paid" });
-    if (action === "cancel") updateOrder(id, { status: "canceled" });
+    if (state.pendingServeTimers.has(id)) {
+      cancelPendingServe(id);
+      return;
+    }
+
+    if (order.status === "served") {
+      restoreServedOrder(id);
+      return;
+    }
+
+    if (order.status === "canceled") return;
+    queueOrderAsServed(id);
+  }
+
+  function queueOrderAsServed(id) {
+    const timer = window.setTimeout(async () => {
+      state.pendingServeTimers.delete(id);
+      const order = state.orders.find((item) => item.id === id);
+      if (!order || ["served", "canceled"].includes(order.status)) {
+        renderBar();
+        return;
+      }
+
+      await updateOrder(id, { status: "served" });
+    }, 1600);
+
+    state.pendingServeTimers.set(id, timer);
+    renderBar();
+    scheduleIconRefresh();
+  }
+
+  function cancelPendingServe(id) {
+    const timer = state.pendingServeTimers.get(id);
+    if (timer) window.clearTimeout(timer);
+    state.pendingServeTimers.delete(id);
+    renderBar();
+    scheduleIconRefresh();
+    toast("提供済みを取り消しました");
+  }
+
+  async function restoreServedOrder(id) {
+    const restored = await updateOrder(id, {
+      status: "ordered",
+      served_at: null,
+    });
+    if (restored) toast("未提供に戻しました");
   }
 
   function render() {
@@ -2690,7 +2743,7 @@
   }
 
   function orderCard(order, options = {}) {
-    const compact = Boolean(options.compact);
+    const isCompleting = state.pendingServeTimers.has(order.id);
     const elapsedMinutes = minutesSince(order.created_at);
     const isWaiting = !["served", "canceled"].includes(order.status);
     const waitingClass = isWaiting && elapsedMinutes >= 10
@@ -2715,9 +2768,21 @@
         </button>`
       : "";
     const note = displayOrderNote(order.notes);
+    const isCanceled = order.status === "canceled";
+    const interactionLabel = isCompleting
+      ? `${order.drink_name}を提供済みにしています。もう一度タップすると取り消します`
+      : order.status === "served"
+        ? `${order.drink_name}の提供済みを取り消す`
+        : isCanceled
+          ? `${order.drink_name}、取消済み`
+          : `${order.drink_name}を提供済みにする`;
 
     return `
-      <article class="order-card ${statusClass}${paymentClass}${waitingClass}" data-order-id="${escapeHtml(order.id)}">
+      <article class="order-card ${statusClass}${paymentClass}${waitingClass}${isCompleting ? " is-completing" : ""}${isCanceled ? " is-static" : ""}"
+        data-order-id="${escapeHtml(order.id)}"
+        role="button"
+        tabindex="${isCanceled ? "-1" : "0"}"
+        aria-label="${escapeHtml(interactionLabel)}">
         <div class="order-main">
           ${paymentIndicator}
           <div class="order-destination-row">
@@ -2733,9 +2798,6 @@
             ${quantityPill}
           </div>
           ${note.text ? `<p class="order-note${note.isOptions ? " order-option-note" : ""}">${escapeHtml(note.text)}</p>` : ""}
-        </div>
-        <div class="order-side">
-          ${compact ? compactActions(order) : fullActions(order)}
         </div>
       </article>
     `;
@@ -2897,33 +2959,6 @@
     $$(`input[name='${groupName}']`).forEach((input) => {
       input.checked = false;
     });
-  }
-
-  function compactActions(order) {
-    return "";
-  }
-
-  function fullActions(order) {
-    if (order.status === "served" || order.status === "canceled") {
-      return "";
-    }
-
-    return `
-      <div class="status-actions">
-        ${order.status !== "made" ? actionButton("made", "作成済み", "", "button-made") : ""}
-        ${actionButton("served", "提供済み", "", "button-served")}
-        ${actionButton("edit", "修正", "", "button-edit")}
-      </div>
-    `;
-  }
-
-  function actionButton(action, label, icon, className) {
-    return `
-      <button class="button ${className}" type="button" data-order-action="${action}">
-        ${icon ? `<i data-lucide="${icon}" aria-hidden="true"></i>` : ""}
-        <span>${label}</span>
-      </button>
-    `;
   }
 
   function normalizePaymentMethod(value) {
