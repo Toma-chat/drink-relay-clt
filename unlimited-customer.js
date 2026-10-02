@@ -53,6 +53,7 @@
     $("#retryMenu")?.addEventListener("click", reloadMenu);
     $("#categoryNav")?.addEventListener("click", handleCategoryClick);
     $("#menuSections")?.addEventListener("click", handleMenuClick);
+    window.addEventListener("scroll", scheduleActiveCategory, { passive: true });
     $("#itemMinus")?.addEventListener("click", () => changeItemQuantity(-1));
     $("#itemPlus")?.addEventListener("click", () => changeItemQuantity(1));
     $("#addToCart")?.addEventListener("click", addItemToCart);
@@ -232,33 +233,92 @@
     const exclude = new Set(state.rule.excludeItemIds || []);
     return U.normalizeMenu(state.menu).map((category) => ({
       ...category,
-      items: (category.items || []).filter((item) => !exclude.has(item.id) && (allowed.has(category.id) || include.has(item.id))),
+      items: (category.items || [])
+        .filter((item) => !exclude.has(item.id) && (allowed.has(category.id) || include.has(item.id)))
+        .map(applyPlanOptionRules),
     })).filter((category) => category.items.length);
+  }
+
+  function applyPlanOptionRules(item) {
+    const itemRules = state.rule.optionChoiceRules?.[item.id];
+    if (!itemRules || typeof itemRules !== "object") return item;
+
+    const optionGroups = (item.optionGroups || []).flatMap((group) => {
+      if (!Object.prototype.hasOwnProperty.call(itemRules, group.id)) return [group];
+      const allowedChoices = new Set(Array.isArray(itemRules[group.id]) ? itemRules[group.id] : []);
+      const choices = (group.choices || []).filter((choice) => allowedChoices.has(choice));
+      return choices.length ? [{ ...group, choices }] : [];
+    });
+    return { ...item, optionGroups };
   }
 
   function renderMenu() {
     try {
       const categories = eligibleCategories();
+      const groups = menuGroups(categories);
       $("#menuLoading").hidden = true;
       $("#menuError").hidden = true;
-      $("#menuEmpty").hidden = Boolean(categories.length);
-      $("#categoryNav").innerHTML = categories.map((category, index) => `
-        <button type="button" data-category-id="${escapeHtml(category.id)}" class="${index === 0 ? "active" : ""}">${escapeHtml(category.label)}</button>
+      $("#menuEmpty").hidden = Boolean(groups.length);
+      $("#categoryNav").innerHTML = groups.map((group, index) => `
+        <button type="button" data-menu-group-id="${escapeHtml(group.id)}" class="${index === 0 ? "active" : ""}" aria-current="${index === 0 ? "true" : "false"}">
+          <span class="category-nav-icon" aria-hidden="true">${menuGroupIcon(group)}</span>
+          <span class="category-nav-label">${escapeHtml(group.label)}</span>
+          <span class="category-nav-count">${group.items.length}品</span>
+        </button>
       `).join("");
-      $("#menuSections").innerHTML = categories.map((category) => `
-        <section id="customer-category-${escapeHtml(category.id)}" class="menu-category-section" data-category-section="${escapeHtml(category.id)}">
-          <h2>${escapeHtml(category.label)}</h2>
+      $("#menuSections").innerHTML = groups.map((group) => `
+        <section id="customer-group-${escapeHtml(group.id)}" class="menu-category-section" data-menu-group-section="${escapeHtml(group.id)}">
+          <div class="menu-category-heading">
+            <span aria-hidden="true">${menuGroupIcon(group)}</span>
+            <div><h2>${escapeHtml(group.label)}</h2><p>${escapeHtml(group.parentLabel)} · ${group.items.length}品</p></div>
+          </div>
           <div class="menu-grid">
-            ${category.items.map((item) => menuCard(category, item)).join("")}
+            ${group.items.map((item) => menuCard(group.category, item)).join("")}
           </div>
         </section>
       `).join("");
       renderCartBadge();
+      scheduleActiveCategory();
     } catch (error) {
       console.error(error);
       $("#menuLoading").hidden = true;
       $("#menuError").hidden = false;
     }
+  }
+
+  function menuGroups(categories) {
+    return categories.flatMap((category) => {
+      const subcategories = Array.isArray(category.subcategories) ? category.subcategories : [];
+      if (!subcategories.length) {
+        return [{
+          id: category.id,
+          label: category.label,
+          parentLabel: category.label,
+          category,
+          items: category.items,
+        }];
+      }
+
+      const knownIds = new Set(subcategories.map((subcategory) => subcategory.id));
+      const groups = subcategories.map((subcategory) => ({
+        id: `${category.id}-${subcategory.id}`,
+        label: subcategory.label,
+        parentLabel: category.label,
+        category,
+        items: category.items.filter((item) => item.subcategory_id === subcategory.id),
+      })).filter((group) => group.items.length);
+      const ungrouped = category.items.filter((item) => !knownIds.has(item.subcategory_id));
+      if (ungrouped.length) {
+        groups.push({
+          id: `${category.id}-other`,
+          label: "その他",
+          parentLabel: category.label,
+          category,
+          items: ungrouped,
+        });
+      }
+      return groups;
+    });
   }
 
   function menuCard(category, item) {
@@ -288,10 +348,49 @@
   }
 
   function handleCategoryClick(event) {
-    const button = event.target.closest("[data-category-id]");
+    const button = event.target.closest("[data-menu-group-id]");
     if (!button) return;
-    $$("#categoryNav button").forEach((entry) => entry.classList.toggle("active", entry === button));
-    $(`#customer-category-${cssEscape(button.dataset.categoryId)}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveCategory(button.dataset.menuGroupId);
+    $(`#customer-group-${cssEscape(button.dataset.menuGroupId)}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function menuGroupIcon(group) {
+    const value = `${group.id} ${group.label} ${group.parentLabel}`.toLowerCase();
+    if (/beer|ビール/.test(value)) return "🍺";
+    if (/wine|ワイン/.test(value)) return "🍷";
+    if (/juice|ジュース/.test(value)) return "🧃";
+    if (/energy|redbull|エナジー|レッドブル/.test(value)) return "⚡";
+    if (/water|tea|水|お茶|紅茶/.test(value)) return "🍵";
+    if (/whisky|whiskey|ウィスキー|ウイスキー/.test(value)) return "🥃";
+    if (/焼酎|日本酒/.test(value)) return "🍶";
+    if (/coffee|tea|コーヒー|珈琲|紅茶|お茶/.test(value)) return "☕";
+    if (/alcohol|cocktail|sour|whisky|アルコール|カクテル|サワー|焼酎|ウイスキー/.test(value)) return "🍸";
+    return "🥤";
+  }
+
+  function scheduleActiveCategory() {
+    window.cancelAnimationFrame(scheduleActiveCategory.frame);
+    scheduleActiveCategory.frame = window.requestAnimationFrame(syncActiveCategory);
+  }
+
+  function syncActiveCategory() {
+    const sections = $$("[data-menu-group-section]");
+    if (!sections.length || $("#orderState")?.hidden) return;
+    const marker = ($(".order-header")?.getBoundingClientRect().height || 76) + 20;
+    let current = sections[0];
+    sections.forEach((section) => {
+      if (section.getBoundingClientRect().top <= marker) current = section;
+    });
+    setActiveCategory(current.dataset.menuGroupSection, false);
+  }
+
+  function setActiveCategory(groupId, reveal = true) {
+    $$("#categoryNav button").forEach((entry) => {
+      const active = entry.dataset.menuGroupId === groupId;
+      entry.classList.toggle("active", active);
+      entry.setAttribute("aria-current", active ? "true" : "false");
+      if (active && reveal) entry.scrollIntoView({ block: "nearest", inline: "nearest" });
+    });
   }
 
   function handleMenuClick(event) {

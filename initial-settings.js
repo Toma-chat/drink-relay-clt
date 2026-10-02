@@ -2788,10 +2788,13 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         { id: "beer", label: "ビール" },
         { id: "whiskey", label: "ウィスキー" },
         { id: "sour", label: "サワー" },
+        { id: "shochu", label: "焼酎" },
         { id: "cocktail", label: "カクテル" },
+        { id: "dita", label: "SP LIQUEUR" },
         { id: "gin", label: "ジン" },
         { id: "vodka", label: "ウォッカ" },
         { id: "rum", label: "ラム" },
+        { id: "alcohol-other", label: "その他" },
         { id: "shot", label: "ショット" },
         { id: "cast-drink", label: "キャストドリンク" },
       ],
@@ -2834,10 +2837,17 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
 
         item("item-1783053231839", "レモンサワー", 800, "sour", [strength, straw, ice], "レモンサワーのもと30mlを入れる\n炭酸で満たして軽くステアする"),
         item("item-1783053242905", "グレープフルーツサワー", 800, "sour", [strength, straw, ice], "サワーベース30mlとグレープフルーツジュース30mlを入れる\n炭酸で満たして軽くステアする"),
+        item("calpis-sour", "カルピスサワー", 800, "sour", [strength, straw, ice]),
         item("item-1783053258647", "ウーロンハイ", 800, "sour", [strength, straw, ice], "サワーベース30mlを入れる\nウーロン茶で満たして軽くステアする"),
         item("item-1783053270509", "紅茶ハイ", 800, "sour", [strength, straw, ice]),
         item("item-1783053301898", "緑茶ハイ", 800, "sour", [strength, straw, ice], "サワーベース30mlを入れる\n緑茶で満たして軽くステアする"),
         item("item-1783053313814", "ジャスミンハイ", 800, "sour", [strength, straw, ice], "サワーベース30mlを入れる\nジャスミン茶で満たして軽くステアする"),
+
+        item("ichiryuno-mugi", "一粒の麦（麦）", 800, "shochu", [whiskeyMix, strength]),
+        item("tomino-hozan", "富乃宝山（芋）", 800, "shochu", [whiskeyMix, strength]),
+        item("jasmine-jj", "JJ", 800, "shochu", [straw, ice]),
+        item("jasmine-jr", "JR", 800, "shochu", [straw, ice]),
+        item("jasmine-jk", "JK", 800, "shochu", [straw, ice]),
 
         item("item-1783053335099", "カシス", 800, "cocktail", [
           option("cassis-mix", "割り方", ["炭酸", "オレンジジュース", "グレープフルーツジュース", "烏龍茶", "牛乳"], true),
@@ -2850,7 +2860,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
           ice,
         ], "ピーチウーロン：ピーチ30mlをウーロン茶で満たす\nファジーネーブル：ピーチ30mlをオレンジジュースで満たす"),
         item("item-1783053351523", "マリブ", 800, "cocktail", [
-          option("malibu-mix", "割り方", ["コーラ", "牛乳", "マンゴージュース"], true),
+          option("malibu-mix", "割り方", ["コーラ", "炭酸", "牛乳", "マンゴージュース"], true),
           straw,
           ice,
         ], "マリブコーク：マリブ30mlをコーラで満たす\nマリブミルク：マリブ30mlを牛乳で満たす"),
@@ -2860,7 +2870,18 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
           ice,
         ], "カルーア30mlを牛乳で満たして軽くステアする"),
         item("amaretto", "アマレット", 800, "cocktail", [
-          option("amaretto-mix", "割り方", ["ロック", "炭酸", "ジンジャーエール", "オレンジジュース", "牛乳"], true),
+          option("amaretto-mix", "割り方", ["ロック", "炭酸", "コーラ", "ジンジャーエール", "オレンジジュース", "牛乳"], true),
+          straw,
+          ice,
+        ]),
+
+        item("dita", "ディタ", 800, "dita", [
+          option("dita-mix", "割り方", ["ジンジャーエール", "牛乳", "炭酸", "グレープフルーツジュース"], true),
+          straw,
+          ice,
+        ]),
+        item("tiffin", "ティフィン", 800, "dita", [
+          option("tiffin-mix", "割り方", ["牛乳", "ジンジャーエール"], true),
           straw,
           ice,
         ]),
@@ -2884,6 +2905,9 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         item("rum-tonic", "ラムトニック", 800, "rum", [straw, ice]),
         item("rum-cocoa", "ラムココア", 800, "rum", [straw, ice]),
         item("sol-cubano", "ソルクバーノ", 800, "rum", [straw, ice]),
+
+        item("glass-wine-red", "グラスワイン（赤）", 800, "alcohol-other"),
+        item("plum-wine", "梅酒", 800, "alcohol-other", [whiskeyMix, strength]),
 
         item("item-1783053833910", "テキーラ", 1000, "shot"),
         item("cast-drink", "キャストドリンク", 1000, "cast-drink"),

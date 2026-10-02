@@ -70,13 +70,19 @@
   function calculateExpiry(startedAtMs, planId) {
     const rule = CONFIG.planRules?.[planId];
     if (!rule) return startedAtMs;
-    if (Number.isFinite(rule.durationMinutes)) return startedAtMs + rule.durationMinutes * 60000;
 
-    const endHour = Number.isFinite(CONFIG.allDayEndHour) ? CONFIG.allDayEndHour : 22;
-    const endMinute = Number.isFinite(CONFIG.allDayEndMinute) ? CONFIG.allDayEndMinute : 30;
+    const endHour = Number.isFinite(CONFIG.lastOrderEndHour)
+      ? CONFIG.lastOrderEndHour
+      : Number.isFinite(CONFIG.allDayEndHour) ? CONFIG.allDayEndHour : 22;
+    const endMinute = Number.isFinite(CONFIG.lastOrderEndMinute)
+      ? CONFIG.lastOrderEndMinute
+      : Number.isFinite(CONFIG.allDayEndMinute) ? CONFIG.allDayEndMinute : 30;
     const now = new Date(startedAtMs);
     const end = new Date(now);
     end.setHours(endHour, endMinute, 0, 0);
+    if (Number.isFinite(rule.durationMinutes)) {
+      return Math.min(startedAtMs + rule.durationMinutes * 60000, end.getTime());
+    }
     return end.getTime();
   }
 

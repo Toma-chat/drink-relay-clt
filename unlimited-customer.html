@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#f97316">
     <title>飲み放題オーダー | Drink Relay</title>
-    <link rel="stylesheet" href="./unlimited-customer.css?v=2026092901">
+    <link rel="stylesheet" href="./unlimited-customer.css?v=2026100202">
     <script src="./store-config.js"></script>
-    <script src="./initial-settings.js"></script>
-    <script src="./unlimited-config.js?v=2026092902"></script>
+    <script src="./initial-settings.js?v=2026100201"></script>
+    <script src="./unlimited-config.js?v=2026100201"></script>
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script defer src="./unlimited-shared.js?v=2026092902"></script>
-    <script defer src="./unlimited-customer.js?v=2026092902"></script>
+    <script defer src="./unlimited-shared.js?v=2026092903"></script>
+    <script defer src="./unlimited-customer.js?v=2026100202"></script>
   </head>
   <body>
     <main id="customerApp" class="customer-app">
@@ -51,22 +51,29 @@
           </div>
         </header>
 
-        <nav id="categoryNav" class="category-nav" aria-label="ドリンクカテゴリ"></nav>
+        <div class="order-menu-layout">
+          <aside class="category-sidebar" aria-label="ドリンクの種類">
+            <p class="category-sidebar-title">種類</p>
+            <nav id="categoryNav" class="category-nav" aria-label="ドリンクカテゴリ"></nav>
+          </aside>
 
-        <div id="menuLoading" class="inline-state">
-          <div class="loading-spinner small" aria-hidden="true"></div>
-          <p>メニューを読み込んでいます</p>
+          <div class="menu-content">
+            <div id="menuLoading" class="inline-state">
+              <div class="loading-spinner small" aria-hidden="true"></div>
+              <p>メニューを読み込んでいます</p>
+            </div>
+            <div id="menuError" class="inline-state error-inline" hidden>
+              <strong>メニューを読み込めませんでした</strong>
+              <p>通信状態を確認して、もう一度お試しください。</p>
+              <button id="retryMenu" class="secondary-action" type="button">再読み込み</button>
+            </div>
+            <div id="menuEmpty" class="inline-state" hidden>
+              <strong>注文できる商品がありません</strong>
+              <p>受付スタッフへお声がけください。</p>
+            </div>
+            <div id="menuSections" class="menu-sections"></div>
+          </div>
         </div>
-        <div id="menuError" class="inline-state error-inline" hidden>
-          <strong>メニューを読み込めませんでした</strong>
-          <p>通信状態を確認して、もう一度お試しください。</p>
-          <button id="retryMenu" class="secondary-action" type="button">再読み込み</button>
-        </div>
-        <div id="menuEmpty" class="inline-state" hidden>
-          <strong>注文できる商品がありません</strong>
-          <p>受付スタッフへお声がけください。</p>
-        </div>
-        <div id="menuSections" class="menu-sections"></div>
 
         <div class="cart-dock-wrap">
           <button id="openCart" class="cart-dock" type="button" disabled>
