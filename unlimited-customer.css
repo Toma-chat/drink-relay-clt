@@ -146,7 +146,7 @@ button { touch-action: manipulation; }
 .category-nav-label { overflow-wrap: anywhere; font-size: .76rem; }
 .category-nav-count { color: var(--muted); font-size: .64rem; font-weight: 750; }
 .category-nav button.active .category-nav-count { color: var(--orange-dark); }
-.menu-content { min-width: 0; }
+.menu-content { grid-column: 2; min-width: 0; }
 .menu-sections { min-width: 0; padding: 16px 12px; }
 .menu-category-section { scroll-margin-top: calc(88px + var(--safe-top)); }
 .menu-category-section + .menu-category-section { margin-top: 30px; }
