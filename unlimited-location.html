@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f97316">
+    <title>届け先を変更 | Drink Relay</title>
+    <link rel="stylesheet" href="./unlimited-location.css?v=2026100203">
+    <script src="./store-config.js"></script>
+    <script src="./initial-settings.js?v=2026100201"></script>
+    <script src="./unlimited-config.js?v=2026100201"></script>
+    <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script defer src="./unlimited-shared.js?v=2026100206"></script>
+    <script defer src="./unlimited-location.js?v=2026100201"></script>
+  </head>
+  <body>
+    <main class="location-app">
+      <section id="locationLoading" class="location-card" aria-live="polite">
+        <div class="location-spinner" aria-hidden="true"></div>
+        <p class="location-kicker">飲み放題</p>
+        <h1>届け先を確認しています</h1>
+        <p>このまま少々お待ちください</p>
+      </section>
+
+      <section id="locationSuccess" class="location-card" hidden aria-live="polite">
+        <div class="location-mark success-mark" aria-hidden="true">✓</div>
+        <p class="location-kicker">届け先を変更しました</p>
+        <h1 id="locationSuccessLabel">バーカウンター</h1>
+        <p id="locationSuccessDetail">次の注文からこの届け先へお届けします。</p>
+        <a id="returnToOrder" class="location-primary" href="./unlimited-customer.html">注文画面へ戻る</a>
+        <p class="location-note">この場所QRだけでは注文できません。</p>
+      </section>
+
+      <section id="locationError" class="location-card" hidden aria-live="assertive">
+        <div class="location-mark error-mark" aria-hidden="true">!</div>
+        <p class="location-kicker">届け先を変更できません</p>
+        <h1 id="locationErrorTitle">利用中の飲み放題が見つかりません</h1>
+        <p id="locationErrorMessage">飲み放題を利用中の端末で読み込んでください。</p>
+        <button id="locationRetry" class="location-primary" type="button">もう一度確認する</button>
+        <a id="errorReturnToOrder" class="location-secondary" hidden>注文画面へ戻る</a>
+        <p class="location-note">場所QRには注文権限はありません。注文用の固定QRを先にアクティベートしてください。</p>
+      </section>
+    </main>
+  </body>
+</html>

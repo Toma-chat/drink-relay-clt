@@ -14,6 +14,9 @@
   const SESSION_ROW_PREFIX = "aycd-session-";
   const CARD_CATALOG_ROW_ID = "aycd-card-catalog";
   const UNLIMITED_OPEN_ORDER_STATUSES = new Set(["ordered", "making", "made"]);
+  const LOCATION_TARGETS = ["bar", "ring", "tournament"];
+  const LOCATION_TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  const LOCATION_SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
   const CONFIG = window.DRINK_RELAY_UNLIMITED_CONFIG || {};
 
   function clone(value) {
@@ -83,6 +86,32 @@
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return hours ? `${hours}時間${String(minutes).padStart(2, "0")}分` : `${minutes}分`;
+  }
+
+  function normalizeUnlimitedLocation(location) {
+    const value = location && typeof location === "object" ? location : {};
+    const target = LOCATION_TARGETS.includes(value.target) ? value.target : "bar";
+    if (target === "bar") return { target: "bar", tableNo: "", seatNo: "" };
+    return {
+      target,
+      tableNo: LOCATION_TABLES.includes(String(value.tableNo || "").toUpperCase())
+        ? String(value.tableNo).toUpperCase()
+        : "",
+      seatNo: LOCATION_SEATS.includes(String(value.seatNo || "")) ? String(value.seatNo) : "",
+    };
+  }
+
+  function unlimitedLocationIsComplete(location) {
+    const normalized = normalizeUnlimitedLocation(location);
+    return normalized.target === "bar" || Boolean(normalized.tableNo && normalized.seatNo);
+  }
+
+  function formatUnlimitedLocation(location) {
+    const normalized = normalizeUnlimitedLocation(location);
+    if (normalized.target === "bar") return "バーカウンター";
+    const target = normalized.target === "ring" ? "リング" : "トーナメント";
+    if (!normalized.tableNo || !normalized.seatNo) return `${target}（席未設定）`;
+    return `${target} ${normalized.tableNo}卓 ${normalized.seatNo}番席`;
   }
 
   function calculateExpiry(startedAtMs, planId) {
@@ -253,7 +282,7 @@
       if (this.mode === "supabase") {
         const { data, error } = await this.supabase
           .from("drink_orders")
-          .select("id,created_at,status,quantity,drink_name,events")
+          .select("id,created_at,updated_at,status,quantity,drink_name,target,table_no,seat_no,events")
           .filter("events", "cs", JSON.stringify([{ source: "unlimited", sessionId: normalizedSessionId }]))
           .order("created_at", { ascending: true });
         if (error) throw new Error("注文状況を確認できませんでした");
@@ -267,6 +296,72 @@
       return { orders, pendingOrder, nextSequence: orders.length + 1 };
     }
 
+    async updateSessionLocation(session, location, source = "customer") {
+      if (!session?.cardHash || !session?.sessionId) throw new Error("飲み放題セッションを確認できませんでした");
+      const normalized = normalizeUnlimitedLocation(location);
+      if (!unlimitedLocationIsComplete(normalized)) throw new Error("卓と席番号を選択してください");
+
+      const at = new Date(this.now()).toISOString();
+      const previousLocation = normalizeUnlimitedLocation(session.currentLocation);
+      const savedSession = await this.saveSession({
+        ...session,
+        currentLocation: normalized,
+        locationUpdatedAt: at,
+        locationSource: source,
+        locationRevision: makeId(),
+      });
+
+      const orderState = await this.getUnlimitedOrderState(session.sessionId);
+      const pendingOrder = orderState.pendingOrder;
+      if (!pendingOrder) return { session: savedSession, pendingOrder: null };
+
+      const updatedOrder = {
+        ...pendingOrder,
+        target: normalized.target,
+        table_no: normalized.tableNo,
+        seat_no: normalized.seatNo,
+        updated_at: at,
+        events: [
+          ...(Array.isArray(pendingOrder.events) ? pendingOrder.events : []),
+          {
+            type: "location-changed",
+            at,
+            source,
+            sessionId: session.sessionId,
+            previousDeliveryLocation: previousLocation,
+            sessionCurrentLocation: normalized,
+          },
+        ],
+      };
+
+      if (this.mode === "supabase") {
+        const { data, error } = await this.supabase
+          .from("drink_orders")
+          .update({
+            target: updatedOrder.target,
+            table_no: updatedOrder.table_no,
+            seat_no: updatedOrder.seat_no,
+            updated_at: updatedOrder.updated_at,
+            events: updatedOrder.events,
+          })
+          .eq("id", pendingOrder.id)
+          .in("status", [...UNLIMITED_OPEN_ORDER_STATUSES])
+          .select("id,status,target,table_no,seat_no,events")
+          .maybeSingle();
+        if (error) throw new Error("未提供注文の届け先を更新できませんでした");
+        return { session: savedSession, pendingOrder: data || null };
+      }
+
+      const orders = readJson(ORDER_KEY, []);
+      const index = orders.findIndex((order) => order.id === pendingOrder.id && UNLIMITED_OPEN_ORDER_STATUSES.has(order.status));
+      if (index >= 0) {
+        orders[index] = { ...orders[index], ...updatedOrder };
+        localStorage.setItem(ORDER_KEY, JSON.stringify(orders.slice(0, 200)));
+        this.broadcast?.postMessage({ type: "orders-changed" });
+      }
+      return { session: savedSession, pendingOrder: index >= 0 ? orders[index] : null };
+    }
+
     async createUnlimitedOrder(item) {
       const sessionId = String(item?.sessionId || "").trim();
       if (!sessionId) throw new Error("飲み放題セッションを確認できませんでした");
@@ -276,13 +371,22 @@
 
       const at = new Date(this.now()).toISOString();
       const id = await makeUnlimitedOrderId(sessionId, orderState.nextSequence);
+      const orderLocation = normalizeUnlimitedLocation(item.location || {
+        target: item.target,
+        tableNo: item.tableNo,
+        seatNo: item.seatNo,
+      });
+      if (!unlimitedLocationIsComplete(orderLocation)) throw new Error("現在の届け先を設定してください");
       const row = {
         id, created_at: at, updated_at: at, source: "table",
-        drink_name: item.drinkName, quantity: 1, target: item.target || "bar",
-        table_no: item.tableNo || "", seat_no: item.seatNo || "",
+        drink_name: item.drinkName, quantity: 1, target: orderLocation.target,
+        table_no: orderLocation.tableNo, seat_no: orderLocation.seatNo,
         payment_status: "paid", payment_method: "cash", notes: item.notes || "",
         status: "ordered", made_at: null, served_at: null, paid_at: null,
-        events: [{ type: "ordered", at, source: "unlimited", sessionId, sequence: orderState.nextSequence }],
+        events: [{
+          type: "ordered", at, source: "unlimited", sessionId, sequence: orderState.nextSequence,
+          orderLocation, sessionCurrentLocation: orderLocation,
+        }],
       };
 
       if (this.mode === "supabase") {
@@ -328,6 +432,7 @@
 
   window.DrinkRelayUnlimited = Object.freeze({
     Gateway, CONFIG, STORE_ID, digest, makeActivationCode, makeId, makeCardToken, normalizeMenu, findPlan,
-    calculateExpiry, formatRemaining,
+    calculateExpiry, formatRemaining, normalizeUnlimitedLocation, unlimitedLocationIsComplete, formatUnlimitedLocation,
+    LOCATION_TARGETS, LOCATION_TABLES, LOCATION_SEATS,
   });
 })();

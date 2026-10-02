@@ -8,7 +8,8 @@
     gateway: null, menu: [], plan: null, rule: null, session: null,
     cardHash: "", deviceBinding: "", cart: [], activeItem: null,
     submitting: false, pendingOrder: null, orderStatusLoading: true, orderStatusError: false,
-    orderAvailabilityInitialized: false, pollTimer: null, clockTimer: null, toastTimer: null,
+    orderAvailabilityInitialized: false, locationSaving: false,
+    pollTimer: null, clockTimer: null, toastTimer: null,
   };
 
   document.addEventListener("DOMContentLoaded", init);
@@ -27,6 +28,7 @@
         showError("無効なQRコードです", "受付スタッフへカードをご提示ください。");
         return;
       }
+      rememberCustomerUrl();
 
       state.gateway = await new U.Gateway().init();
       state.menu = await state.gateway.loadMenu();
@@ -61,7 +63,10 @@
     $("#closeCart")?.addEventListener("click", () => $("#cartDialog")?.close());
     $("#cartItems")?.addEventListener("click", handleCartAction);
     $("#submitOrder")?.addEventListener("click", submitOrder);
-    $$('input[name="customerTarget"]').forEach((input) => input.addEventListener("change", updateLocationFields));
+    $("#currentLocationButton")?.addEventListener("click", openLocationDialog);
+    $("#closeLocationDialog")?.addEventListener("click", closeLocationDialog);
+    $("#locationDialog")?.addEventListener("click", handleLocationChoice);
+    $("#saveCurrentLocation")?.addEventListener("click", saveCurrentLocation);
   }
 
   function getDeviceId() {
@@ -86,6 +91,13 @@
     const secure = location.protocol === "https:" ? "; Secure" : "";
     document.cookie = `${encodeURIComponent(cookieKey)}=${encodeURIComponent(id)}; Max-Age=31536000; Path=/; SameSite=Lax${secure}`;
     return id;
+  }
+
+  function rememberCustomerUrl() {
+    try {
+      localStorage.setItem(`drink-relay-${U.STORE_ID}-unlimited-customer-url-v1`, location.href);
+    } catch {
+    }
   }
 
   function scheduleSessionCheck() {
@@ -181,6 +193,7 @@
       activationCode: U.makeActivationCode(),
       requestedAt: new Date(now).toISOString(),
       requestExpiresAt: new Date(now + minutes * 60000).toISOString(),
+      currentLocation: { target: "bar", tableNo: "", seatNo: "" },
       protocolVersion: 1,
     });
   }
@@ -241,7 +254,7 @@
   }
 
   function showActivation(session, reconnecting = false) {
-    closeDialogs();
+    closeDialogs(true);
     showOnly("activationState");
     $("#activationEyebrow").textContent = reconnecting ? "端末の再接続が必要です" : "受付での操作が必要です";
     $("#activationTitle").textContent = reconnecting ? "再接続待ち" : "アクティベーション待ち";
@@ -257,11 +270,12 @@
     if (!state.clockTimer) state.clockTimer = window.setInterval(updateClock, 1000);
     updateClock();
     if (!$("#menuSections").children.length) renderMenu();
+    renderCurrentLocation();
     renderOrderAvailability();
   }
 
   function showEnded() {
-    closeDialogs();
+    closeDialogs(true);
     state.cart = [];
     state.pendingOrder = null;
     renderCartBadge();
@@ -271,7 +285,7 @@
   }
 
   function showError(title, message, retryable = false) {
-    closeDialogs();
+    closeDialogs(true);
     showOnly("errorState");
     $("#errorTitle").textContent = title;
     $("#errorMessage").textContent = message;
@@ -569,6 +583,7 @@
       </article>`).join("");
     $("#sendStatus").textContent = "";
     delete $("#sendStatus").dataset.state;
+    $("#cartLocationLabel").textContent = U.formatUnlimitedLocation(state.session?.currentLocation);
     $("#submitOrder").disabled = state.submitting || state.cart.length !== 1 || !sessionCanOrder();
   }
 
@@ -585,9 +600,102 @@
     else renderCart();
   }
 
-  function updateLocationFields() {
-    const target = $('input[name="customerTarget"]:checked')?.value || "bar";
-    $("#locationFields").hidden = target === "bar";
+  function renderCurrentLocation() {
+    const label = U.formatUnlimitedLocation(state.session?.currentLocation);
+    $("#currentLocationLabel").textContent = label;
+    if ($("#cartLocationLabel")) $("#cartLocationLabel").textContent = label;
+  }
+
+  function openLocationDialog() {
+    if (!state.session || state.session.status !== "active") return;
+    renderLocationChoices(U.normalizeUnlimitedLocation(state.session.currentLocation));
+    setLocationDialogStatus("");
+    $("#locationDialog").showModal();
+  }
+
+  function closeLocationDialog() {
+    const dialog = $("#locationDialog");
+    if (dialog?.open && !state.locationSaving) dialog.close();
+  }
+
+  function renderLocationChoices(location) {
+    const normalized = U.normalizeUnlimitedLocation(location);
+    const targets = [
+      { id: "bar", label: "バーカウンター" },
+      { id: "ring", label: "リング" },
+      { id: "tournament", label: "トーナメント" },
+    ];
+    $("#locationTargetChoices").innerHTML = targets.map((target) => `
+      <button class="location-choice-button ${target.id === normalized.target ? "active" : ""}" type="button" data-location-choice="target" data-location-value="${target.id}">${target.label}</button>
+    `).join("");
+    $("#locationTableChoices").innerHTML = U.LOCATION_TABLES.map((value) => `
+      <button class="location-choice-button ${value === normalized.tableNo ? "active" : ""}" type="button" data-location-choice="tableNo" data-location-value="${value}">${value}卓</button>
+    `).join("");
+    $("#locationSeatChoices").innerHTML = U.LOCATION_SEATS.map((value) => `
+      <button class="location-choice-button ${value === normalized.seatNo ? "active" : ""}" type="button" data-location-choice="seatNo" data-location-value="${value}">${value}番</button>
+    `).join("");
+    const isBar = normalized.target === "bar";
+    $("#locationTableGroup").hidden = isBar;
+    $("#locationSeatGroup").hidden = isBar;
+  }
+
+  function handleLocationChoice(event) {
+    const button = event.target.closest("[data-location-choice]");
+    if (!button || state.locationSaving) return;
+    const group = button.parentElement;
+    $$('[data-location-choice]', group).forEach((choice) => choice.classList.toggle("active", choice === button));
+    if (button.dataset.locationChoice === "target") {
+      const isBar = button.dataset.locationValue === "bar";
+      $("#locationTableGroup").hidden = isBar;
+      $("#locationSeatGroup").hidden = isBar;
+    }
+    setLocationDialogStatus("");
+  }
+
+  function selectedLocation() {
+    const value = (type) => $(`[data-location-choice="${type}"].active`)?.dataset.locationValue || "";
+    return U.normalizeUnlimitedLocation({ target: value("target"), tableNo: value("tableNo"), seatNo: value("seatNo") });
+  }
+
+  async function saveCurrentLocation() {
+    if (state.locationSaving || !state.gateway) return;
+    const location = selectedLocation();
+    if (!U.unlimitedLocationIsComplete(location)) {
+      setLocationDialogStatus("テーブルと席番号を選択してください", "error");
+      return;
+    }
+
+    state.locationSaving = true;
+    const button = $("#saveCurrentLocation");
+    button.disabled = true;
+    setLocationDialogStatus("届け先を更新しています...", "loading");
+    try {
+      const current = await state.gateway.getSession(state.cardHash);
+      const now = state.gateway.now();
+      if (!current || current.status !== "active" || current.deviceBinding !== state.deviceBinding || Date.parse(current.expiresAt) <= now) {
+        throw new SessionEndedError();
+      }
+      const result = await state.gateway.updateSessionLocation(current, location, "customer-manual");
+      state.session = result.session;
+      await refreshOrderAvailability(state.session);
+      renderCurrentLocation();
+      if ($("#locationDialog").open) $("#locationDialog").close();
+      toast(result.pendingOrder ? "届け先と未提供注文を変更しました" : "現在の届け先を変更しました");
+    } catch (error) {
+      console.error(error);
+      if (error instanceof SessionEndedError) showEnded();
+      else setLocationDialogStatus(error.message || "届け先を変更できませんでした", "error");
+    } finally {
+      state.locationSaving = false;
+      button.disabled = false;
+    }
+  }
+
+  function setLocationDialogStatus(message, status = "") {
+    const node = $("#locationDialogStatus");
+    node.textContent = message;
+    if (status) node.dataset.state = status;
+    else delete node.dataset.state;
   }
 
   async function submitOrder() {
@@ -602,16 +710,13 @@
       if (!current || current.status !== "active" || current.deviceBinding !== state.deviceBinding || Date.parse(current.expiresAt) <= now) {
         throw new SessionEndedError();
       }
-      const target = $('input[name="customerTarget"]:checked')?.value || "bar";
-      const tableNo = target === "bar" ? "" : $("#customerTable").value.trim();
-      const seatNo = target === "bar" ? "" : $("#customerSeat").value.trim();
+      const orderLocation = U.normalizeUnlimitedLocation(current.currentLocation);
+      if (!U.unlimitedLocationIsComplete(orderLocation)) throw new Error("現在の届け先を設定してください");
       const item = state.cart[0];
       const row = {
         drinkName: item.name,
         quantity: 1,
-        target,
-        tableNo,
-        seatNo,
+        location: orderLocation,
         sessionId: current.sessionId,
         notes: [`飲み放題: ${state.plan.name}`, ...item.options].join(" / "),
       };
@@ -656,6 +761,7 @@
       && !state.pendingOrder
       && !state.orderStatusLoading
       && !state.orderStatusError
+      && U.unlimitedLocationIsComplete(session.currentLocation)
     );
   }
 
@@ -723,8 +829,10 @@
     node.dataset.state = status;
   }
 
-  function closeDialogs() {
-    [$("#itemDialog"), $("#cartDialog")].forEach((dialog) => { if (dialog?.open) dialog.close(); });
+  function closeDialogs(includeLocation = false) {
+    const dialogs = [$("#itemDialog"), $("#cartDialog")];
+    if (includeLocation) dialogs.push($("#locationDialog"));
+    dialogs.forEach((dialog) => { if (dialog?.open) dialog.close(); });
   }
 
   function toast(message) {

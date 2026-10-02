@@ -11,7 +11,7 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026100202">
+    <link rel="stylesheet" href="./styles.css?v=2026100204">
     <script src="./store-config.js"></script>
     <script src="./initial-settings.js?v=2026100201"></script>
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -19,8 +19,8 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script defer src="./app.js?v=2026100203"></script>
     <script defer src="./unlimited-config.js?v=2026100201"></script>
-    <script defer src="./unlimited-shared.js?v=2026100205"></script>
-    <script defer src="./unlimited-admin.js?v=2026100201"></script>
+    <script defer src="./unlimited-shared.js?v=2026100206"></script>
+    <script defer src="./unlimited-admin.js?v=2026100202"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -100,6 +100,28 @@
               <div id="unlimitedCardList" class="unlimited-card-list">
                 <p class="unlimited-session-empty">発行済みカードを読み込んでいます...</p>
               </div>
+            </details>
+            <details class="unlimited-location-manager">
+              <summary>場所変更QRを作成・印刷</summary>
+              <div class="unlimited-location-builder">
+                <div class="unlimited-location-fields">
+                  <label><span>エリア</span><select id="unlimitedLocationTarget"></select></label>
+                  <label id="unlimitedLocationTableWrap"><span>テーブル</span><select id="unlimitedLocationTable"></select></label>
+                  <label id="unlimitedLocationSeatWrap"><span>席番号</span><select id="unlimitedLocationSeat"></select></label>
+                </div>
+                <div id="unlimitedLocationQr" class="unlimited-card-qr" aria-label="場所変更QRコード"></div>
+                <div class="unlimited-location-preview">
+                  <strong id="unlimitedLocationLabel">バーカウンター</strong>
+                  <code id="unlimitedLocationUrl"></code>
+                  <div class="unlimited-card-actions">
+                    <button id="unlimitedCopyLocationUrl" class="button button-quiet" type="button">URLをコピー</button>
+                    <a id="unlimitedOpenLocationUrl" class="button button-quiet" target="_blank" rel="noopener">画面を開く</a>
+                    <button id="unlimitedPrintLocationQr" class="button button-quiet" type="button">このQRを印刷</button>
+                    <button id="unlimitedPrintAllLocations" class="button button-primary" type="button">全卓・全席QRを印刷</button>
+                  </div>
+                </div>
+              </div>
+              <p class="unlimited-card-origin-note">場所QRは届け先の変更専用です。このQRだけでは注文できません。</p>
             </details>
           </section>
           <div class="workbench sender-workbench solo-workbench">
@@ -186,6 +208,12 @@
         </thead>
         <tbody id="unlimitedUrlPrintRows"></tbody>
       </table>
+    </section>
+
+    <section id="unlimitedLocationPrintSheet" class="unlimited-location-print-sheet" aria-hidden="true">
+      <h1>飲み放題 場所変更QR</h1>
+      <p>このQRは届け先の変更専用です。注文権限はありません。</p>
+      <div id="unlimitedLocationPrintGrid" class="unlimited-location-print-grid"></div>
     </section>
 
     <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
@@ -295,6 +323,37 @@
           </button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="unlimitedSessionLocationDialog">
+      <section class="unlimited-session-location-modal" aria-labelledby="unlimitedSessionLocationTitle">
+        <div class="section-head compact">
+          <div>
+            <span class="unlimited-activation-kicker">飲み放題セッション</span>
+            <h2 id="unlimitedSessionLocationTitle">届け先を変更</h2>
+          </div>
+          <button id="unlimitedSessionLocationClose" class="icon-button" type="button" aria-label="閉じる" title="閉じる">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <fieldset class="control-group">
+          <legend>エリア</legend>
+          <div id="unlimitedSessionTargetChoices" class="unlimited-location-choice-grid"></div>
+        </fieldset>
+        <fieldset id="unlimitedSessionTableGroup" class="control-group">
+          <legend>テーブル</legend>
+          <div id="unlimitedSessionTableChoices" class="unlimited-location-number-grid"></div>
+        </fieldset>
+        <fieldset id="unlimitedSessionSeatGroup" class="control-group">
+          <legend>席番号</legend>
+          <div id="unlimitedSessionSeatChoices" class="unlimited-location-number-grid"></div>
+        </fieldset>
+        <p id="unlimitedSessionLocationStatus" class="unlimited-activation-status" role="status" aria-live="assertive"></p>
+        <div class="modal-actions">
+          <button id="unlimitedSessionLocationCancel" class="button button-quiet" type="button">キャンセル</button>
+          <button id="unlimitedSessionLocationSave" class="button button-primary" type="button">届け先を保存</button>
+        </div>
+      </section>
     </dialog>
 
     <dialog id="alcoholManualDialog">
