@@ -219,6 +219,8 @@
 .unlimited-session-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
 .unlimited-session-state { color: #9a3412; font-size: .75rem; font-weight: 850; }
 .unlimited-session-card.is-active .unlimited-session-state { color: #15803d; }
+.unlimited-session-card.has-reconnect { border-left-color: #f97316; }
+.unlimited-session-card.has-reconnect .unlimited-session-state { color: #c2410c; }
 .unlimited-session-card-number {
   display: inline-flex;
   align-items: center;

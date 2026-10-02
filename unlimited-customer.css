@@ -65,10 +65,12 @@ button { touch-action: manipulation; }
   text-indent: .18em;
 }
 .waiting-pill { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; padding: 10px 16px; border-radius: 999px; background: #fff7ed; color: #9a3412; font-weight: 750; }
-.waiting-pill span { width: 9px; height: 9px; border-radius: 50%; background: var(--orange); animation: pulse 1.2s ease-in-out infinite; }
+.waiting-pill > span:first-child { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; background: var(--orange); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .32; transform: scale(.8); } }
 .plan-preview { margin-top: 24px; padding-top: 20px; width: min(100%, 360px); border-top: 1px solid var(--line); font-weight: 800; }
 .return-card-message { margin-top: 28px; padding: 18px; width: min(100%, 380px); border-radius: 16px; background: #fff; border: 1px solid var(--line); font-size: 1.08rem; font-weight: 850; }
+#requestReconnect, #retryActivation { width: min(100%, 360px); margin-top: 18px; }
+#requestReconnect + #retryActivation { margin-top: 10px; }
 
 .order-state { padding-bottom: calc(94px + var(--safe-bottom)); }
 .order-header {

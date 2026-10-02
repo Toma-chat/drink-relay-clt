@@ -50,6 +50,7 @@
 
   function wireControls() {
     $("#retryActivation")?.addEventListener("click", retryActivation);
+    $("#requestReconnect")?.addEventListener("click", requestReconnect);
     $("#retryMenu")?.addEventListener("click", reloadMenu);
     $("#categoryNav")?.addEventListener("click", handleCategoryClick);
     $("#menuSections")?.addEventListener("click", handleMenuClick);
@@ -66,11 +67,25 @@
 
   function getDeviceId() {
     const key = `drink-relay-${U.STORE_ID}-unlimited-device-v1`;
-    let id = localStorage.getItem(key);
+    const cookieKey = `${key}-cookie`;
+    let id = "";
+    try {
+      id = localStorage.getItem(key) || "";
+    } catch {
+    }
+    if (!id) {
+      const cookie = document.cookie.split("; ").find((entry) => entry.startsWith(`${encodeURIComponent(cookieKey)}=`));
+      if (cookie) id = decodeURIComponent(cookie.slice(cookie.indexOf("=") + 1));
+    }
     if (!id) {
       id = U.makeId();
-      localStorage.setItem(key, id);
     }
+    try {
+      localStorage.setItem(key, id);
+    } catch {
+    }
+    const secure = location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${encodeURIComponent(cookieKey)}=${encodeURIComponent(id)}; Max-Age=31536000; Path=/; SameSite=Lax${secure}`;
     return id;
   }
 
@@ -105,7 +120,8 @@
           return;
         }
         if (!sameDevice) {
-          showError("このQRカードは別の端末で使用中です", "同時に利用できる端末は1台です。受付スタッフへお声がけください。");
+          showError("別のブラウザで受付待ちです", "同じ端末でも開き方が変わると別端末として認識されます。新しいコードを発行してください。", true);
+          $("#retryActivation").textContent = "新しい4桁コードを発行する";
           return;
         }
         showActivation(session);
@@ -123,7 +139,12 @@
           return;
         }
         if (!sameDevice) {
-          showError("このQRカードは使用済みです", "同時に利用できる端末は1台です。受付スタッフへお声がけください。");
+          const reconnect = validReconnectRequest(session, now);
+          if (reconnect?.deviceBinding === state.deviceBinding) {
+            showActivation(session, true);
+            return;
+          }
+          showDeviceConflict();
           return;
         }
         showOrder(session);
@@ -179,10 +200,54 @@
     }
   }
 
-  function showActivation(session) {
+  async function requestReconnect() {
+    const button = $("#requestReconnect");
+    if (!button || !state.gateway) return;
+    button.disabled = true;
+    showOnly("loadingState");
+    try {
+      const current = await state.gateway.getSession(state.cardHash);
+      const now = state.gateway.now();
+      if (!current || current.status !== "active" || Date.parse(current.expiresAt) <= now) {
+        throw new Error("このカードの利用時間は終了しています");
+      }
+      const minutes = Number(U.CONFIG.activationRequestMinutes || 15);
+      const reconnectRequest = {
+        code: U.makeActivationCode(),
+        deviceBinding: state.deviceBinding,
+        requestedAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + minutes * 60000).toISOString(),
+      };
+      state.session = await state.gateway.saveSession({ ...current, reconnectRequest });
+      showActivation(state.session, true);
+    } catch (error) {
+      showError("再接続を申請できませんでした", error.message || "通信状態を確認してください。");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function validReconnectRequest(session, now = state.gateway?.now() || Date.now()) {
+    const request = session?.reconnectRequest;
+    return request?.code && Date.parse(request.expiresAt) > now ? request : null;
+  }
+
+  function showDeviceConflict() {
+    showError(
+      "このQRカードは別のブラウザで利用中です",
+      "同じ端末でもブラウザやQRの開き方が変わると再接続が必要です。受付スタッフの承認後、残り時間を引き継いで利用できます。"
+    );
+    $("#requestReconnect").hidden = false;
+  }
+
+  function showActivation(session, reconnecting = false) {
     closeDialogs();
     showOnly("activationState");
-    $("#activationCode").textContent = session.activationCode;
+    $("#activationEyebrow").textContent = reconnecting ? "端末の再接続が必要です" : "受付での操作が必要です";
+    $("#activationTitle").textContent = reconnecting ? "再接続待ち" : "アクティベーション待ち";
+    $("#activationMessage").textContent = "このコードを受付スタッフへお伝えください";
+    $("#activationWaitingLabel").textContent = reconnecting ? "再接続の承認を待っています" : "アクティベートを待っています";
+    $("#activationCode").textContent = reconnecting ? session.reconnectRequest.code : session.activationCode;
     $("#activationPlanName").textContent = state.plan.name;
   }
 
@@ -208,6 +273,8 @@
     showOnly("errorState");
     $("#errorTitle").textContent = title;
     $("#errorMessage").textContent = message;
+    $("#requestReconnect").hidden = true;
+    $("#retryActivation").textContent = "もう一度確認する";
     $("#retryActivation").hidden = !retryable;
   }
 
