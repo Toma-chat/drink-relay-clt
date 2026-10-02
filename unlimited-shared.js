@@ -254,7 +254,7 @@
         const { data, error } = await this.supabase
           .from("drink_orders")
           .select("id,created_at,status,quantity,drink_name,events")
-          .contains("events", [{ source: "unlimited", sessionId: normalizedSessionId }])
+          .filter("events", "cs", JSON.stringify([{ source: "unlimited", sessionId: normalizedSessionId }]))
           .order("created_at", { ascending: true });
         if (error) throw new Error("注文状況を確認できませんでした");
         orders = data || [];
