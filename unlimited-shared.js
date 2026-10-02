@@ -13,6 +13,7 @@
   const CHANNEL_NAME = `${PREFIX}-local`;
   const SESSION_ROW_PREFIX = "aycd-session-";
   const CARD_CATALOG_ROW_ID = "aycd-card-catalog";
+  const UNLIMITED_OPEN_ORDER_STATUSES = new Set(["ordered", "making", "made"]);
   const CONFIG = window.DRINK_RELAY_UNLIMITED_CONFIG || {};
 
   function clone(value) {
@@ -52,6 +53,23 @@
 
   function makeId() {
     return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function unlimitedOrderSessionId(order) {
+    const events = Array.isArray(order?.events) ? order.events : [];
+    return String(events.find((event) => event?.source === "unlimited" && event?.sessionId)?.sessionId || "");
+  }
+
+  async function makeUnlimitedOrderId(sessionId, sequence) {
+    const hex = await digest(`${STORE_ID}:unlimited-order:${sessionId}:${sequence}`);
+    const variant = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+  }
+
+  function unlimitedOrderPendingError() {
+    const error = new Error("前のドリンクが提供済みになるまで次の注文はできません");
+    error.code = "UNLIMITED_ORDER_PENDING";
+    return error;
   }
 
   function makeCardToken() {
@@ -115,6 +133,9 @@
           .channel(`drink_relay_unlimited_${makeId()}`)
           .on("postgres_changes", { event: "*", schema: "public", table: "drink_app_settings" }, (payload) => {
             if (String(payload.new?.id || payload.old?.id || "").startsWith(SESSION_ROW_PREFIX)) this.emit("session-changed");
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "drink_orders" }, () => {
+            this.emit("orders-changed");
           })
           .subscribe();
         await this.syncServerClock(url, key);
@@ -222,6 +243,62 @@
         this.broadcast?.postMessage({ type: "unlimited-session-changed" });
       }
       return value;
+    }
+
+    async getUnlimitedOrderState(sessionId) {
+      const normalizedSessionId = String(sessionId || "").trim();
+      if (!normalizedSessionId) return { orders: [], pendingOrder: null, nextSequence: 1 };
+
+      let orders;
+      if (this.mode === "supabase") {
+        const { data, error } = await this.supabase
+          .from("drink_orders")
+          .select("id,created_at,status,quantity,drink_name,events")
+          .contains("events", [{ source: "unlimited", sessionId: normalizedSessionId }])
+          .order("created_at", { ascending: true });
+        if (error) throw new Error("注文状況を確認できませんでした");
+        orders = data || [];
+      } else {
+        orders = readJson(ORDER_KEY, []).filter((order) => unlimitedOrderSessionId(order) === normalizedSessionId);
+        orders.sort((left, right) => Date.parse(left.created_at || 0) - Date.parse(right.created_at || 0));
+      }
+
+      const pendingOrder = orders.find((order) => UNLIMITED_OPEN_ORDER_STATUSES.has(order.status)) || null;
+      return { orders, pendingOrder, nextSequence: orders.length + 1 };
+    }
+
+    async createUnlimitedOrder(item) {
+      const sessionId = String(item?.sessionId || "").trim();
+      if (!sessionId) throw new Error("飲み放題セッションを確認できませんでした");
+
+      const orderState = await this.getUnlimitedOrderState(sessionId);
+      if (orderState.pendingOrder) throw unlimitedOrderPendingError();
+
+      const at = new Date(this.now()).toISOString();
+      const id = await makeUnlimitedOrderId(sessionId, orderState.nextSequence);
+      const row = {
+        id, created_at: at, updated_at: at, source: "table",
+        drink_name: item.drinkName, quantity: 1, target: item.target || "bar",
+        table_no: item.tableNo || "", seat_no: item.seatNo || "",
+        payment_status: "paid", payment_method: "cash", notes: item.notes || "",
+        status: "ordered", made_at: null, served_at: null, paid_at: null,
+        events: [{ type: "ordered", at, source: "unlimited", sessionId, sequence: orderState.nextSequence }],
+      };
+
+      if (this.mode === "supabase") {
+        const { error } = await this.supabase.from("drink_orders").insert(row);
+        if (error?.code === "23505") throw unlimitedOrderPendingError();
+        if (error) throw new Error("注文を送信できませんでした");
+      } else {
+        const orders = readJson(ORDER_KEY, []);
+        const hasPending = orders.some((order) =>
+          unlimitedOrderSessionId(order) === sessionId && UNLIMITED_OPEN_ORDER_STATUSES.has(order.status)
+        );
+        if (hasPending || orders.some((order) => order.id === id)) throw unlimitedOrderPendingError();
+        localStorage.setItem(ORDER_KEY, JSON.stringify([row, ...orders].slice(0, 200)));
+        this.broadcast?.postMessage({ type: "orders-changed" });
+      }
+      return row;
     }
 
     async createOrders(items) {

@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#f97316">
     <title>飲み放題オーダー | Drink Relay</title>
-    <link rel="stylesheet" href="./unlimited-customer.css?v=2026100206">
+    <link rel="stylesheet" href="./unlimited-customer.css?v=2026100207">
     <script src="./store-config.js"></script>
     <script src="./initial-settings.js?v=2026100201"></script>
     <script src="./unlimited-config.js?v=2026100201"></script>
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script defer src="./unlimited-shared.js?v=2026092903"></script>
-    <script defer src="./unlimited-customer.js?v=2026100204"></script>
+    <script defer src="./unlimited-shared.js?v=2026100204"></script>
+    <script defer src="./unlimited-customer.js?v=2026100205"></script>
   </head>
   <body>
     <main id="customerApp" class="customer-app">
@@ -59,6 +59,13 @@
           </aside>
 
           <div class="menu-content">
+            <section id="orderLimitNotice" class="order-limit-notice" data-state="loading" role="status" aria-live="polite">
+              <span class="order-limit-mark" aria-hidden="true">1</span>
+              <div>
+                <strong id="orderLimitTitle">注文状況を確認しています</strong>
+                <p id="orderLimitMessage">少々お待ちください。</p>
+              </div>
+            </section>
             <div id="menuLoading" class="inline-state">
               <div class="loading-spinner small" aria-hidden="true"></div>
               <p>メニューを読み込んでいます</p>
@@ -78,7 +85,7 @@
 
         <div class="cart-dock-wrap">
           <button id="openCart" class="cart-dock" type="button" disabled>
-            <span class="cart-dock-label"><span aria-hidden="true">🛒</span> カートを確認</span>
+            <span class="cart-dock-label"><span aria-hidden="true">🛒</span> <span id="cartDockLabel">カートを確認</span></span>
             <span id="cartCount" class="cart-count">0</span>
           </button>
         </div>
@@ -96,18 +103,11 @@
     <dialog id="itemDialog" class="customer-dialog item-dialog">
       <form method="dialog" id="itemForm">
         <header class="dialog-header">
-          <div><span>カスタム・数量</span><h2 id="itemDialogTitle"></h2></div>
+          <div><span>カスタム</span><h2 id="itemDialogTitle"></h2></div>
           <button class="close-button" value="cancel" type="submit" aria-label="閉じる">×</button>
         </header>
         <div id="itemOptions" class="item-options"></div>
-        <div class="quantity-row">
-          <span>数量</span>
-          <div class="quantity-stepper">
-            <button id="itemMinus" type="button" aria-label="数量を減らす">−</button>
-            <output id="itemQuantity">1</output>
-            <button id="itemPlus" type="button" aria-label="数量を増やす">＋</button>
-          </div>
-        </div>
+        <p class="fixed-quantity-note"><span>数量</span><strong>1杯</strong></p>
         <button id="addToCart" class="primary-action" type="button">カートに追加</button>
       </form>
     </dialog>

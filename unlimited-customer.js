@@ -7,7 +7,8 @@
   const state = {
     gateway: null, menu: [], plan: null, rule: null, session: null,
     cardHash: "", deviceBinding: "", cart: [], activeItem: null,
-    quantity: 1, submitting: false, pollTimer: null, clockTimer: null, toastTimer: null,
+    submitting: false, pendingOrder: null, orderStatusLoading: true, orderStatusError: false,
+    orderAvailabilityInitialized: false, pollTimer: null, clockTimer: null, toastTimer: null,
   };
 
   document.addEventListener("DOMContentLoaded", init);
@@ -55,8 +56,6 @@
     $("#categoryNav")?.addEventListener("click", handleCategoryClick);
     $("#menuSections")?.addEventListener("click", handleMenuClick);
     window.addEventListener("scroll", scheduleActiveCategory, { passive: true });
-    $("#itemMinus")?.addEventListener("click", () => changeItemQuantity(-1));
-    $("#itemPlus")?.addEventListener("click", () => changeItemQuantity(1));
     $("#addToCart")?.addEventListener("click", addItemToCart);
     $("#openCart")?.addEventListener("click", openCart);
     $("#closeCart")?.addEventListener("click", () => $("#cartDialog")?.close());
@@ -147,6 +146,7 @@
           showDeviceConflict();
           return;
         }
+        await refreshOrderAvailability(session);
         showOrder(session);
         return;
       }
@@ -257,11 +257,13 @@
     if (!state.clockTimer) state.clockTimer = window.setInterval(updateClock, 1000);
     updateClock();
     if (!$("#menuSections").children.length) renderMenu();
+    renderOrderAvailability();
   }
 
   function showEnded() {
     closeDialogs();
     state.cart = [];
+    state.pendingOrder = null;
     renderCartBadge();
     showOnly("endedState");
     window.clearInterval(state.clockTimer);
@@ -393,7 +395,7 @@
       .reduce((sum, entry) => sum + entry.quantity, 0);
     const hasOptions = Array.isArray(item.optionGroups) && item.optionGroups.length;
     return `
-      <button class="menu-card" type="button" data-category-id="${escapeHtml(category.id)}" data-item-id="${escapeHtml(item.id)}">
+      <button class="menu-card" type="button" data-category-id="${escapeHtml(category.id)}" data-item-id="${escapeHtml(item.id)}" ${sessionCanOrder() ? "" : "disabled"}>
         ${quantity ? `<span class="in-cart" aria-label="カート内${quantity}点">${quantity}</span>` : ""}
         <strong>${escapeHtml(item.name)}</strong>
         <span class="zero-price">¥0</span>
@@ -486,10 +488,12 @@
   }
 
   function openItem(category, item) {
+    if (!sessionCanOrder()) {
+      toast(orderLockedMessage());
+      return;
+    }
     state.activeItem = { category, item };
-    state.quantity = 1;
     $("#itemDialogTitle").textContent = item.name;
-    $("#itemQuantity").textContent = "1";
     $("#itemOptions").innerHTML = (item.optionGroups || []).map((group, index) => optionGroup(group, index)).join("");
     $("#itemDialog").showModal();
   }
@@ -507,13 +511,15 @@
       </fieldset>`;
   }
 
-  function changeItemQuantity(delta) {
-    state.quantity = Math.max(1, Math.min(20, state.quantity + delta));
-    $("#itemQuantity").textContent = String(state.quantity);
-  }
-
   function addItemToCart() {
-    if (!state.activeItem || !sessionCanOrder()) return;
+    if (!state.activeItem || !sessionCanOrder()) {
+      toast(orderLockedMessage());
+      return;
+    }
+    if (state.cart.length) {
+      toast("カートへ入れられるドリンクは1杯までです");
+      return;
+    }
     const options = [];
     for (const group of $$("#itemOptions .option-group")) {
       const selected = $("input:checked", group)?.value || "";
@@ -525,7 +531,7 @@
     }
     state.cart.push({
       cartId: U.makeId(), categoryId: state.activeItem.category.id, itemId: state.activeItem.item.id,
-      name: state.activeItem.item.name, options, quantity: state.quantity,
+      name: state.activeItem.item.name, options, quantity: 1,
     });
     $("#itemDialog").close();
     renderMenu();
@@ -536,7 +542,12 @@
   function renderCartBadge() {
     const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
     $("#cartCount").textContent = String(count);
-    $("#openCart").disabled = count === 0;
+    $("#cartDockLabel").textContent = state.pendingOrder
+      ? "提供済みになるまでお待ちください"
+      : state.orderStatusError
+        ? "注文状況を確認できません"
+        : "カートを確認";
+    $("#openCart").disabled = count !== 1 || !sessionCanOrder();
   }
 
   function openCart() {
@@ -551,15 +562,14 @@
         <div class="cart-item-head">
           <div><strong>${escapeHtml(item.name)}</strong>${item.options.length ? `<p class="cart-item-options">${escapeHtml(item.options.join(" / "))}</p>` : ""}</div>
           <div class="cart-item-actions">
-            <button type="button" data-cart-action="minus" aria-label="${escapeHtml(item.name)}を減らす">−</button>
-            <output>${item.quantity}</output>
-            <button type="button" data-cart-action="plus" aria-label="${escapeHtml(item.name)}を増やす">＋</button>
+            <span class="cart-item-quantity">1杯</span>
+            <button type="button" data-cart-action="remove" aria-label="${escapeHtml(item.name)}をカートから削除">削除</button>
           </div>
         </div>
       </article>`).join("");
     $("#sendStatus").textContent = "";
     delete $("#sendStatus").dataset.state;
-    $("#submitOrder").disabled = state.submitting || !state.cart.length;
+    $("#submitOrder").disabled = state.submitting || state.cart.length !== 1 || !sessionCanOrder();
   }
 
   function handleCartAction(event) {
@@ -569,9 +579,7 @@
     if (!button || !row) return;
     const index = state.cart.findIndex((item) => item.cartId === row.dataset.cartId);
     if (index < 0) return;
-    if (button.dataset.cartAction === "plus") state.cart[index].quantity = Math.min(20, state.cart[index].quantity + 1);
-    else if (state.cart[index].quantity > 1) state.cart[index].quantity -= 1;
-    else state.cart.splice(index, 1);
+    state.cart.splice(index, 1);
     renderMenu();
     if (!state.cart.length) $("#cartDialog").close();
     else renderCart();
@@ -583,7 +591,7 @@
   }
 
   async function submitOrder() {
-    if (state.submitting || !state.cart.length) return;
+    if (state.submitting || state.cart.length !== 1 || !sessionCanOrder()) return;
     state.submitting = true;
     const button = $("#submitOrder");
     button.disabled = true;
@@ -597,18 +605,23 @@
       const target = $('input[name="customerTarget"]:checked')?.value || "bar";
       const tableNo = target === "bar" ? "" : $("#customerTable").value.trim();
       const seatNo = target === "bar" ? "" : $("#customerSeat").value.trim();
-      const rows = state.cart.map((item) => ({
+      const item = state.cart[0];
+      const row = {
         drinkName: item.name,
-        quantity: item.quantity,
+        quantity: 1,
         target,
         tableNo,
         seatNo,
         sessionId: current.sessionId,
         notes: [`飲み放題: ${state.plan.name}`, ...item.options].join(" / "),
-      }));
-      await state.gateway.createOrders(rows);
+      };
+      const createdOrder = await state.gateway.createUnlimitedOrder(row);
+      state.pendingOrder = createdOrder;
+      state.orderStatusError = false;
+      state.orderStatusLoading = false;
       state.cart = [];
       renderMenu();
+      renderOrderAvailability();
       setSendStatus("送信完了しました", "success");
       toast("ご注文をバーへ送信しました");
       window.setTimeout(() => {
@@ -618,18 +631,90 @@
       console.error(error);
       if (error instanceof SessionEndedError) {
         showEnded();
+      } else if (error?.code === "UNLIMITED_ORDER_PENDING") {
+        state.cart = [];
+        await refreshOrderAvailability(state.session);
+        renderMenu();
+        setSendStatus("前のドリンクが提供済みになるまで次の注文はできません", "error");
+        toast("前のドリンクは現在提供待ちです");
       } else {
         setSendStatus(error.message || "送信に失敗しました。もう一度お試しください。", "error");
       }
     } finally {
       state.submitting = false;
-      button.disabled = !state.cart.length;
+      button.disabled = state.cart.length !== 1 || !sessionCanOrder();
     }
   }
 
   function sessionCanOrder() {
     const session = state.session;
-    return Boolean(session && session.status === "active" && session.deviceBinding === state.deviceBinding && Date.parse(session.expiresAt) > state.gateway.now());
+    return Boolean(
+      session
+      && session.status === "active"
+      && session.deviceBinding === state.deviceBinding
+      && Date.parse(session.expiresAt) > state.gateway.now()
+      && !state.pendingOrder
+      && !state.orderStatusLoading
+      && !state.orderStatusError
+    );
+  }
+
+  async function refreshOrderAvailability(session) {
+    if (!state.gateway || !session?.sessionId) return;
+    const previousPendingId = state.pendingOrder?.id || "";
+    const wasInitialized = state.orderAvailabilityInitialized;
+    try {
+      const result = await state.gateway.getUnlimitedOrderState(session.sessionId);
+      state.pendingOrder = result.pendingOrder;
+      state.orderStatusLoading = false;
+      state.orderStatusError = false;
+      state.orderAvailabilityInitialized = true;
+      if (state.pendingOrder) {
+        state.cart = [];
+        closeDialogs();
+      }
+      if (wasInitialized && previousPendingId && !state.pendingOrder) {
+        toast("提供済みになりました。次の1杯をご注文いただけます");
+      }
+    } catch (error) {
+      console.error(error);
+      state.orderStatusLoading = false;
+      state.orderStatusError = true;
+    }
+
+    if ($("#menuSections")?.children.length) renderMenu();
+    renderOrderAvailability();
+  }
+
+  function renderOrderAvailability() {
+    const notice = $("#orderLimitNotice");
+    if (!notice) return;
+    let stateName = "available";
+    let title = "次の1杯を注文できます";
+    let message = "一度に注文できるドリンクは1杯です。";
+    if (state.orderStatusLoading) {
+      stateName = "loading";
+      title = "注文状況を確認しています";
+      message = "少々お待ちください。";
+    } else if (state.orderStatusError) {
+      stateName = "error";
+      title = "注文状況を確認できません";
+      message = "通信が戻るまで新しい注文は送信できません。";
+    } else if (state.pendingOrder) {
+      stateName = "pending";
+      title = "ドリンクを提供待ちです";
+      message = "提供済みになると、次の1杯を注文できます。";
+    }
+    notice.dataset.state = stateName;
+    $("#orderLimitTitle").textContent = title;
+    $("#orderLimitMessage").textContent = message;
+    renderCartBadge();
+  }
+
+  function orderLockedMessage() {
+    if (state.pendingOrder) return "前のドリンクが提供済みになるまでお待ちください";
+    if (state.orderStatusError) return "注文状況を確認できません。通信状態をご確認ください";
+    return "注文状況を確認しています";
   }
 
   function setSendStatus(message, status) {
