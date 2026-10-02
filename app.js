@@ -405,16 +405,22 @@
     if (!mainScroller) return;
 
     mainScroller.addEventListener("wheel", (event) => {
+      const menuPicker = event.target.closest(".menu-picker");
+      if (!menuPicker || !mainScroller.contains(menuPicker) || event.ctrlKey || !event.deltaY) return;
+
       const menuScroller = event.target.closest(".menu-item-grid");
-      if (!menuScroller || !mainScroller.contains(menuScroller) || event.ctrlKey || !event.deltaY) return;
+      const pageCanScrollUp = event.deltaY < 0 && mainScroller.scrollTop > 1;
+      const menuAtTop = !menuScroller || menuScroller.scrollTop <= 1;
+      const menuAtBottom = !menuScroller
+        || menuScroller.scrollTop + menuScroller.clientHeight >= menuScroller.scrollHeight - 1;
+      const menuCanConsumeWheel = menuScroller
+        && ((event.deltaY < 0 && !menuAtTop) || (event.deltaY > 0 && !menuAtBottom));
 
-      const atTop = menuScroller.scrollTop <= 1;
-      const atBottom = menuScroller.scrollTop + menuScroller.clientHeight >= menuScroller.scrollHeight - 1;
-      if ((event.deltaY < 0 && !atTop) || (event.deltaY > 0 && !atBottom)) return;
+      if (!pageCanScrollUp && menuCanConsumeWheel) return;
 
-      const multiplier = event.deltaMode === WheelEvent.DOM_DELTA_LINE
+      const multiplier = event.deltaMode === 1
         ? 16
-        : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+        : event.deltaMode === 2
           ? mainScroller.clientHeight
           : 1;
       event.preventDefault();
