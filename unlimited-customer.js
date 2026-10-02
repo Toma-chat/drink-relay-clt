@@ -378,18 +378,35 @@
     if (!sections.length || $("#orderState")?.hidden) return;
     const marker = ($(".order-header")?.getBoundingClientRect().height || 76) + 20;
     let current = sections[0];
-    sections.forEach((section) => {
-      if (section.getBoundingClientRect().top <= marker) current = section;
-    });
+    const atPageEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+    if (atPageEnd) {
+      current = sections[sections.length - 1];
+    } else {
+      sections.forEach((section) => {
+        if (section.getBoundingClientRect().top <= marker) current = section;
+      });
+    }
     setActiveCategory(current.dataset.menuGroupSection, false);
   }
 
-  function setActiveCategory(groupId, reveal = true) {
+  function setActiveCategory(groupId, smooth = true) {
+    const nav = $("#categoryNav");
+    let activeButton = null;
     $$("#categoryNav button").forEach((entry) => {
       const active = entry.dataset.menuGroupId === groupId;
       entry.classList.toggle("active", active);
       entry.setAttribute("aria-current", active ? "true" : "false");
-      if (active && reveal) entry.scrollIntoView({ block: "nearest", inline: "nearest" });
+      if (active) activeButton = entry;
+    });
+    if (!nav || !activeButton) return;
+    const buttonTop = activeButton.offsetTop;
+    const buttonBottom = buttonTop + activeButton.offsetHeight;
+    const visibleTop = nav.scrollTop;
+    const visibleBottom = visibleTop + nav.clientHeight;
+    if (buttonTop >= visibleTop && buttonBottom <= visibleBottom) return;
+    nav.scrollTo({
+      top: Math.max(0, buttonTop - (nav.clientHeight - activeButton.offsetHeight) / 2),
+      behavior: smooth ? "smooth" : "auto",
     });
   }
 

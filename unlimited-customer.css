@@ -100,15 +100,19 @@ button { touch-action: manipulation; }
   width: 100%;
 }
 .category-sidebar {
-  position: sticky;
+  position: fixed;
   z-index: 19;
   top: calc(76px + var(--safe-top));
-  height: calc(100dvh - 76px - var(--safe-top) - 78px - var(--safe-bottom));
+  bottom: calc(78px + var(--safe-bottom));
+  left: 0;
+  width: 94px;
+  height: auto;
   min-height: 220px;
   overflow: hidden;
   padding: 12px 8px;
   background: rgba(255, 255, 255, .97);
   border-right: 1px solid var(--line);
+  box-shadow: 8px 0 22px rgba(41, 37, 36, .05);
   backdrop-filter: blur(12px);
 }
 .category-sidebar-title { margin: 0 6px 9px; color: var(--muted); font-size: .7rem; font-weight: 850; letter-spacing: .08em; }
@@ -225,7 +229,7 @@ button { touch-action: manipulation; }
 
 @media (min-width: 560px) {
   .order-menu-layout { grid-template-columns: 142px minmax(0, 1fr); max-width: 980px; margin: auto; }
-  .category-sidebar { padding: 16px 12px; }
+  .category-sidebar { left: max(0px, calc((100vw - 980px) / 2)); width: 142px; padding: 16px 12px; }
   .category-nav button { grid-template-columns: 28px minmax(0, 1fr); justify-items: start; min-height: 60px; padding: 9px; text-align: left; }
   .category-nav-icon { grid-row: 1 / 3; align-self: center; }
   .category-nav-label { align-self: end; font-size: .82rem; }
@@ -244,7 +248,7 @@ button { touch-action: manipulation; }
 @media (max-width: 360px) {
   .order-header { padding-right: 12px; padding-left: 12px; }
   .order-menu-layout { grid-template-columns: 86px minmax(0, 1fr); }
-  .category-sidebar { padding-right: 6px; padding-left: 6px; }
+  .category-sidebar { width: 86px; padding-right: 6px; padding-left: 6px; }
   .menu-sections { padding-right: 10px; padding-left: 10px; }
   .menu-card { padding: 14px 12px; }
   .menu-card strong { font-size: .96rem; }
