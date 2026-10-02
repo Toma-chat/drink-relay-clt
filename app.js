@@ -259,6 +259,7 @@
     localStorage.removeItem(SOUND_PREVIEWED_KEY);
     setupTabs();
     setupChoiceButtons();
+    setupNestedScrollChaining();
     renderMenuPickers();
     setupForms();
     setupControls();
@@ -397,6 +398,28 @@
         }
       });
     });
+  }
+
+  function setupNestedScrollChaining() {
+    const mainScroller = $("main");
+    if (!mainScroller) return;
+
+    mainScroller.addEventListener("wheel", (event) => {
+      const menuScroller = event.target.closest(".menu-item-grid");
+      if (!menuScroller || !mainScroller.contains(menuScroller) || event.ctrlKey || !event.deltaY) return;
+
+      const atTop = menuScroller.scrollTop <= 1;
+      const atBottom = menuScroller.scrollTop + menuScroller.clientHeight >= menuScroller.scrollHeight - 1;
+      if ((event.deltaY < 0 && !atTop) || (event.deltaY > 0 && !atBottom)) return;
+
+      const multiplier = event.deltaMode === WheelEvent.DOM_DELTA_LINE
+        ? 16
+        : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+          ? mainScroller.clientHeight
+          : 1;
+      event.preventDefault();
+      mainScroller.scrollTop += event.deltaY * multiplier;
+    }, { passive: false });
   }
 
   function setupControls() {

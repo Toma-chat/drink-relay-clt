@@ -1102,7 +1102,7 @@ button:focus-visible {
   border-bottom: 1px solid #eeeeee;
   border-radius: 0;
   background: #ffffff;
-  overscroll-behavior: contain;
+  overscroll-behavior-y: auto;
 }
 
 @supports (height: 100dvh) {
@@ -1121,7 +1121,7 @@ button:focus-visible {
   display: grid;
   align-content: start;
   overflow: hidden;
-  overscroll-behavior: none;
+  overscroll-behavior-y: auto;
   padding-bottom: 0;
   scroll-padding-bottom: 0;
   border-right: 0;
@@ -1157,7 +1157,7 @@ button:focus-visible {
   max-height: 100%;
   display: block;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: var(--sticky-confirm-space);
   scroll-padding-bottom: var(--sticky-confirm-space);
