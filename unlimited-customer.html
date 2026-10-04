@@ -11,9 +11,13 @@
     <script src="./unlimited-config.js?v=2026100201"></script>
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="./unlimited-shared.js?v=2026100206"></script>
+    <script defer src="./warmup-client.js"></script>
     <script defer src="./unlimited-customer.js?v=2026100206"></script>
   </head>
   <body>
+<section id="warmupActivation" class="customer-state" hidden style="padding:32px;max-width:600px;margin:auto">
+<h1>Warmup飲み放題</h1><p id="warmupMessage" role="status"></p>
+<form id="warmupForm"><label for="warmupCode">本日の4桁コード</label><input id="warmupCode" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" style="display:block;font-size:48px;width:100%;text-align:center;margin:24px 0"><button id="warmupAuthenticate" class="primary-action">認証する</button><p id="warmupAuthError" role="alert"></p></form></section>
     <main id="customerApp" class="customer-app">
       <section id="loadingState" class="customer-state centered-state" aria-live="polite">
         <div class="loading-spinner" aria-hidden="true"></div>

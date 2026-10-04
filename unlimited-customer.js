@@ -2,6 +2,7 @@
   "use strict";
 
   const U = window.DrinkRelayUnlimited;
+  const warmup = new URLSearchParams(location.search).get("warmup") === "1";
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const state = {
@@ -23,16 +24,17 @@
     try {
       const params = new URLSearchParams(location.search);
       const cardToken = String(params.get("card") || "").trim();
-      const planId = String(params.get("plan") || "").trim();
+      const planId = warmup ? "unlimited-alcohol-all-day" : String(params.get("plan") || "").trim();
       if (cardToken.length < 8 || !U.CONFIG.planRules?.[planId]) {
         showError("無効なQRコードです", "受付スタッフへカードをご提示ください。");
         return;
       }
       rememberCustomerUrl();
 
-      state.gateway = await new U.Gateway().init();
+      state.gateway = await new (warmup ? window.DrinkRelayWarmup.Gateway : U.Gateway)().init();
       state.menu = await state.gateway.loadMenu();
       state.plan = U.findPlan(state.menu, planId);
+      if (warmup && state.plan) state.plan = { ...state.plan, name: "Warmup飲み放題" };
       state.rule = U.CONFIG.planRules[planId];
       if (!state.plan) {
         showError("プラン設定が見つかりません", "このQRカードは現在利用できません。受付スタッフへお声がけください。");
@@ -40,7 +42,7 @@
       }
 
       state.cardHash = await U.digest(`${U.STORE_ID}:${cardToken}`);
-      state.deviceBinding = await U.digest(getDeviceId());
+      state.deviceBinding = warmup ? window.DrinkRelayWarmup.device : await U.digest(getDeviceId());
       state.gateway.onChange(() => scheduleSessionCheck());
       await checkSession(true);
       state.pollTimer = window.setInterval(() => checkSession(false), 3000);
@@ -51,7 +53,32 @@
     }
   }
 
+
+  async function checkWarmup() {
+    const data = await state.gateway.status();
+    state.session = data.session;
+    state.rule = data.profile;
+    const freshMenu = await state.gateway.loadMenu();
+    if (JSON.stringify(freshMenu) !== JSON.stringify(state.menu)) { state.menu = freshMenu; $('#menuSections').replaceChildren(); state.cart = []; }
+    if (data.reason !== 'weekday' || data.stopped || !data.session) {
+      closeDialogs(true); state.cart = []; renderCartBadge();
+      showOnly('warmupActivation');
+      const available = data.reason === 'weekday' && !data.stopped;
+      $('#warmupMessage').textContent = data.stopped ? '現在Warmup飲み放題は停止中です' : data.reason === 'calendar_missing' ? '祝日カレンダー未設定です。スタッフへお声がけください' : available ? 'スタッフから本日の4桁コードをお受け取りください' : 'Warmup飲み放題は平日のみ利用できます';
+      $('#warmupForm').hidden = !available;
+      return;
+    }
+    await refreshOrderAvailability(data.session);
+    showOrder(data.session);
+  }
+
   function wireControls() {
+    $("#warmupForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault(); const button = $("#warmupAuthenticate"); button.disabled = true;
+      try { await state.gateway.activate($("#warmupCode").value); $("#warmupAuthError").textContent = ""; await checkWarmup(); }
+      catch (error) { $("#warmupAuthError").textContent = error.message; }
+      finally { button.disabled = false; }
+    });
     $("#retryActivation")?.addEventListener("click", retryActivation);
     $("#requestReconnect")?.addEventListener("click", requestReconnect);
     $("#retryMenu")?.addEventListener("click", reloadMenu);
@@ -108,6 +135,7 @@
   async function checkSession(createIfMissing) {
     if (!state.gateway || !state.cardHash) return;
     try {
+      if (warmup) { await checkWarmup(); return; }
       let session = await state.gateway.getSession(state.cardHash);
       if (!session && createIfMissing) session = await createActivationRequest();
       if (!session) return;
@@ -175,7 +203,7 @@
       showError("このQRカードは利用できません", "受付スタッフへカードをご提示ください。");
     } catch (error) {
       console.error(error);
-      if (!$("#orderState").hidden) return;
+      if (!warmup && !$("#orderState").hidden) return;
       showError("通信状態を確認できません", "注文画面を開くには通信が必要です。接続を確認してください。", true);
     }
   }
@@ -300,6 +328,7 @@
 
   function updateClock() {
     if (!state.session?.expiresAt || !state.gateway) return;
+    if (warmup) { $("strong", $("#remainingTime")).textContent = "本日23:59まで"; return; }
     const remaining = Date.parse(state.session.expiresAt) - state.gateway.now();
     if (remaining <= 0) {
       showEnded();
@@ -714,7 +743,7 @@
       if (!U.unlimitedLocationIsComplete(orderLocation)) throw new Error("現在の届け先を設定してください");
       const item = state.cart[0];
       const row = {
-        drinkName: item.name,
+        drinkName: item.name, itemId: item.itemId, options: item.options,
         quantity: 1,
         location: orderLocation,
         sessionId: current.sessionId,

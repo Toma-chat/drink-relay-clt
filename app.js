@@ -2822,7 +2822,7 @@
             <span class="order-time">${escapeHtml(elapsedLabel(order.created_at))}</span>
           </div>
           <div class="order-product-row">
-            <span class="order-title">${escapeHtml(order.drink_name)}</span>
+            ${order.warmup_session_id ? `<small class="warmup-badge">Warmup</small>` : ""}<span class="order-title">${escapeHtml(order.drink_name)}</span>
             ${manualButton}
             ${quantityPill}
           </div>
@@ -3082,6 +3082,7 @@
     const isStoredCast = order.target === CAST_STORAGE_TARGET && order.seat_no === CAST_STORAGE_SEAT;
     return {
       id: order.id,
+      ...(order.warmup_session_id ? { warmup_session_id: order.warmup_session_id } : {}),
       created_at: order.created_at,
       updated_at: order.updated_at || order.created_at,
       source: order.source || "reception",
@@ -3105,6 +3106,7 @@
     const isCast = order.target === "cast";
     return {
       id: order.id,
+      ...(order.warmup_session_id ? { warmup_session_id: order.warmup_session_id } : {}),
       created_at: order.created_at,
       updated_at: order.updated_at,
       source: order.source,

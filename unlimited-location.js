@@ -23,6 +23,16 @@
         return;
       }
 
+      if (localStorage.getItem(window.DrinkRelayWarmup.key + '-token')) {
+        const warm = await new window.DrinkRelayWarmup.Gateway().init();
+        const session = await warm.getSession();
+        if (session) {
+          const result = await warm.updateSessionLocation(session, locationValue);
+          $('#locationSuccessLabel').textContent = U.formatUnlimitedLocation(result.session.currentLocation);
+          $('#locationSuccessDetail').textContent = '現在の届け先と未提供注文を更新しました';
+          showOnly('locationSuccess'); return;
+        }
+      }
       if (!gateway) gateway = await new U.Gateway().init();
       const binding = await U.digest(getDeviceId());
       const now = gateway.now();
