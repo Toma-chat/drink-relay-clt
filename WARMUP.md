@@ -1,5 +1,9 @@
 # Warmup平日飲み放題
 
+## スタッフパスワードを忘れた場合
+
+SupabaseのAuthentication → URL Configurationで、Site URLを `https://toma-chat.github.io/drink-relay-clt/`、Redirect URLsに `https://toma-chat.github.io/drink-relay-clt/password-reset.html` を設定します。注文アプリの「パスワードを忘れた場合」から再設定メールを送信し、最新メールのリンクで新しいパスワードを保存します。以前のlocalhost向けメールは再利用しません。メール配信・実際のAuth通信は運用環境で確認してください。
+
 Warmupは共通の固定QRと、JSTの当日だけ有効な共通4桁コードを使います。商品本体は既存 `drink_app_settings` の `main` を参照し、対象ルールの唯一の編集元は `unlimited-config.js` の `unlimited-alcohol-all-day`（アルコールスタンダード）です。お客様画面・1杯カート・届け先ダイアログは既存飲み放題画面を再利用しています。Warmupの終了は22:30ではなく翌日0時です。
 
 ## Supabaseへの適用（本リポジトリでは未適用）

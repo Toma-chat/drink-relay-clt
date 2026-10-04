@@ -57,6 +57,9 @@
       }
     }
     async function safely(action, extra) { if(busy) return; busy=true; try { await run(action,extra); $('#warmupStaffError').textContent=''; } catch(e) { $('#warmupStaffError').textContent=e.message; } finally {busy=false;} }
+    const resetLink = document.createElement('a');
+    resetLink.href='./password-reset.html';resetLink.textContent='パスワードを忘れた場合';
+    $('#warmupLogin').append(resetLink);
     $('#warmupLogin').onsubmit = async event => {
       event.preventDefault(); const form = new FormData(event.target);
       if (!gateway.supabase) { $('#warmupStaffError').textContent='Supabase設定が必要です'; return; }
