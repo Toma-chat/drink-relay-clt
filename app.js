@@ -2451,7 +2451,14 @@
 
   function notifyNewOrder(order) {
     if (state.view === "bar") {
-      if (state.soundEnabled) playChime(state.soundChoices[soundCategoryForOrder(order)]);
+      if (state.soundEnabled) {
+        playChime(state.soundChoices[soundCategoryForOrder(order)]).then((played) => {
+          if (played) return;
+          state.soundPreviewed = false;
+          updateHeaderSoundPreviewButton();
+          toast("通知音が停止しています。上部のベルを押して再開してください");
+        }).catch((error) => console.warn(error));
+      }
     }
   }
 
@@ -4361,11 +4368,17 @@
 
   function setupAudioUnlock() {
     const unlock = () => {
-      if (state.view === "bar" && state.soundEnabled) unlockAudio();
+      if (!state.soundEnabled) return;
+      if (state.audioContext?.state === "running") return;
+      unlockAudio().then(() => scheduleNotificationWarmup(0)).catch((error) => console.warn(error));
     };
-    document.addEventListener("pointerdown", unlock, { once: true });
-    document.addEventListener("keydown", unlock, { once: true });
-    document.addEventListener("touchstart", unlock, { once: true });
+    document.addEventListener("pointerdown", unlock, { passive: true });
+    document.addEventListener("keydown", unlock);
+    document.addEventListener("touchstart", unlock, { passive: true });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") unlock();
+    });
+    window.addEventListener("pageshow", unlock);
   }
 
   function teardownSupabase() {
@@ -4384,14 +4397,14 @@
   }
 
   async function unlockAudio(choiceId) {
-    if (state.audioUnlockPromise) return state.audioUnlockPromise;
+    if (state.audioUnlockPromise && state.audioContext?.state === "running") return state.audioUnlockPromise;
     state.audioUnlockPromise = (async () => {
-      if (!state.audioContext) {
+      if (!state.audioContext || state.audioContext.state === "closed") {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextClass) return;
         state.audioContext = new AudioContextClass();
       }
-      if (state.audioContext.state === "suspended") {
+      if (["suspended", "interrupted"].includes(state.audioContext.state)) {
         await state.audioContext.resume();
       }
 
@@ -4406,15 +4419,18 @@
     const normalizedChoice = normalizeSoundChoice(choiceId);
     if (playBufferedNotificationAudio(normalizedChoice)) return true;
     scheduleNotificationWarmup(0);
-    if (await playPrimedNotificationAudio(normalizedChoice)) return true;
-
     try {
       await unlockAudio(normalizedChoice);
-      await warmNotificationBuffer(normalizedChoice);
+      await Promise.race([
+        warmNotificationBuffer(normalizedChoice),
+        new Promise((resolve) => window.setTimeout(resolve, 1200)),
+      ]);
       if (playBufferedNotificationAudio(normalizedChoice)) return true;
     } catch (error) {
       console.warn(error);
     }
+
+    if (await playPrimedNotificationAudio(normalizedChoice)) return true;
 
     if (state.audioContext?.state === "running") {
       playFallbackBell();
@@ -4514,10 +4530,7 @@
     if (!option.url) return false;
     const buffer = state.notificationBuffers.get(option.id);
     if (!state.audioContext || !buffer) return false;
-    if (state.audioContext.state === "suspended") {
-      state.audioContext.resume();
-      return false;
-    }
+    if (state.audioContext.state !== "running") return false;
 
     const source = state.audioContext.createBufferSource();
     const gain = state.audioContext.createGain();
@@ -4551,7 +4564,13 @@
       audio.currentTime = 0;
       audio.volume = 1;
       const playback = audio.play();
-      if (playback?.then) await playback;
+      if (playback?.then) {
+        const played = await Promise.race([
+          playback.then(() => true).catch(() => false),
+          new Promise((resolve) => window.setTimeout(() => resolve(false), 1500)),
+        ]);
+        if (!played) { audio.pause(); return false; }
+      }
       return true;
     } catch {
       return false;
