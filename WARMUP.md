@@ -1,5 +1,7 @@
 # Warmup平日飲み放題
 
+共有メニューに商品本体が存在しない場合、対象プロフィールにIDがあっても表示・注文できません。`node scripts/repair-standard-menu.cjs` で不足を確認し、`--apply` を付けると既存の `initial-settings.js` を参照して不足商品のみを共有メニューへ追加します。既存商品の価格・オプションは維持し、同時編集を検出して保存を中止します。変更前データは端末の一時フォルダへバックアップします。2026-10-08にJJ・JR・JKなど8商品の不足を修正しました。
+
 ## スタッフパスワードを忘れた場合
 
 SupabaseのAuthentication → URL Configurationで、Site URLを `https://toma-chat.github.io/drink-relay-clt/`、Redirect URLsに `https://toma-chat.github.io/drink-relay-clt/password-reset.html` を設定します。注文アプリの「パスワードを忘れた場合」から再設定メールを送信し、最新メールのリンクで新しいパスワードを保存します。以前のlocalhost向けメールは再利用しません。メール配信・実際のAuth通信は運用環境で確認してください。

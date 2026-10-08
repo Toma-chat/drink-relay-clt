@@ -21,6 +21,7 @@ async function main(){
  const r=regular.window;Object.defineProperty(r,'crypto',{value:require('node:crypto').webcrypto});r.TextEncoder=TextEncoder;r.setInterval=()=>1;
  r.HTMLDialogElement.prototype.showModal=function(){this.open=true;};r.HTMLDialogElement.prototype.close=function(){this.open=false;};
  r.DRINK_RELAY_STORE_CONFIG={instanceId:'regression',supabaseUrl:'',supabaseAnonKey:''};
+ r.localStorage.setItem('drink-relay-regression-unlimited-cards-v1',JSON.stringify([{id:'regression-card',token:'regular-card',planId:'unlimited-alcohol-all-day',status:'active',kind:'permanent'}]));
  for(const file of ['initial-settings.js','unlimited-config.js','unlimited-shared.js','warmup-client.js','unlimited-customer.js'])r.eval(fs.readFileSync(file,'utf8'));
  await tick();assert.ok(!r.document.querySelector('#activationState').hidden);assert.match(r.document.querySelector('#activationCode').textContent,/^\d{4}$/);assert.ok(r.document.querySelector('#warmupActivation').hidden);console.log('PASS existing unlimited activation retained');regular.window.close();
  console.log('6 regression checks passed');
