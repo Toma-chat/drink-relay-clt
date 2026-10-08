@@ -17,6 +17,8 @@
     "item-1783049320701",
     "cola",
     "ginger-ale",
+    "onion-soup",
+    "corn-potage",
   ];
   const SOFT_SP_EXTRA = ["item-1783049580653", "orange-juice", "item-1783049326313"];
 
@@ -37,8 +39,6 @@
     "item-1783053351523",
     "amaretto",
     "item-1783053374220",
-    "ichiryuno-mugi",
-    "tomino-hozan",
     "jasmine-jj",
     "jasmine-jr",
     "jasmine-jk",
