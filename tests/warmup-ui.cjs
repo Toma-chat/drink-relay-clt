@@ -36,6 +36,8 @@ async function main(){
  $('#saveCurrentLocation').click();await tick();ok(!$('#orderState').hidden && !$('#locationDialog').open,'saved destination opens authenticated order screen');
  await poll();ok(!$('#orderState').hidden && !$('#locationDialog').open,'confirmed session is not prompted again');
  ok($('#activePlanName').textContent==='Warmup飲み放題','Warmup plan label');ok($('#remainingTime').textContent.includes('本日23:59まで'),'expiry label');
+ ok($('#customer-group-alcohol-tea-highs h2')?.textContent==='お茶ハイ','tea highs have their own visible category');
+ ok($('#customer-group-alcohol-tea-highs')?.querySelectorAll('[data-item-id]').length===4,'tea-high category displays all four drinks');
  ok($('#currentLocationLabel').textContent.includes('B') && $('#currentLocationLabel').textContent.includes('3'),'selected destination always shown');
  const drink=$('#menuSections [data-item-id]');ok(drink&&!drink.disabled,'shared live menu usable');drink.click();await tick();
  for(const group of w.document.querySelectorAll('#itemOptions .option-group[data-required="true"]')){const option=group.querySelector('input[value]:not([value=""])');if(option)option.checked=true;}
