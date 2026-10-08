@@ -7,7 +7,7 @@
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const state = {
     gateway: null, menu: [], plan: null, rule: null, session: null,
-    cardHash: "", deviceBinding: "", cart: [], activeItem: null,
+    cardToken: "", cardRecord: null, cardHash: "", deviceBinding: "", cart: [], activeItem: null,
     submitting: false, pendingOrder: null, orderStatusLoading: true, orderStatusError: false,
     orderAvailabilityInitialized: false, locationSaving: false,
     pollTimer: null, clockTimer: null, toastTimer: null,
@@ -29,9 +29,11 @@
         showError("無効なQRコードです", "受付スタッフへカードをご提示ください。");
         return;
       }
+      state.cardToken = cardToken;
       rememberCustomerUrl();
 
       state.gateway = await new (warmup ? window.DrinkRelayWarmup.Gateway : U.Gateway)().init();
+      if (!warmup) await assertCardAuthorized(planId);
       state.menu = await state.gateway.loadMenu();
       state.plan = U.findPlan(state.menu, planId);
       if (warmup && state.plan) state.plan = { ...state.plan, name: "Warmup飲み放題" };
@@ -49,7 +51,8 @@
       window.addEventListener("pagehide", cleanup, { once: true });
     } catch (error) {
       console.error(error);
-      showError("通信エラーが発生しました", error.message || "通信状態を確認してもう一度お試しください。", true);
+      if (error instanceof CardAccessError) showError(error.title, error.message);
+      else showError("通信エラーが発生しました", error.message || "通信状態を確認してもう一度お試しください。", true);
     }
   }
 
@@ -136,6 +139,7 @@
     if (!state.gateway || !state.cardHash) return;
     try {
       if (warmup) { await checkWarmup(); return; }
+      await assertCardAuthorized(state.plan?.id);
       let session = await state.gateway.getSession(state.cardHash);
       if (!session && createIfMissing) session = await createActivationRequest();
       if (!session) return;
@@ -203,12 +207,17 @@
       showError("このQRカードは利用できません", "受付スタッフへカードをご提示ください。");
     } catch (error) {
       console.error(error);
+      if (error instanceof CardAccessError) {
+        showError(error.title, error.message);
+        return;
+      }
       if (!warmup && !$("#orderState").hidden) return;
       showError("通信状態を確認できません", "注文画面を開くには通信が必要です。接続を確認してください。", true);
     }
   }
 
   async function createActivationRequest() {
+    await assertCardAuthorized(state.plan?.id);
     const now = state.gateway.now();
     const minutes = Number(U.CONFIG.activationRequestMinutes || 15);
     return state.gateway.saveSession({
@@ -229,6 +238,7 @@
   async function retryActivation() {
     showOnly("loadingState");
     try {
+      await assertCardAuthorized(state.plan?.id);
       const current = await state.gateway.getSession(state.cardHash);
       if (current?.status === "active") {
         await checkSession(false);
@@ -237,7 +247,8 @@
       state.session = await createActivationRequest();
       showActivation(state.session);
     } catch (error) {
-      showError("再確認できませんでした", error.message || "通信状態を確認してください。", true);
+      if (error instanceof CardAccessError) showError(error.title, error.message);
+      else showError("再確認できませんでした", error.message || "通信状態を確認してください。", true);
     }
   }
 
@@ -247,6 +258,7 @@
     button.disabled = true;
     showOnly("loadingState");
     try {
+      await assertCardAuthorized(state.plan?.id);
       const current = await state.gateway.getSession(state.cardHash);
       const now = state.gateway.now();
       if (!current || current.status !== "active" || Date.parse(current.expiresAt) <= now) {
@@ -262,7 +274,8 @@
       state.session = await state.gateway.saveSession({ ...current, reconnectRequest });
       showActivation(state.session, true);
     } catch (error) {
-      showError("再接続を申請できませんでした", error.message || "通信状態を確認してください。");
+      if (error instanceof CardAccessError) showError(error.title, error.message);
+      else showError("再接続を申請できませんでした", error.message || "通信状態を確認してください。");
     } finally {
       button.disabled = false;
     }
@@ -271,6 +284,32 @@
   function validReconnectRequest(session, now = state.gateway?.now() || Date.now()) {
     const request = session?.reconnectRequest;
     return request?.code && Date.parse(request.expiresAt) > now ? request : null;
+  }
+
+  async function assertCardAuthorized(planId) {
+    if (warmup) return null;
+    const catalog = U.normalizeCardCatalog(await state.gateway.loadCards());
+    const card = U.findCardByToken(catalog, state.cardToken);
+    if (!card) {
+      throw new CardAccessError(
+        "このQRカードは無効です",
+        "削除または再発行されたQRです。受付スタッフへカードをご提示ください。"
+      );
+    }
+    if (card.planId !== planId) {
+      throw new CardAccessError("カードのプランが一致しません", "受付スタッフへカードをご提示ください。");
+    }
+    if (card.status === "disabled") {
+      throw new CardAccessError("このQRカードは無効化されています", "受付スタッフへカードをご提示ください。");
+    }
+    if (card.status === "retired") {
+      throw new CardAccessError("このQRカードは廃止されています", "このカードではアクティベートや注文はできません。");
+    }
+    if (card.status !== "active") {
+      throw new CardAccessError("このQRカードは利用できません", "受付スタッフへカードをご提示ください。");
+    }
+    state.cardRecord = card;
+    return card;
   }
 
   function showDeviceConflict() {
@@ -699,6 +738,7 @@
     button.disabled = true;
     setLocationDialogStatus("届け先を更新しています...", "loading");
     try {
+      await assertCardAuthorized(state.plan?.id);
       const current = await state.gateway.getSession(state.cardHash);
       const now = state.gateway.now();
       if (!current || current.status !== "active" || current.deviceBinding !== state.deviceBinding || Date.parse(current.expiresAt) <= now) {
@@ -712,7 +752,8 @@
       toast(result.pendingOrder ? "届け先と未提供注文を変更しました" : "現在の届け先を変更しました");
     } catch (error) {
       console.error(error);
-      if (error instanceof SessionEndedError) showEnded();
+      if (error instanceof CardAccessError) showError(error.title, error.message);
+      else if (error instanceof SessionEndedError) showEnded();
       else setLocationDialogStatus(error.message || "届け先を変更できませんでした", "error");
     } finally {
       state.locationSaving = false;
@@ -734,6 +775,7 @@
     button.disabled = true;
     setSendStatus("送信中...", "loading");
     try {
+      await assertCardAuthorized(state.plan?.id);
       const current = await state.gateway.getSession(state.cardHash);
       const now = state.gateway.now();
       if (!current || current.status !== "active" || current.deviceBinding !== state.deviceBinding || Date.parse(current.expiresAt) <= now) {
@@ -763,7 +805,9 @@
       }, 850);
     } catch (error) {
       console.error(error);
-      if (error instanceof SessionEndedError) {
+      if (error instanceof CardAccessError) {
+        showError(error.title, error.message);
+      } else if (error instanceof SessionEndedError) {
         showEnded();
       } else if (error?.code === "UNLIMITED_ORDER_PENDING") {
         state.cart = [];
@@ -889,5 +933,12 @@
 
   class SessionEndedError extends Error {
     constructor() { super("飲み放題は終了しました"); }
+  }
+
+  class CardAccessError extends Error {
+    constructor(title, message) {
+      super(message);
+      this.title = title;
+    }
   }
 })();

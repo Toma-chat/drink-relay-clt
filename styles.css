@@ -191,8 +191,25 @@
 }
 
 .unlimited-card-form .button { min-height: 48px; }
+.unlimited-card-policy {
+  margin: 0 0 10px;
+  padding: 11px 13px;
+  border-left: 4px solid #f97316;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #7c2d12;
+  font-size: .82rem;
+  font-weight: 750;
+  line-height: 1.55;
+}
 .unlimited-card-bulk-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .unlimited-card-bulk-actions .button { min-height: 46px; }
+.unlimited-card-manager .button-quiet {
+  border: 1px solid #c2410c;
+  background: #fff;
+  color: #9a3412;
+  font-weight: 850;
+}
 .unlimited-card-origin-note { margin: 8px 2px 12px; color: var(--muted); font-size: .78rem; }
 .unlimited-card-origin-note.is-warning { color: #9a3412; font-weight: 750; }
 .unlimited-card-list { display: grid; gap: 10px; }
@@ -205,6 +222,8 @@
   border-radius: 14px;
   background: #fff;
 }
+.unlimited-fixed-card.is-inactive { border-color: #d6d3d1; background: #f5f5f4; }
+.unlimited-fixed-card.is-inactive .unlimited-card-qr { background: #e7e5e4; color: #57534e; font-size: .9rem; font-weight: 900; }
 .unlimited-card-qr {
   display: grid;
   place-items: center;
@@ -222,6 +241,20 @@
 .unlimited-card-info { min-width: 0; }
 .unlimited-card-info > span { color: #c2410c; font-size: .76rem; font-weight: 800; }
 .unlimited-card-info > strong { display: block; margin: 3px 0 9px; font-size: 1.05rem; }
+.unlimited-card-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 9px; }
+.unlimited-card-badges span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 900;
+}
+.unlimited-card-kind { background: #ffedd5; color: #9a3412; }
+.unlimited-card-status.is-active { background: #dcfce7; color: #166534; }
+.unlimited-card-status.is-disabled { background: #fee2e2; color: #991b1b; }
+.unlimited-card-status.is-retired { background: #e7e5e4; color: #44403c; }
 .unlimited-card-info code {
   display: block;
   overflow-wrap: anywhere;
@@ -234,6 +267,29 @@
 }
 .unlimited-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .unlimited-card-actions .button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; text-decoration: none; }
+.unlimited-card-disable,
+.unlimited-card-remove {
+  border: 2px solid #b91c1c;
+  background: #fff;
+  color: #991b1b;
+  font-weight: 900;
+}
+.unlimited-card-reissue {
+  border: 2px solid #c2410c;
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 900;
+}
+
+.unlimited-card-action-modal { width: min(520px, calc(100vw - 32px)); padding: 22px; }
+.unlimited-card-action-message { margin: 18px 0 10px; color: var(--ink); line-height: 1.7; }
+.unlimited-card-action-warning { margin: 0 0 18px; color: #991b1b; font-size: .8rem; font-weight: 850; }
+.unlimited-card-confirm-danger {
+  border: 2px solid #991b1b;
+  background: #dc2626;
+  color: #fff;
+  font-weight: 900;
+}
 
 .unlimited-session-list {
   display: grid;
@@ -367,8 +423,10 @@
   .unlimited-card-form,
   .unlimited-card-bulk-actions,
   .unlimited-card-origin-note,
+  .unlimited-card-policy,
   .unlimited-card-info code,
   .unlimited-card-actions { display: none !important; }
+  .unlimited-fixed-card.is-inactive { display: none !important; }
   .unlimited-card-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8mm; }
   .unlimited-fixed-card {
     break-inside: avoid;

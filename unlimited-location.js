@@ -36,9 +36,14 @@
       if (!gateway) gateway = await new U.Gateway().init();
       const binding = await U.digest(getDeviceId());
       const now = gateway.now();
+      const activeCards = U.normalizeCardCatalog(await gateway.loadCards()).filter((card) => card.status === "active");
+      const activeCardHashes = new Set(await Promise.all(
+        activeCards.map((card) => U.digest(`${U.STORE_ID}:${card.token}`))
+      ));
       const session = (await gateway.listSessions())
         .filter((item) => item?.status === "active"
           && item.deviceBinding === binding
+          && activeCardHashes.has(item.cardHash)
           && Date.parse(item.expiresAt) > now)
         .sort((left, right) => Date.parse(right.updatedAt || right.activatedAt || 0) - Date.parse(left.updatedAt || left.activatedAt || 0))[0];
 

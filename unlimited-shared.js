@@ -13,6 +13,9 @@
   const CHANNEL_NAME = `${PREFIX}-local`;
   const SESSION_ROW_PREFIX = "aycd-session-";
   const CARD_CATALOG_ROW_ID = "aycd-card-catalog";
+  const PERMANENT_CARD_COUNT = 20;
+  const CARD_KINDS = new Set(["permanent", "additional"]);
+  const CARD_STATUSES = new Set(["active", "disabled", "retired"]);
   const UNLIMITED_OPEN_ORDER_STATUSES = new Set(["ordered", "making", "made"]);
   const LOCATION_TARGETS = ["bar", "ring", "tournament"];
   const LOCATION_TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -40,6 +43,33 @@
     const source = Array.isArray(menu) ? menu : [];
     const category = source.find((entry) => entry?.id === "all-you-can-drink");
     return category?.items?.find((item) => item?.id === planId) || null;
+  }
+
+  function normalizeCardCatalog(cards) {
+    const planCounts = new Map();
+    return (Array.isArray(cards) ? cards : []).filter((card) => card && typeof card === "object").map((card) => {
+      const planId = String(card.planId || "");
+      const planIndex = planCounts.get(planId) || 0;
+      planCounts.set(planId, planIndex + 1);
+      const kind = CARD_KINDS.has(card.kind)
+        ? card.kind
+        : planIndex < PERMANENT_CARD_COUNT ? "permanent" : "additional";
+      const status = CARD_STATUSES.has(card.status) ? card.status : "active";
+      return {
+        ...card,
+        kind,
+        status,
+        immutable: kind === "permanent",
+        tokenHistory: Array.isArray(card.tokenHistory)
+          ? card.tokenHistory.filter((entry) => entry && typeof entry === "object" && entry.tokenHash)
+          : [],
+      };
+    });
+  }
+
+  function findCardByToken(cards, token) {
+    const normalizedToken = String(token || "");
+    return normalizeCardCatalog(cards).find((card) => String(card.token || "") === normalizedToken) || null;
   }
 
   async function digest(value) {
@@ -142,10 +172,10 @@
       this.listeners = new Set();
       this.broadcast = "BroadcastChannel" in window ? new BroadcastChannel(CHANNEL_NAME) : null;
       this.broadcast?.addEventListener("message", (event) => {
-        if (["unlimited-session-changed", "orders-changed"].includes(event.data?.type)) this.emit(event.data.type);
+        if (["unlimited-session-changed", "orders-changed", "cards-changed"].includes(event.data?.type)) this.emit(event.data.type);
       });
       window.addEventListener("storage", (event) => {
-        if ([SESSION_KEY, ORDER_KEY, MENU_KEY].includes(event.key)) this.emit("storage-changed");
+        if ([SESSION_KEY, ORDER_KEY, MENU_KEY, CARD_KEY].includes(event.key)) this.emit("storage-changed");
       });
     }
 
@@ -161,7 +191,9 @@
         this.channel = this.supabase
           .channel(`drink_relay_unlimited_${makeId()}`)
           .on("postgres_changes", { event: "*", schema: "public", table: "drink_app_settings" }, (payload) => {
-            if (String(payload.new?.id || payload.old?.id || "").startsWith(SESSION_ROW_PREFIX)) this.emit("session-changed");
+            const rowId = String(payload.new?.id || payload.old?.id || "");
+            if (rowId.startsWith(SESSION_ROW_PREFIX)) this.emit("session-changed");
+            if (rowId === CARD_CATALOG_ROW_ID) this.emit("cards-changed");
           })
           .on("postgres_changes", { event: "*", schema: "public", table: "drink_orders" }, () => {
             this.emit("orders-changed");
@@ -269,7 +301,7 @@
         if (error) throw new Error("固定QRカードを保存できません");
       } else {
         localStorage.setItem(CARD_KEY, JSON.stringify(value));
-        this.broadcast?.postMessage({ type: "unlimited-session-changed" });
+        this.broadcast?.postMessage({ type: "cards-changed" });
       }
       return value;
     }
@@ -433,6 +465,7 @@
   window.DrinkRelayUnlimited = Object.freeze({
     Gateway, CONFIG, STORE_ID, digest, makeActivationCode, makeId, makeCardToken, normalizeMenu, findPlan,
     calculateExpiry, formatRemaining, normalizeUnlimitedLocation, unlimitedLocationIsComplete, formatUnlimitedLocation,
+    normalizeCardCatalog, findCardByToken, PERMANENT_CARD_COUNT,
     LOCATION_TARGETS, LOCATION_TABLES, LOCATION_SEATS,
   });
 })();

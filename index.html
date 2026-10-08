@@ -11,7 +11,7 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026100204">
+    <link rel="stylesheet" href="./styles.css?v=2026100801">
     <script src="./store-config.js"></script>
     <script src="./initial-settings.js?v=2026100201"></script>
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -19,10 +19,10 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script defer src="./app.js?v=2026100501"></script>
     <script defer src="./unlimited-config.js?v=2026100201"></script>
-    <script defer src="./unlimited-shared.js?v=2026100206"></script>
+    <script defer src="./unlimited-shared.js?v=2026100801"></script>
     <script defer src="./warmup-client.js"></script>
     <script defer src="./warmup-admin.js"></script>
-    <script defer src="./unlimited-admin.js?v=2026100202"></script>
+    <script defer src="./unlimited-admin.js?v=2026100801"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -78,7 +78,8 @@
               </div>
             </details>
             <details class="unlimited-card-manager">
-              <summary>固定QRカードのURLを発行</summary>
+              <summary>飲み放題QRカードを管理</summary>
+              <p class="unlimited-card-policy">各プランの常設20枚は削除できません。20枚を超えて発行した追加QRのみ、未使用なら完全削除、利用履歴があれば廃止できます。</p>
               <form id="unlimitedCardForm" class="unlimited-card-form" autocomplete="off">
                 <label>
                   <span>プラン</span>
@@ -90,12 +91,12 @@
                 </label>
                 <label>
                   <span>発行枚数</span>
-                  <input id="unlimitedCardQuantity" type="number" inputmode="numeric" min="1" max="20" value="20" required>
+                  <input id="unlimitedCardQuantity" type="number" inputmode="numeric" min="1" max="20" value="1" required>
                 </label>
-                <button id="unlimitedCreateCard" class="button button-primary" type="submit">選択プランを発行</button>
+                <button id="unlimitedCreateCard" class="button button-primary" type="submit">追加QRを発行</button>
               </form>
               <div class="unlimited-card-bulk-actions">
-                <button id="unlimitedCreateAllCards" class="button button-primary" type="button">全8プランを各20枚まで用意</button>
+                <button id="unlimitedCreateAllCards" class="button button-primary" type="button">全8プランの常設QRを各20枚まで用意</button>
                 <button id="unlimitedPrintCards" class="button button-quiet" type="button">QRカードを印刷</button>
                 <button id="unlimitedPrintUrls" class="button button-quiet" type="button">全URL一覧を印刷</button>
               </div>
@@ -355,6 +356,26 @@
         <div class="modal-actions">
           <button id="unlimitedSessionLocationCancel" class="button button-quiet" type="button">キャンセル</button>
           <button id="unlimitedSessionLocationSave" class="button button-primary" type="button">届け先を保存</button>
+        </div>
+      </section>
+    </dialog>
+
+    <dialog id="unlimitedCardActionDialog">
+      <section class="unlimited-card-action-modal" aria-labelledby="unlimitedCardActionTitle">
+        <div class="section-head compact">
+          <div>
+            <span class="unlimited-activation-kicker">飲み放題QR管理</span>
+            <h2 id="unlimitedCardActionTitle">QRカードを更新しますか？</h2>
+          </div>
+          <button id="unlimitedCardActionClose" class="icon-button" type="button" aria-label="閉じる" title="閉じる">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p id="unlimitedCardActionMessage" class="unlimited-card-action-message"></p>
+        <p class="unlimited-card-action-warning">過去の注文・利用履歴は削除されません。</p>
+        <div class="modal-actions">
+          <button id="unlimitedCardActionCancel" class="button button-quiet" type="button">キャンセル</button>
+          <button id="unlimitedCardActionConfirm" class="button unlimited-card-confirm-danger" type="button">実行する</button>
         </div>
       </section>
     </dialog>
