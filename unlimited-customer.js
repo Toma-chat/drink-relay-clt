@@ -71,11 +71,21 @@
       $('#warmupForm').hidden = !available;
       return;
     }
+    if (!data.session.locationConfirmed) {
+      state.cart = []; renderCartBadge();
+      showOnly('warmupLocationState');
+      if (!$('#locationDialog').open) openLocationDialog();
+      return;
+    }
     await refreshOrderAvailability(data.session);
     showOrder(data.session);
   }
 
   function wireControls() {
+    $('#warmupChooseLocation')?.addEventListener('click', openLocationDialog);
+    $('#locationDialog')?.addEventListener('cancel', (event) => {
+      if (warmup && state.session && !state.session.locationConfirmed) event.preventDefault();
+    });
     $("#warmupForm")?.addEventListener("submit", async (event) => {
       event.preventDefault(); const button = $("#warmupAuthenticate"); button.disabled = true;
       try { await state.gateway.activate($("#warmupCode").value); $("#warmupAuthError").textContent = ""; await checkWarmup(); }
@@ -677,11 +687,20 @@
   function openLocationDialog() {
     if (!state.session || state.session.status !== "active") return;
     renderLocationChoices(U.normalizeUnlimitedLocation(state.session.currentLocation));
+    const firstLocation = warmup && !state.session.locationConfirmed;
+    $('#closeLocationDialog').hidden = firstLocation;
+    $('#locationDialog h2').textContent = firstLocation ? '最初の届け先を選択' : '届け先を変更';
+    if (firstLocation) {
+      $$('[data-location-choice].active').forEach(button => button.classList.remove('active'));
+      $('#locationTableGroup').hidden = true;
+      $('#locationSeatGroup').hidden = true;
+    }
     setLocationDialogStatus("");
     $("#locationDialog").showModal();
   }
 
   function closeLocationDialog() {
+    if (warmup && state.session && !state.session.locationConfirmed) return;
     const dialog = $("#locationDialog");
     if (dialog?.open && !state.locationSaving) dialog.close();
   }
@@ -727,6 +746,10 @@
 
   async function saveCurrentLocation() {
     if (state.locationSaving || !state.gateway) return;
+    if (warmup && !state.session?.locationConfirmed && !$('[data-location-choice="target"].active')) {
+      setLocationDialogStatus("エリアを選択してください", "error");
+      return;
+    }
     const location = selectedLocation();
     if (!U.unlimitedLocationIsComplete(location)) {
       setLocationDialogStatus("テーブルと席番号を選択してください", "error");
@@ -749,6 +772,7 @@
       await refreshOrderAvailability(state.session);
       renderCurrentLocation();
       if ($("#locationDialog").open) $("#locationDialog").close();
+      if (warmup) await checkWarmup();
       toast(result.pendingOrder ? "届け先と未提供注文を変更しました" : "現在の届け先を変更しました");
     } catch (error) {
       console.error(error);
@@ -829,6 +853,7 @@
     return Boolean(
       session
       && session.status === "active"
+      && (!warmup || session.locationConfirmed)
       && session.deviceBinding === state.deviceBinding
       && Date.parse(session.expiresAt) > state.gateway.now()
       && !state.pendingOrder

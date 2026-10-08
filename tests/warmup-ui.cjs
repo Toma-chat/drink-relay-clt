@@ -23,9 +23,20 @@ async function main(){
  const $=s=>w.document.querySelector(s);let count=0;const ok=(v,label)=>{assert.ok(v,label);console.log('PASS '+label);count++;};
  ok(!$('#warmupActivation').hidden && !$('#warmupForm').hidden,'code entry screen');
  $('#warmupCode').value='9999';$('#warmupForm').dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();ok($('#warmupAuthError').textContent.includes('違い'),'code error rendered');
- $('#warmupCode').value='1234';$('#warmupForm').dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();ok(!$('#orderState').hidden,'authenticated order screen');
+ $('#warmupCode').value='1234';$('#warmupForm').dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();
+ ok(!$('#warmupLocationState').hidden && $('#orderState').hidden,'first authentication requires destination');
+ ok(!w.document.querySelector('[data-location-choice="target"].active'),'bar is not preselected');
+ $('#saveCurrentLocation').click();await tick();ok($('#locationDialogStatus').textContent.includes('エリア'),'cannot save without selecting area');
+ await poll();ok($('#locationDialog').open && $('#orderState').hidden,'poll preserves mandatory destination screen');
+ const cancelled=new w.Event('cancel',{cancelable:true});$('#locationDialog').dispatchEvent(cancelled);ok(cancelled.defaultPrevented,'escape cannot skip initial location');
+ $('[data-location-choice="target"][data-location-value="tournament"]').click();
+ $('#saveCurrentLocation').click();await tick();ok($('#locationDialog').open,'table and seat required');
+ $('[data-location-choice="tableNo"][data-location-value="B"]').click();
+ $('[data-location-choice="seatNo"][data-location-value="3"]').click();
+ $('#saveCurrentLocation').click();await tick();ok(!$('#orderState').hidden && !$('#locationDialog').open,'saved destination opens authenticated order screen');
+ await poll();ok(!$('#orderState').hidden && !$('#locationDialog').open,'confirmed session is not prompted again');
  ok($('#activePlanName').textContent==='Warmup飲み放題','Warmup plan label');ok($('#remainingTime').textContent.includes('本日23:59まで'),'expiry label');
- ok($('#currentLocationLabel').textContent.includes('バー'),'destination always shown');
+ ok($('#currentLocationLabel').textContent.includes('B') && $('#currentLocationLabel').textContent.includes('3'),'selected destination always shown');
  const drink=$('#menuSections [data-item-id]');ok(drink&&!drink.disabled,'shared live menu usable');drink.click();await tick();
  for(const group of w.document.querySelectorAll('#itemOptions .option-group[data-required="true"]')){const option=group.querySelector('input[value]:not([value=""])');if(option)option.checked=true;}
  $('#addToCart').click();$('#openCart').click();ok($('#cartItems').textContent.includes('1杯'),'single cup cart');$('#submitOrder').click();await tick();ok(orders.length===1,'order button submits');

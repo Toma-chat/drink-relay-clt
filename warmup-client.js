@@ -20,6 +20,11 @@
   class Gateway extends U.Gateway {
     async status() {
       latest = await api('status');
+      if (latest.session) {
+        latest.session.locationConfirmed = localStorage.getItem(`${key}-location-${latest.session.sessionId}`) === 'confirmed'
+          || latest.session.currentLocation?.target !== 'bar'
+          || latest.orders.length > 0;
+      }
       this.serverOffsetMs = Date.parse(latest.serverNow) - Date.now();
       return latest;
     }
@@ -34,7 +39,13 @@
       return { orders: data.orders, pendingOrder: data.orders.find(o => ['ordered','making','made'].includes(o.status)) || null };
     }
     async createUnlimitedOrder(row) { return (await api('order', { item: row.itemId, options: row.options, quantity: row.quantity })).order; }
-    async updateSessionLocation(session, value) { const data = await api('location', { location: value }); return { session: data.session, pendingOrder: data.orders.find(o => ['ordered','making','made'].includes(o.status)) }; }
+    async updateSessionLocation(session, value) {
+      const data = await api('location', { location: value });
+      if (!data.session) throw new Error('届け先を保存できませんでした');
+      localStorage.setItem(`${key}-location-${data.session.sessionId}`, 'confirmed');
+      data.session.locationConfirmed = true;
+      return { session: data.session, pendingOrder: data.orders.find(o => ['ordered','making','made'].includes(o.status)) };
+    }
   }
   window.DrinkRelayWarmup = { api, Gateway, device, key, get latest() { return latest; } };
 })();
