@@ -1,2 +1,5 @@
 [functions.warmup]
 verify_jwt = false
+
+[functions.unlimited]
+verify_jwt = false

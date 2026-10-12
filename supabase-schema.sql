@@ -34,37 +34,11 @@ drop policy if exists "drink_app_settings_select" on public.drink_app_settings;
 drop policy if exists "drink_app_settings_insert" on public.drink_app_settings;
 drop policy if exists "drink_app_settings_update" on public.drink_app_settings;
 
-create policy "drink_orders_select"
-  on public.drink_orders
-  for select
-  using (true);
-
-create policy "drink_orders_insert"
-  on public.drink_orders
-  for insert
-  with check (true);
-
-create policy "drink_orders_update"
-  on public.drink_orders
-  for update
-  using (true)
-  with check (true);
-
-create policy "drink_app_settings_select"
-  on public.drink_app_settings
-  for select
-  using (true);
-
-create policy "drink_app_settings_insert"
-  on public.drink_app_settings
-  for insert
-  with check (true);
-
-create policy "drink_app_settings_update"
-  on public.drink_app_settings
-  for update
-  using (true)
-  with check (true);
+-- Secure by default. Apply `supabase/security-foundation.sql`, deploy the
+-- authenticated UI and Edge Function, then apply `supabase/security-lockdown.sql`.
+-- Do not restore unconditional public read or write policies.
+revoke all on table public.drink_orders from anon, authenticated;
+revoke all on table public.drink_app_settings from anon, authenticated;
 
 alter table public.drink_orders
   drop constraint if exists drink_orders_payment_method_check;
@@ -121,3 +95,11 @@ select cron.schedule(
     where created_at < now() - interval '24 hours';
   $command$
 );
+
+-- Apply once to an existing store using the Supabase SQL Editor.
+-- Return database time as JSON, since HTTP Date is not exposed to browsers by CORS.
+create or replace function public.drink_server_time()
+returns timestamptz language sql volatile
+set search_path = ''
+as $$ select clock_timestamp(); $$;
+grant execute on function public.drink_server_time() to anon, authenticated;

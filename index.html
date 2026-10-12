@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f97316">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
     <title>Drink Relay</title>
     <link rel="preload" as="audio" href="./sounds/news-title.mp3">
     <link rel="preload" as="audio" href="./sounds/decision-button.mp3">
@@ -11,21 +13,41 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026100801">
+    <link rel="stylesheet" href="./styles.css?v=2026101201">
     <script src="./store-config.js"></script>
     <script src="./initial-settings.js?v=2026100804"></script>
-    <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script defer src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://unpkg.com/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+    <script defer src="./time-sync.js?v=2026100802"></script>
+    <script defer src="https://unpkg.com/lucide@1.55.0/dist/umd/lucide.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script defer src="./app.js?v=2026100501"></script>
+    <script defer src="./staff-auth.js?v=2026101201"></script>
+    <script defer src="./app.js?v=2026101201"></script>
     <script defer src="./unlimited-config.js?v=2026100803"></script>
-    <script defer src="./unlimited-shared.js?v=2026100801"></script>
+    <script defer src="./unlimited-shared.js?v=2026101201"></script>
     <script defer src="./warmup-client.js"></script>
-    <script defer src="./warmup-admin.js"></script>
+    <script defer src="./warmup-admin.js?v=2026101201"></script>
     <script defer src="./unlimited-admin.js?v=2026101201"></script>
   </head>
   <body>
-    <div class="app-shell">
+    <section id="staffAuthGate" class="staff-auth-gate" aria-labelledby="staffAuthTitle">
+      <form id="staffLoginForm" class="staff-auth-card" autocomplete="on">
+        <span class="staff-auth-kicker">CLT 店舗管理</span>
+        <h1 id="staffAuthTitle">スタッフログイン</h1>
+        <p>受付・バー・設定画面は、許可されたスタッフだけ利用できます。</p>
+        <label>
+          <span>メールアドレス</span>
+          <input name="email" type="email" autocomplete="username" required>
+        </label>
+        <label>
+          <span>パスワード</span>
+          <input name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <button id="staffLoginButton" class="button button-primary" type="submit">ログイン</button>
+        <a href="./password-reset.html">パスワードを忘れた場合</a>
+        <p id="staffAuthStatus" class="staff-auth-status" role="status" aria-live="assertive"></p>
+      </form>
+    </section>
+    <div id="staffApplication" class="app-shell" hidden>
       <header class="app-menu-bar">
         <div class="header-view-switcher" aria-label="画面切り替え">
           <div class="view-title-wrap">
@@ -51,6 +73,10 @@
         </button>
         <button id="headerConfigButton" class="header-config-button" type="button" aria-label="設定を開く" title="設定">
           <i data-lucide="settings" aria-hidden="true"></i>
+        </button>
+        <button id="staffLogoutButton" class="header-config-button" type="button" aria-label="ログアウト" title="ログアウト">
+          <i data-lucide="log-out" aria-hidden="true"></i>
+          <span id="staffAccountLabel" class="visually-hidden">スタッフ</span>
         </button>
       </header>
 

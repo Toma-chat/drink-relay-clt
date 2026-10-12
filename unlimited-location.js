@@ -33,21 +33,27 @@
           showOnly('locationSuccess'); return;
         }
       }
-      if (!gateway) gateway = await new U.Gateway().init();
+      const customerUrl = rememberedCustomerUrl();
+      if (!customerUrl) {
+        showError(
+          "利用中の飲み放題が見つかりません",
+          "注文用QRをアクティベートした同じ端末・ブラウザで読み込んでください。"
+        );
+        return;
+      }
+      const customerParams = new URL(customerUrl).searchParams;
+      const cardToken = String(customerParams.get("card") || "");
+      const planId = String(customerParams.get("plan") || "");
       const binding = await U.digest(getDeviceId());
+      if (!gateway) {
+        gateway = await new U.Gateway().init();
+        gateway.configureCustomer({ cardToken, deviceBinding: binding, planId });
+      }
       const now = gateway.now();
-      const activeCards = U.normalizeCardCatalog(await gateway.loadCards()).filter((card) => card.status === "active");
-      const activeCardHashes = new Set(await Promise.all(
-        activeCards.map((card) => U.digest(`${U.STORE_ID}:${card.token}`))
-      ));
-      const session = (await gateway.listSessions())
-        .filter((item) => item?.status === "active"
-          && item.deviceBinding === binding
-          && activeCardHashes.has(item.cardHash)
-          && Date.parse(item.expiresAt) > now)
-        .sort((left, right) => Date.parse(right.updatedAt || right.activatedAt || 0) - Date.parse(left.updatedAt || left.activatedAt || 0))[0];
+      const cardHash = await U.digest(`${U.STORE_ID}:${cardToken}`);
+      const session = await gateway.getSession(cardHash);
 
-      if (!session) {
+      if (!session || session.status !== "active" || session.deviceBinding !== binding || Date.parse(session.expiresAt) <= now) {
         showError(
           "利用中の飲み放題が見つかりません",
           "注文用QRをアクティベートした同じ端末・ブラウザで読み込んでください。"

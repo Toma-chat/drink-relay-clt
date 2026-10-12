@@ -154,9 +154,11 @@
     const endMinute = Number.isFinite(CONFIG.lastOrderEndMinute)
       ? CONFIG.lastOrderEndMinute
       : Number.isFinite(CONFIG.allDayEndMinute) ? CONFIG.allDayEndMinute : 30;
-    const now = new Date(startedAtMs);
-    const end = new Date(now);
-    end.setHours(endHour, endMinute, 0, 0);
+    // Store closing time is in Japan, regardless of the activating device's timezone.
+    const japanOffsetMs = 9 * 60 * 60 * 1000;
+    const japanDate = new Date(startedAtMs + japanOffsetMs);
+    const end = new Date(Date.UTC(japanDate.getUTCFullYear(), japanDate.getUTCMonth(),
+      japanDate.getUTCDate(), endHour, endMinute) - japanOffsetMs);
     if (Number.isFinite(rule.durationMinutes)) {
       return Math.min(startedAtMs + rule.durationMinutes * 60000, end.getTime());
     }
@@ -170,6 +172,7 @@
       this.serverOffsetMs = 0;
       this.channel = null;
       this.listeners = new Set();
+      this.customerContext = null;
       this.broadcast = "BroadcastChannel" in window ? new BroadcastChannel(CHANNEL_NAME) : null;
       this.broadcast?.addEventListener("message", (event) => {
         if (["unlimited-session-changed", "orders-changed", "cards-changed"].includes(event.data?.type)) this.emit(event.data.type);
@@ -204,6 +207,50 @@
       return this;
     }
 
+    configureCustomer({ cardToken, deviceBinding, planId }) {
+      this.customerContext = {
+        card: String(cardToken || ""),
+        device: String(deviceBinding || ""),
+        plan: String(planId || ""),
+      };
+      return this;
+    }
+
+    async edgeApi(action, payload = {}, staff = false) {
+      if (this.mode !== "supabase") throw new Error("共有接続が必要です");
+      let accessToken = "";
+      if (staff) {
+        accessToken = await window.DrinkRelayStaffAuth?.accessToken?.() || "";
+        if (!accessToken) {
+          const { data } = await this.supabase.auth.getSession();
+          accessToken = data.session?.access_token || "";
+        }
+        if (!accessToken) throw new Error("スタッフログインが必要です");
+      }
+      const response = await fetch(`${STORE_CONFIG.supabaseUrl}/functions/v1/unlimited`, {
+        method: "POST",
+        headers: {
+          apikey: STORE_CONFIG.supabaseAnonKey,
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          store: STORE_ID,
+          action,
+          ...(this.customerContext || {}),
+          ...payload,
+        }),
+      });
+      const value = await response.json().catch(() => ({}));
+      if (!response.ok || value.error) {
+        const error = new Error(value.error || "通信エラーが発生しました");
+        if (value.code) error.code = value.code;
+        throw error;
+      }
+      if (value.serverNow) this.serverOffsetMs = Date.parse(value.serverNow) - (window.DrinkRelayClock?.now() ?? Date.now());
+      return value;
+    }
+
     onChange(listener) {
       this.listeners.add(listener);
       return () => this.listeners.delete(listener);
@@ -214,31 +261,27 @@
     }
 
     now() {
-      return Date.now() + this.serverOffsetMs;
+      return (window.DrinkRelayClock?.now() ?? Date.now()) + this.serverOffsetMs;
     }
 
     async syncServerClock(url, key) {
-      try {
-        const started = Date.now();
-        const response = await fetch(`${url.replace(/\/$/, "")}/rest/v1/`, {
-          method: "HEAD",
-          headers: { apikey: key, Authorization: `Bearer ${key}` },
-          cache: "no-store",
-        });
-        const serverDate = Date.parse(response.headers.get("date") || "");
-        if (Number.isFinite(serverDate)) this.serverOffsetMs = serverDate + (Date.now() - started) / 2 - Date.now();
-      } catch {
-        this.serverOffsetMs = 0;
-      }
+      if (window.DrinkRelayClock) return window.DrinkRelayClock.sync(url, key);
+      return false;
+    }
+
+    async ensureServerClock() {
+      if (this.mode !== "supabase") return;
+      if (window.DrinkRelayClock?.isSynchronized()) return;
+      const ready = await this.syncServerClock(STORE_CONFIG.supabaseUrl, STORE_CONFIG.supabaseAnonKey);
+      if (!ready) throw new Error("サーバー時刻を確認できません。端末の日時を自動設定にして再読み込みしてください。改善しない場合はスタッフへ時刻同期設定の確認を依頼してください。");
     }
 
     async loadMenu() {
       let menu = readJson(MENU_KEY, null);
       if (!Array.isArray(menu) || !menu.length) menu = clone(INITIAL_SETTINGS.menu || []);
       if (this.mode === "supabase") {
-        const { data, error } = await this.supabase.from("drink_app_settings").select("menu").eq("id", "main").maybeSingle();
-        if (error) throw new Error("共有メニューを読み込めません");
-        if (Array.isArray(data?.menu) && data.menu.length) menu = data.menu;
+        const data = await this.edgeApi("menu");
+        if (Array.isArray(data.menu) && data.menu.length) menu = data.menu;
       }
       return menu;
     }
@@ -250,6 +293,7 @@
     async getSession(cardHash) {
       const id = this.sessionRowId(cardHash);
       if (this.mode === "supabase") {
+        if (this.customerContext) return (await this.edgeApi("status")).session || null;
         const { data, error } = await this.supabase.from("drink_app_settings").select("*").eq("id", id).maybeSingle();
         if (error) throw new Error("アクティベーション情報を確認できません");
         return data?.menu && !Array.isArray(data.menu) ? data.menu : null;
@@ -259,9 +303,7 @@
 
     async listSessions() {
       if (this.mode === "supabase") {
-        const { data, error } = await this.supabase.from("drink_app_settings").select("id,updated_at,menu").like("id", `${SESSION_ROW_PREFIX}%`);
-        if (error) throw new Error("飲み放題カードの状態を読み込めません");
-        return (data || []).map((row) => row.menu).filter((value) => value && !Array.isArray(value));
+        return (await this.edgeApi("staff-list-sessions", {}, true)).sessions || [];
       }
       return Object.values(readJson(SESSION_KEY, {}));
     }
@@ -270,8 +312,9 @@
       const id = this.sessionRowId(session.cardHash);
       const value = { ...session, updatedAt: new Date(this.now()).toISOString() };
       if (this.mode === "supabase") {
-        const { error } = await this.supabase.from("drink_app_settings").upsert({ id, updated_at: value.updatedAt, menu: value }, { onConflict: "id" });
-        if (error) throw new Error("アクティベーション情報を保存できません");
+        const action = this.customerContext ? "save-session" : "staff-save-session";
+        const data = await this.edgeApi(action, { session: value }, !this.customerContext);
+        return data.session;
       } else {
         const sessions = readJson(SESSION_KEY, {});
         sessions[id] = value;
@@ -283,9 +326,11 @@
 
     async loadCards() {
       if (this.mode === "supabase") {
-        const { data, error } = await this.supabase.from("drink_app_settings").select("menu").eq("id", CARD_CATALOG_ROW_ID).maybeSingle();
-        if (error) throw new Error("固定QRカードを読み込めません");
-        return Array.isArray(data?.menu) ? data.menu : [];
+        if (this.customerContext) {
+          const data = await this.edgeApi("card");
+          return data.card ? [data.card] : [];
+        }
+        return (await this.edgeApi("staff-list-cards", {}, true)).cards || [];
       }
       return readJson(CARD_KEY, []);
     }
@@ -293,12 +338,7 @@
     async saveCards(cards) {
       const value = Array.isArray(cards) ? cards : [];
       if (this.mode === "supabase") {
-        const updatedAt = new Date(this.now()).toISOString();
-        const { error } = await this.supabase.from("drink_app_settings").upsert(
-          { id: CARD_CATALOG_ROW_ID, updated_at: updatedAt, menu: value },
-          { onConflict: "id" }
-        );
-        if (error) throw new Error("固定QRカードを保存できません");
+        return (await this.edgeApi("staff-save-cards", { cards: value }, true)).cards || [];
       } else {
         localStorage.setItem(CARD_KEY, JSON.stringify(value));
         this.broadcast?.postMessage({ type: "cards-changed" });
@@ -312,6 +352,7 @@
 
       let orders;
       if (this.mode === "supabase") {
+        if (this.customerContext) return this.edgeApi("order-state", { sessionId: normalizedSessionId });
         const { data, error } = await this.supabase
           .from("drink_orders")
           .select("id,created_at,updated_at,status,quantity,drink_name,target,table_no,seat_no,events")
@@ -335,6 +376,15 @@
 
       const at = new Date(this.now()).toISOString();
       const previousLocation = normalizeUnlimitedLocation(session.currentLocation);
+      if (this.mode === "supabase") {
+        const action = this.customerContext ? "location" : "staff-location";
+        const data = await this.edgeApi(action, {
+          sessionId: session.sessionId,
+          location: normalized,
+          source,
+        }, !this.customerContext);
+        return { session: data.session, pendingOrder: data.pendingOrder || null };
+      }
       const savedSession = await this.saveSession({
         ...session,
         currentLocation: normalized,
@@ -422,9 +472,8 @@
       };
 
       if (this.mode === "supabase") {
-        const { error } = await this.supabase.from("drink_orders").insert(row);
-        if (error?.code === "23505") throw unlimitedOrderPendingError();
-        if (error) throw new Error("注文を送信できませんでした");
+        if (!this.customerContext) throw new Error("お客様用セッションを確認できませんでした");
+        return (await this.edgeApi("order", { item })).order;
       } else {
         const orders = readJson(ORDER_KEY, []);
         const hasPending = orders.some((order) =>

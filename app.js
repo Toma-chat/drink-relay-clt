@@ -254,6 +254,7 @@
   document.addEventListener("DOMContentLoaded", init);
 
   async function init() {
+    if (window.DrinkRelayStaffAuth) await window.DrinkRelayStaffAuth.requireStaff();
     const storeName = String(STORE_CONFIG.storeName || "").trim();
     if (storeName) document.title = `${storeName} | Drink Relay`;
     localStorage.removeItem(SOUND_PREVIEWED_KEY);
@@ -277,6 +278,11 @@
     state.booted = true;
     render();
     setInterval(render, 15000);
+    setInterval(refreshSharedOrders, 60000);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") refreshSharedOrders();
+    });
+    window.addEventListener("online", refreshSharedOrders);
     if (window.lucide) window.lucide.createIcons();
   }
 
@@ -1961,6 +1967,28 @@
     return menuCategoryKind(menuCategoryForDrinkName(order.drink_name));
   }
 
+  function orderNow() {
+    return window.DrinkRelayClock?.now() ?? Date.now();
+  }
+
+  let sharedRefreshPending = false;
+  async function refreshSharedOrders() {
+    if (state.syncMode !== "supabase" || !state.supabase || document.visibilityState === "hidden") return;
+    if (sharedRefreshPending) return;
+    sharedRefreshPending = true;
+    try {
+      const config = readConfig();
+      await window.DrinkRelayClock?.sync(config.url, config.anonKey);
+      await loadOrders();
+      detectNewOrders();
+      render();
+    } catch (error) {
+      console.warn("共有注文の再取得に失敗しました", error);
+    } finally {
+      sharedRefreshPending = false;
+    }
+  }
+
   async function configureSupabaseFromStorage() {
     const config = readConfig();
     if (!config.url || !config.anonKey) {
@@ -1975,6 +2003,8 @@
     }
 
     try {
+      const clockReady = await window.DrinkRelayClock?.sync(config.url, config.anonKey);
+      if (clockReady === false) toast("時刻同期に失敗しました。端末の日時設定とサーバー設定を確認してください", { long: true });
       state.supabase = window.supabase.createClient(config.url, config.anonKey);
       state.realtimeChannel = state.supabase
         .channel("drink_relay_changes")
@@ -1995,6 +2025,7 @@
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
             setSyncMode("supabase", "共有同期");
+            if (state.booted) refreshSharedOrders();
           }
           if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
             setSyncMode("supabase", "受信接続エラー");
@@ -2114,7 +2145,7 @@
       .upsert(
         {
           id: SETTINGS_ROW_ID,
-          updated_at: new Date().toISOString(),
+          updated_at: new Date(orderNow()).toISOString(),
           menu,
         },
         { onConflict: "id" }
@@ -2137,7 +2168,7 @@
       .upsert(
         {
           id: SOUND_SETTINGS_ROW_ID,
-          updated_at: new Date().toISOString(),
+          updated_at: new Date(orderNow()).toISOString(),
           menu: state.soundChoices,
         },
         { onConflict: "id" }
@@ -2159,7 +2190,7 @@
       .upsert(
         {
           id: OPTION_TEMPLATE_SETTINGS_ROW_ID,
-          updated_at: new Date().toISOString(),
+          updated_at: new Date(orderNow()).toISOString(),
           menu: normalizeOptionTemplates(templates),
         },
         { onConflict: "id" }
@@ -2253,7 +2284,7 @@
 
   async function loadOrders() {
     if (state.syncMode === "supabase" && state.supabase) {
-      const historyCutoff = new Date(Date.now() - COMPLETED_HISTORY_MS).toISOString();
+      const historyCutoff = new Date(orderNow() - COMPLETED_HISTORY_MS).toISOString();
       const [openResult, historyResult] = await Promise.all([
         state.supabase
           .from("drink_orders")
@@ -2272,6 +2303,10 @@
       if (error) {
         console.error(error);
         toast(supabaseErrorMessage("共有データの読み込みに失敗しました", error), { long: true });
+        if (state.booted) {
+          setSyncMode("supabase", "共有読込失敗・再試行中");
+          return;
+        }
         setSyncMode("local", "共有読込失敗");
         loadLocalOrders();
         return;
@@ -2308,7 +2343,7 @@
   }
 
   async function createOrders(inputs) {
-    const startedAt = Date.now();
+    const startedAt = orderNow();
     const orders = inputs.map((input, index) => {
       const now = new Date(startedAt + index).toISOString();
       return normalizeOrder({
@@ -2384,13 +2419,13 @@
     const next = normalizeOrder({
       ...order,
       ...patch,
-      updated_at: new Date().toISOString(),
+      updated_at: new Date(orderNow()).toISOString(),
       events: [...(order.events || []), eventEntry(patch.status || "updated")],
     });
 
-    if (patch.status === "made" && !next.made_at) next.made_at = new Date().toISOString();
-    if (patch.status === "served" && !next.served_at) next.served_at = new Date().toISOString();
-    if (patch.payment_status === "paid" && !next.paid_at) next.paid_at = new Date().toISOString();
+    if (patch.status === "made" && !next.made_at) next.made_at = new Date(orderNow()).toISOString();
+    if (patch.status === "served" && !next.served_at) next.served_at = new Date(orderNow()).toISOString();
+    if (patch.payment_status === "paid" && !next.paid_at) next.paid_at = new Date(orderNow()).toISOString();
 
     upsertOrder(next);
     if (state.syncMode === "local") saveLocalOrders();
@@ -3042,7 +3077,7 @@
   }
 
   function minutesSince(dateString) {
-    return Math.max(0, Math.floor((Date.now() - new Date(dateString).getTime()) / 60000));
+    return Math.max(0, Math.floor((orderNow() - new Date(dateString).getTime()) / 60000));
   }
 
   function formatTime(dateString) {
@@ -3059,7 +3094,7 @@
     sortOrders();
   }
 
-  function pruneCompletedHistory(now = Date.now()) {
+  function pruneCompletedHistory(now = orderNow()) {
     state.orders = state.orders.filter((order) => {
       if (!isCompletedOrder(order)) return true;
       return now - completedOrderTime(order) < COMPLETED_HISTORY_MS;
@@ -3134,7 +3169,7 @@
   }
 
   function eventEntry(type) {
-    return { type, at: new Date().toISOString() };
+    return { type, at: new Date(orderNow()).toISOString() };
   }
 
   function openConfig() {

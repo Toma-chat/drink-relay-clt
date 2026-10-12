@@ -25,7 +25,7 @@
           || latest.session.currentLocation?.target !== 'bar'
           || latest.orders.length > 0;
       }
-      this.serverOffsetMs = Date.parse(latest.serverNow) - Date.now();
+      this.serverOffsetMs = Date.parse(latest.serverNow) - (window.DrinkRelayClock?.now() ?? Date.now());
       return latest;
     }
     async getSession() { const data = await this.status(); return data.reason === 'weekday' && !data.stopped ? data.session : null; }

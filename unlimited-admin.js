@@ -20,6 +20,7 @@
   async function init() {
     const form = $("#unlimitedActivationForm");
     if (!form) return;
+    if (window.DrinkRelayStaffAuth) await window.DrinkRelayStaffAuth.requireStaff();
     const input = $("#unlimitedActivationCode");
     input.addEventListener("input", () => {
       input.value = input.value.replace(/\D/g, "").slice(0, 4);
@@ -510,6 +511,7 @@
     button.disabled = true;
     setStatus("コードを確認中...", "loading");
     try {
+      await gateway.ensureServerClock();
       const sessions = await gateway.listSessions();
       const now = gateway.now();
       const matches = sessions.flatMap((session) => {

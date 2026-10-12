@@ -32,7 +32,10 @@
       state.cardToken = cardToken;
       rememberCustomerUrl();
 
+      state.cardHash = await U.digest(`${U.STORE_ID}:${cardToken}`);
+      state.deviceBinding = warmup ? window.DrinkRelayWarmup.device : await U.digest(getDeviceId());
       state.gateway = await new (warmup ? window.DrinkRelayWarmup.Gateway : U.Gateway)().init();
+      if (!warmup) state.gateway.configureCustomer({ cardToken, deviceBinding: state.deviceBinding, planId });
       if (!warmup) await assertCardAuthorized(planId);
       state.menu = await state.gateway.loadMenu();
       state.plan = U.findPlan(state.menu, planId);
@@ -43,8 +46,6 @@
         return;
       }
 
-      state.cardHash = await U.digest(`${U.STORE_ID}:${cardToken}`);
-      state.deviceBinding = warmup ? window.DrinkRelayWarmup.device : await U.digest(getDeviceId());
       state.gateway.onChange(() => scheduleSessionCheck());
       await checkSession(true);
       state.pollTimer = window.setInterval(() => checkSession(false), 3000);
@@ -149,6 +150,7 @@
     if (!state.gateway || !state.cardHash) return;
     try {
       if (warmup) { await checkWarmup(); return; }
+      await state.gateway.ensureServerClock();
       await assertCardAuthorized(state.plan?.id);
       let session = await state.gateway.getSession(state.cardHash);
       if (!session && createIfMissing) session = await createActivationRequest();
@@ -222,11 +224,12 @@
         return;
       }
       if (!warmup && !$("#orderState").hidden) return;
-      showError("通信状態を確認できません", "注文画面を開くには通信が必要です。接続を確認してください。", true);
+      showError("通信状態を確認できません", error.message || "注文画面を開くには通信が必要です。接続を確認してください。", true);
     }
   }
 
   async function createActivationRequest() {
+    await state.gateway.ensureServerClock();
     await assertCardAuthorized(state.plan?.id);
     const now = state.gateway.now();
     const minutes = Number(U.CONFIG.activationRequestMinutes || 15);
@@ -268,6 +271,7 @@
     button.disabled = true;
     showOnly("loadingState");
     try {
+      await state.gateway.ensureServerClock();
       await assertCardAuthorized(state.plan?.id);
       const current = await state.gateway.getSession(state.cardHash);
       const now = state.gateway.now();
