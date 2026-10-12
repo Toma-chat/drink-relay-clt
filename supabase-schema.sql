@@ -5,7 +5,7 @@ create table if not exists public.drink_orders (
   source text not null check (source in ('reception', 'table')),
   drink_name text not null,
   quantity integer not null default 1 check (quantity > 0),
-  target text not null check (target in ('tournament', 'ring', 'bar')),
+  target text not null check (target in ('tournament', 'ring', 'bar', 'casino')),
   table_no text,
   seat_no text,
   payment_status text not null check (payment_status in ('paid', 'uncollected')),

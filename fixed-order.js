@@ -3,6 +3,7 @@
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const yen = n => `¥${Number(n || 0).toLocaleString('ja-JP')}`;
   const PAGE_SIZE = 10;
+  const TARGETS = {ring:'リング',tournament:'トナメ',casino:'カジノ',bar:'バーカウンター'};
   class FixedOrder {
     constructor(form, api) {
       this.form = form; this.api = api; this.active = 'popular'; this.page = 0;
@@ -27,11 +28,11 @@
       form.append(this.panel);
       destination.classList.add('fixed-legacy-destination');
       const delivery=this.panel.querySelector('.fixed-delivery');
-      delivery.innerHTML='<label>届け先<select name="fixedTarget"><option value="ring">リング</option><option value="tournament">トーナメント</option><option value="bar">バーカウンター</option><option value="cast">キャスドリ</option></select></label>';
-      delivery.append(...this.panel.querySelector('.fixed-location').children);
+      delivery.innerHTML=`<label>追加する杯の届け先<select name="fixedTarget">${Object.entries(TARGETS).map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select></label>`;
+      delivery.innerHTML+='<select name="fixedTable" hidden><option value="">指定なし</option></select><input name="fixedSeat" type="hidden" value="">';
       this.panel.querySelector('.fixed-location').remove();
       this.panel.append(destination);
-      this.form.elements.fixedTarget.value=this.form.elements.target.value;
+      this.form.elements.fixedTarget.value=TARGETS[this.form.elements.target.value]?this.form.elements.target.value:'ring';
       const toggle = document.getElementById('fixedActivationToggle');
       if (toggle && !toggle.dataset.bound) {
         toggle.dataset.bound = 'true'; toggle.addEventListener('click', () => {
@@ -84,14 +85,11 @@
     render() {
       const categories=this.categories(); if(!categories.some(c=>c.id===this.active)) this.active='popular';
       const category=categories.find(c=>c.id===this.active);
-      // Reduce slots when Safari chrome leaves less height; keep every target large.
-      const slots=Math.min(7,Math.max(3,Math.floor(((this.form.clientHeight || window.innerHeight-126)-49)/63)));
-      const ct=Math.ceil(categories.length/slots); this.categoryPage=Math.min(this.categoryPage,Math.max(0,ct-1));
       const picker=this.form.querySelector('[data-drink-picker]'); picker.className='control-group drink-choice-panel fixed-picker';
-      picker.style.setProperty('--fixed-cat-slots',slots);
-      picker.querySelector('[data-menu-categories]').innerHTML=categories.slice(this.categoryPage*slots,(this.categoryPage+1)*slots).map(c=>
-        `<button type="button" data-fixed-category="${esc(c.id)}" aria-pressed="${c.id===this.active}" class="${c.id===this.active?'active':''}">${esc(c.label)}</button>`).join('')+
-        `<div class="fixed-pages">${this.pages('category',this.categoryPage,ct)}</div>`;
+      const categoryNav=picker.querySelector('[data-menu-categories]'),scrollTop=categoryNav.scrollTop;
+      categoryNav.innerHTML=categories.map(c=>
+        `<button type="button" data-fixed-category="${esc(c.id)}" aria-pressed="${c.id===this.active}" class="${c.id===this.active?'active':''}">${esc(c.label)}</button>`).join('');
+      categoryNav.scrollTop=scrollTop;
       const items=this.active==='popular'?this.popular.map(id=>this.find(id)).filter(Boolean):category.items;
       const total=Math.ceil(items.length/PAGE_SIZE); this.page=Math.min(this.page,Math.max(0,total-1));
       picker.querySelector('[data-drink-buttons]').innerHTML=`<div class="fixed-product-heading"><h2>${esc(category.label)}</h2>
@@ -102,7 +100,7 @@
             <span class="fixed-product-name">${esc(item.name)}</span><span>${yen(item.price)}${count?` · ${count}杯`:''}</span>
             ${item.optionGroups.some(g=>g.required)?'<small>必須カスタムあり</small>':''}</button>`;
         }).join('') || `<p>${this.popularError?'人気商品を取得できません。下の再読込、または別カテゴリーを選んでください。':this.active==='popular'?'人気商品を読み込み中…':'商品未設定'}</p>`}</div>
-        <div class="fixed-pages">${this.pages('product',this.page,total)}${this.active==='popular'?'<button type="button" data-fixed-refresh>再読込</button>':''}</div>`;
+        <div class="fixed-pages">${total>1?this.pages('product',this.page,total):''}${this.active==='popular'?'<button type="button" data-fixed-refresh>再読込</button>':''}</div>`;
       this.renderCart();
       if (!this.popularReady && !this.popularError && !this.loading && this.api.client()) this.refreshPopular();
     }
@@ -115,7 +113,10 @@
           <div class="fixed-row-actions"><button type="button" data-fixed-qty="${esc(x.id)}" data-step="-1" aria-label="${esc(x.drink_name)}を減らす">−</button>
           <button type="button" data-fixed-qty="${esc(x.id)}" data-step="1" aria-label="${esc(x.drink_name)}を増やす" ${x.quantity>=20?'disabled':''}>＋</button>
           <button type="button" data-fixed-custom="${esc(x.id)}">${missing?'必須を選択':'カスタム'}</button></div>
-          <small>${esc(x.selected_options.join(' / ') || '通常')}</small></section>`;
+          <div class="fixed-cup-delivery">${Array.from({length:x.quantity},(_,index)=>{
+            const loc=x.locations?.[index] || {target:x.target,tableNo:'',seatNo:''};
+            return `<div class="fixed-cup"><span>${index+1}杯目</span><label>届け先<select data-cup-field="target" data-entry="${esc(x.id)}" data-cup="${index}">${Object.entries(TARGETS).map(([id,label])=>`<option value="${id}" ${loc.target===id?'selected':''}>${label}</option>`).join('')}</select></label><label>卓（任意）<select data-cup-field="tableNo" data-entry="${esc(x.id)}" data-cup="${index}"><option value="">指定なし</option>${this.api.tables(loc.target).map(t=>`<option ${loc.tableNo===t?'selected':''}>${esc(t)}</option>`).join('')}</select></label><label>席（任意）<input data-cup-field="seatNo" data-entry="${esc(x.id)}" data-cup="${index}" value="${esc(loc.seatNo)}" inputmode="numeric" maxlength="12" placeholder="任意"></label></div>`;
+          }).join('')}</div><small>${esc(x.selected_options.join(' / ') || '通常')}</small></section>`;
       }).join('') || '<p class="fixed-empty">中央の商品をタップして追加</p>';
       this.panel.querySelector('[data-fixed-cart-pages]').innerHTML=total>1?this.pages('cart',this.cartPage,total):'';
       this.panel.querySelector('[data-fixed-count]').textContent=`${cart.reduce((n,x)=>n+x.quantity,0)}杯`;
@@ -129,8 +130,7 @@
     }
     updateDelivery() {
       this.panel.querySelectorAll('input,select').forEach(x=>{x.disabled=!!this.batch;});
-      const target=this.form.elements.target.value;
-      this.form.elements.fixedTarget.value=target;
+      const target=this.form.elements.fixedTarget.value;
       const table=this.form.elements.fixedTable, old=table.value;
       table.innerHTML='<option value="">未選択</option>'+this.api.tables(target).map(x=>`<option>${esc(x)}</option>`).join(''); table.value=old;
       table.disabled=target==='bar'; this.form.elements.fixedSeat.disabled=['bar','cast'].includes(target);
@@ -147,21 +147,23 @@
       if(b.dataset.fixedItem) {
         const found=this.find(b.dataset.fixedItem); if(!found)return;
         const {item,category}=found;
-        const entry={id:crypto.randomUUID(),source:this.form.dataset.source,target:this.form.elements.target.value,
+        const entry={id:crypto.randomUUID(),source:this.form.dataset.source,target:this.form.elements.fixedTarget.value,
           drink_name:item.name,price:item.price,quantity:1,selected_options:[],fixedOptions:{},locations:[],menu_item_id:item.id,menu_category_id:category};
         // Highball taps use the explicit, existing soda option; other choices stay editable.
         if(item.subcategory_id==='highball') {const g=item.optionGroups.find(g=>g.id==='whiskey-mix'&&g.choices.includes('炭酸'));if(g){entry.fixedOptions[g.id]='炭酸';entry.selected_options=[`${g.label}: 炭酸`];}}
         const existing=cart.find(x=>x.menu_item_id===entry.menu_item_id && x.target===entry.target && x.quantity<20 && JSON.stringify(x.selected_options)===JSON.stringify(entry.selected_options));
-        if(existing) existing.quantity++; else cart.push(entry);
+        const location={target:entry.target,tableNo:this.form.elements.fixedTable.value,seatNo:this.form.elements.fixedSeat.value};
+        if(existing) {existing.quantity++;existing.locations.push(location);} else {entry.locations.push(location);cart.push(entry);}
         const added=existing || entry;
         this.undo.push(added.id);this.cartPage=Math.floor(cart.indexOf(added)/2);this.render();
         const fresh=this.form.querySelector(`[data-fixed-item="${CSS.escape(item.id)}"]`);
         fresh?.classList.add('just-added');setTimeout(()=>fresh?.classList.remove('just-added'),450);
       } else if(b.hasAttribute('data-fixed-undo')) {
-        const id=this.undo.pop(),index=cart.findIndex(x=>x.id===id);if(index>=0){if(cart[index].quantity>1)cart[index].quantity--;else cart.splice(index,1);}this.render();
+        const id=this.undo.pop(),index=cart.findIndex(x=>x.id===id);if(index>=0){if(cart[index].quantity>1){cart[index].quantity--;cart[index].locations.pop();}else cart.splice(index,1);}this.render();
       } else if(b.dataset.fixedQty) {
         const index=cart.findIndex(x=>x.id===b.dataset.fixedQty);if(index<0)return;
         const delta=Number(b.dataset.step);cart[index].quantity+=delta;
+        if(delta>0)cart[index].locations.push({...cart[index].locations.at(-1)});else cart[index].locations.pop();
         if(delta>0)this.undo.push(cart[index].id);else {const i=this.undo.lastIndexOf(cart[index].id);if(i>=0)this.undo.splice(i,1);}
         if(cart[index].quantity<=0)cart.splice(index,1);this.render();
       } else if(b.dataset.fixedCustom) this.openCustom(b.dataset.fixedCustom);
@@ -177,8 +179,10 @@
       dialog.showModal();
     }
     change(e) {
-      if(e.target.name==='fixedTarget' && !this.batch) this.form.elements.target.value=e.target.value;
-      if(['target','fixedTarget'].includes(e.target.name) && !this.batch)this.api.cart().forEach(x=>x.target=this.form.elements.target.value);
+      if(e.target.dataset.cupField && !this.batch) {
+        const entry=this.api.cart().find(x=>x.id===e.target.dataset.entry),index=Number(e.target.dataset.cup);
+        if(entry){entry.locations[index][e.target.dataset.cupField]=e.target.value;}
+      }
       this.updateDelivery();
     }
     async send() {
@@ -191,11 +195,8 @@
             this.api.notice(`${entry.drink_name}の必須カスタムを選択してください`);this.openCustom(entry.id);return;
           }
         }
-        const target=this.form.elements.target.value,table=this.form.elements.fixedTable.value,seat=this.form.elements.fixedSeat.value;
-        if(target!=='bar'&&!table){this.api.notice('届け先のテーブルを選択してください');return;}
         const payment=this.form.elements.fixedPayment.value,method=payment==='paid'?'cash':this.form.elements.fixedMethod.value;
-        const location=this.api.location(target,{tableNo:table,seatNo:seat});
-        this.batch=this.api.cart().flatMap(x=>Array.from({length:x.quantity},()=>{const event=this.api.event();return {
+        this.batch=this.api.cart().flatMap(x=>Array.from({length:x.quantity},(_,index)=>{const event=this.api.event(),location=x.locations[index],target=location.target;return {
           id:crypto.randomUUID(),created_at:event.at,updated_at:event.at,source:this.form.dataset.source,drink_name:x.drink_name,quantity:1,target,
           table_no:location.tableNo,seat_no:location.seatNo,payment_status:payment,payment_method:method,
           notes:x.selected_options.length?`オプション: ${x.selected_options.join(' / ')}`:'',status:'ordered',

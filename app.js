@@ -162,6 +162,7 @@
   };
 
   const targetLabels = {
+    casino: "カジノ",
     tournament: "トーナメント",
     ring: "リング",
     cast: "キャスドリ",
