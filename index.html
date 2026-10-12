@@ -14,6 +14,7 @@
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
     <link rel="stylesheet" href="./styles.css?v=2026101201">
+    <link rel="stylesheet" href="./sales-analytics.css?v=2026101201">
     <script src="./store-config.js"></script>
     <script src="./initial-settings.js?v=2026100804"></script>
     <script defer src="https://unpkg.com/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
@@ -27,6 +28,7 @@
     <script defer src="./warmup-client.js"></script>
     <script defer src="./warmup-admin.js?v=2026101201"></script>
     <script defer src="./unlimited-admin.js?v=2026101201"></script>
+    <script defer src="./sales-analytics.js?v=2026101201"></script>
   </head>
   <body>
     <section id="staffAuthGate" class="staff-auth-gate" aria-labelledby="staffAuthTitle">
@@ -80,7 +82,28 @@
         </button>
       </header>
 
+      <nav class="sales-sidebar" aria-label="管理メニュー">
+        <button id="headerSalesButton" type="button">売上・集計</button>
+      </nav>
       <main>
+        <section id="view-sales" class="view sales-view" aria-labelledby="salesTitle">
+          <div class="sales-heading"><div><h1 id="salesTitle">売上・注文集計</h1><p>日本時間（Asia/Tokyo）で集計 · 店舗徴収</p></div>
+            <div class="sales-actions"><button id="salesRefresh" type="button">更新</button><button id="salesCsv" type="button" disabled>CSVダウンロード</button></div></div>
+          <div class="sales-periods" aria-label="対象期間">
+            <button type="button" data-sales-period="today">今日</button><button type="button" data-sales-period="yesterday">昨日</button>
+            <button type="button" data-sales-period="week">今週</button><button type="button" data-sales-period="month">今月</button>
+            <button type="button" data-sales-period="custom">期間指定</button>
+          </div>
+          <form id="salesRange"><label>開始日<input id="salesStart" type="date" required></label><span>〜</span>
+            <label>終了日<input id="salesEnd" type="date" required></label><button type="submit">この期間で集計</button></form>
+          <p id="salesStatus" role="status" aria-live="polite"></p><button id="salesRetry" type="button" hidden>再試行</button>
+          <p id="salesNotice" class="sales-notice"></p>
+          <div id="salesCards" class="sales-cards"></div>
+          <h2>ドリンク別集計</h2><div id="salesDrinks" class="sales-table-wrap"></div>
+          <h2>カテゴリ別集計</h2><div id="salesCategories" class="sales-categories"></div>
+          <h2>飲み放題プラン別集計</h2><p>人数・利用状態は期間内のアクティベートが対象。平均杯数は期間内にアクティベートまたは注文したセッション1件あたり（注文なしも含む）。ワンドリンクは利用者IDがないため平均の対象外です。</p>
+          <div id="salesPlans" class="sales-table-wrap"></div>
+        </section>
         <section id="view-reception" class="view active" aria-label="受付">
           <section id="warmupAdmin" class="unlimited-activation-panel"></section>
           <section class="unlimited-activation-panel" aria-labelledby="unlimitedActivationTitle">

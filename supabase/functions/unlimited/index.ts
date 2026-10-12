@@ -410,7 +410,7 @@ async function customerAction(action: string, body: JsonObject) {
       payment_status: "paid", payment_method: "cash",
       notes: [`飲み放題: ${active.planName || active.planId}`, ...options].join(" / "),
       status: "ordered", made_at: null, served_at: null, paid_at: null,
-      events: [{ type: "ordered", at, source: "unlimited", sessionId: active.sessionId, sequence, orderLocation: location, sessionCurrentLocation: location }],
+      events: [{ type: "ordered", at, source: "unlimited", itemId, sessionId: active.sessionId, sequence, orderLocation: location, sessionCurrentLocation: location }],
     };
     const result = await admin.from("drink_orders").insert(row).select("*").single();
     if (result.error?.code === "23505") throw new ApiError("前のドリンクが提供済みになるまで次の注文はできません", 409, "UNLIMITED_ORDER_PENDING");

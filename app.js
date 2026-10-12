@@ -293,6 +293,7 @@
     $("#headerBarButton")?.addEventListener("click", () => {
       switchView("bar");
     });
+    $("#headerSalesButton")?.addEventListener("click", () => switchView("sales"));
     $$(".tab").forEach((tab) => {
       tab.addEventListener("click", () => {
         switchView(tab.dataset.view);
@@ -321,6 +322,8 @@
     $$(".view").forEach((view) => {
       view.classList.toggle("active", view.id === `view-${state.view}`);
     });
+    $("#headerSalesButton")?.classList.toggle("active", viewName === "sales");
+    document.dispatchEvent(new CustomEvent("drink-view-changed", { detail: viewName }));
     updateHeaderViewLabel();
     render();
   }
@@ -1342,7 +1345,7 @@
           payment_method: paymentMethod,
           notes: combinedOrderNote(item.selected_options),
           status: "ordered",
-          events: [eventEntry("ordered")],
+          events: [{ ...eventEntry("ordered"), itemId: item.menu_item_id, categoryId: item.menu_category_id }],
         })));
       state.carts[draft.source] = [];
       resetForm(form);
@@ -1367,6 +1370,8 @@
     return expandCartItems(draft.items).map((item) => {
       const target = item.target || "ring";
       return {
+        menu_item_id: item.menu_item_id,
+        menu_category_id: item.menu_category_id,
         drink_name: item.drink_name || "",
         selected_options: [...(item.selected_options || [])],
         target,
