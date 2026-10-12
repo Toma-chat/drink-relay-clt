@@ -356,6 +356,10 @@
       updateConfirmButtonState(form);
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (form.dataset.source === "reception" && window.DrinkFixedOrder) {
+          await fixedOrderController(form).send();
+          return;
+        }
         const draft = readCartDraft(form);
         if (!draft) return;
         openConfirm(form, draft);
@@ -366,6 +370,7 @@
   function setupChoiceButtons() {
     $$(".order-form").forEach((form) => {
       form.addEventListener("click", (event) => {
+        if (form.dataset.source === "reception" && window.DrinkFixedOrder) return;
         const subcategoryButton = event.target.closest("[data-menu-subcategory]");
         if (subcategoryButton && form.contains(subcategoryButton)) {
           const picker = subcategoryButton.closest("[data-drink-picker]");
@@ -1561,8 +1566,30 @@
     $$("[data-drink-picker]").forEach((picker) => renderMenuPicker(picker));
   }
 
+  function fixedOrderController(form) {
+    if (!form.fixedOrder) form.fixedOrder = new window.DrinkFixedOrder(form, {
+      menu: () => state.menu,
+      cart: () => state.carts[form.dataset.source],
+      clear: () => { state.carts[form.dataset.source] = []; },
+      client: () => state.supabase,
+      send: (items) => createOrders(items, { strict: true }),
+      event: () => eventEntry("ordered"),
+      location: locationForTarget,
+      tables: tablesForTarget,
+      seats: SEATS,
+      paymentLabels: paymentMethodLabels,
+      notice: toast,
+      store: STORE_INSTANCE_ID,
+    });
+    return form.fixedOrder;
+  }
+
   function renderMenuPicker(picker) {
     const form = picker.closest(".order-form");
+    if (form.dataset.source === "reception" && window.DrinkFixedOrder) {
+      fixedOrderController(form).render();
+      return;
+    }
     const useCustomOrder = form.dataset.source === "reception" && state.receptionMenuMode === "custom";
     const fallbackCategory = firstCategoryId();
     const requestedCategory = picker.dataset.activeCategory || fallbackCategory;
@@ -2347,7 +2374,7 @@
     state.broadcast?.postMessage({ type: "orders-changed" });
   }
 
-  async function createOrders(inputs) {
+  async function createOrders(inputs, options = {}) {
     const startedAt = orderNow();
     const orders = inputs.map((input, index) => {
       const now = new Date(startedAt + index).toISOString();
@@ -2358,6 +2385,18 @@
         ...input,
       });
     });
+
+    // Fixed-order batches keep their UUIDs on retry. Never fall back to local
+    // storage or clear the basket when the authenticated server write fails.
+    if (options.strict) {
+      if (state.syncMode !== "supabase" || !state.supabase) throw new Error("共有接続を確認してください");
+      const { error } = await state.supabase.from("drink_orders")
+        .upsert(orders.map(toDatabaseRow), { onConflict: "id", ignoreDuplicates: true });
+      if (error) throw error;
+      orders.forEach((order) => { upsertOrder(order); state.knownIds.add(order.id); });
+      updateBarOrderBadge();
+      return true;
+    }
 
     orders.forEach((order) => {
       upsertOrder(order);
@@ -2459,6 +2498,9 @@
       render();
       return;
     }
+
+    // Ignore incomplete realtime envelopes rather than rendering a phantom card.
+    if (!payload.new?.id || !payload.new?.created_at) return;
 
     const order = normalizeOrder(payload.new);
     const isNew = !state.knownIds.has(order.id);

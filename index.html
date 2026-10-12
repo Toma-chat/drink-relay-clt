@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#f97316">
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
@@ -15,6 +15,7 @@
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
     <link rel="stylesheet" href="./styles.css?v=2026101201">
     <link rel="stylesheet" href="./sales-analytics.css?v=2026101202">
+    <link rel="stylesheet" href="./fixed-order.css?v=2026101203">
     <script src="./store-config.js"></script>
     <script src="./initial-settings.js?v=2026100804"></script>
     <script defer src="https://unpkg.com/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
@@ -22,7 +23,8 @@
     <script defer src="https://unpkg.com/lucide@1.55.0/dist/umd/lucide.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script defer src="./staff-auth.js?v=2026101201"></script>
-    <script defer src="./app.js?v=2026101202"></script>
+    <script defer src="./fixed-order.js?v=2026101203"></script>
+    <script defer src="./app.js?v=2026101203"></script>
     <script defer src="./unlimited-config.js?v=2026100803"></script>
     <script defer src="./unlimited-shared.js?v=2026101201"></script>
     <script defer src="./warmup-client.js"></script>
@@ -105,6 +107,7 @@
           <div id="salesPlans" class="sales-table-wrap"></div>
         </section>
         <section id="view-reception" class="view active" aria-label="受付">
+          <button type="button" id="fixedActivationToggle" aria-expanded="false">飲み放題・Warmup・QR管理を開く</button>
           <section id="warmupAdmin" class="unlimited-activation-panel"></section>
           <section class="unlimited-activation-panel" aria-labelledby="unlimitedActivationTitle">
             <div class="unlimited-activation-copy">

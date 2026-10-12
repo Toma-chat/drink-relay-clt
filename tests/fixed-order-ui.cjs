@@ -1,0 +1,37 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {JSDOM}=require(path.join(process.env.TEMP,'warmup-validation/node_modules/jsdom'));
+const tick=()=>new Promise(r=>setTimeout(r,30));
+(async()=>{
+ const dom=new JSDOM('<form class="order-form" data-source="reception"><fieldset class="first-group"><input type="radio" name="target" value="bar" checked><input type="radio" name="target" value="ring"></fieldset><fieldset data-drink-picker><div class="menu-picker"><div data-menu-categories></div><div data-drink-buttons></div></div></fieldset><div class="form-actions"></div></form>',{runScripts:'outside-only',url:'http://localhost',pretendToBeVisual:true});
+ const w=dom.window;w.CSS={escape:s=>s};w.setInterval=()=>1;
+ const menu=JSON.parse(fs.readFileSync('tests/fixtures/fixed-menu.json','utf8'));
+ for(const i of menu.find(c=>c.id==='alcohol').items)if(['item-1783052940322','item-1783052950604','item-1783052961537'].includes(i.id))i.subcategory_id='highball';
+ menu.find(c=>c.id==='alcohol').subcategories.push({id:'highball',label:'ハイボール'});
+ w.eval(fs.readFileSync('fixed-order.js','utf8'));
+ let cart=[],calls=0,fail=false,release; const batches=[],notices=[];
+ const api={menu:()=>menu,cart:()=>cart,clear:()=>cart=[],client:()=>({rpc:async()=>({data:{items:[{itemId:'beer'},{itemId:'oolong-tea'}]}})}),store:'casinolivetokyo',
+  seats:['1','2'],tables:()=>['A','B'],location:(t,l)=>t==='bar'?{tableNo:'',seatNo:''}:l,paymentLabels:{cash:'現金',card:'カード'},notice:s=>notices.push(s),event:()=>({type:'ordered',at:new Date().toISOString()}),
+  send:async items=>{calls++;batches.push(structuredClone(items));await new Promise(r=>release=r);if(fail)throw Error('offline');return true;}};
+ const form=w.document.querySelector('form'),ui=new w.DrinkFixedOrder(form,api);await tick();
+ const click=s=>{const b=form.querySelector(s);assert.ok(b,s);b.click();};
+ assert.equal(form.querySelectorAll('[data-fixed-item]').length,2);
+ const beer=menu.find(c=>c.id==='alcohol').items.find(i=>i.id==='beer');beer.price=901;ui.render();assert.ok(form.querySelector('[data-fixed-item="beer"]').textContent.includes('901'),'popular menu uses current price after shared menu change');beer.price=800;ui.render();
+ click('[data-fixed-category="alcohol::beer"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,4);
+ click('[data-fixed-item="beer"]');assert.equal(cart.length,1);assert.equal(cart[0].quantity,1);assert.equal(form.querySelector('[data-fixed-count]').textContent,'1杯');
+ click('[data-fixed-item="beer"]');assert.equal(cart.length,1);assert.equal(cart[0].quantity,2);click('[data-fixed-undo]');assert.equal(cart[0].quantity,1);
+ click('[data-fixed-qty][data-step="1"]');assert.equal(cart[0].quantity,2);click('[data-fixed-undo]');assert.equal(cart[0].quantity,1);
+ click('[data-fixed-item="highball"]');assert.equal(cart[1].drink_name,'コロナビール');
+ let opened;ui.openCustom=id=>opened=id;await ui.send();assert.equal(calls,0);assert.equal(opened,cart[1].id,'required options stop send');
+ cart.pop();ui.undo.pop();ui.render();
+ const sending=ui.send();await tick();await ui.send();assert.equal(calls,1,'double submit blocked');assert.ok(form.querySelector('[data-fixed-send]').disabled);release();await sending;
+ assert.equal(cart.length,0);assert.equal(ui.status,'complete');assert.equal(batches[0][0].events[0].itemId,'beer');assert.equal(batches[0][0].payment_status,'paid');
+ ui.status='';ui.render();click('[data-fixed-item="beer"]');fail=true;const failed=ui.send();await tick();release();await failed;
+ assert.equal(cart.length,1,'failed send preserves basket');assert.equal(ui.status,'failed');const ids=ui.batch.map(x=>x.id);click('[data-fixed-item="beer"]');assert.equal(cart.length,1,'uncertain batch frozen');
+ fail=false;const retry=ui.send();await tick();assert.deepEqual(ui.batch.map(x=>x.id),ids,'retry reuses IDs');release();await retry;assert.equal(cart.length,0);
+ ui.status='';ui.render();click('[data-fixed-category="alcohol::highball"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,3);
+ click('[data-fixed-item="item-1783052940322"]');assert.equal(cart[0].fixedOptions['whiskey-mix'],'炭酸');assert.equal(cart[0].price,800);
+ click('[data-fixed-category="soft"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,10);click('[data-fixed-page="product"][data-step="1"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,10);
+ const before=form.querySelectorAll('[data-fixed-category]').length;assert.equal(before,7);click('[data-fixed-page="category"][data-step="1"]');assert.ok(form.querySelector('[data-fixed-category="alcohol::gin"]'));
+ form.elements.target.value='ring';form.elements.target[0].dispatchEvent(new w.Event('change',{bubbles:true}));ui.batch=null;await ui.send();assert.ok(notices.includes('届け先のテーブルを選択してください'));
+ dom.window.close();console.log('PASS fixed UI: live-menu fixture, categories/product pages, single tap, quantity, undo, required options, delivery, success, duplicate guard and stable retry IDs');
+})().catch(e=>{console.error(e);process.exitCode=1});
