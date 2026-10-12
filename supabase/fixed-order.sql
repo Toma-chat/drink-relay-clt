@@ -70,7 +70,7 @@ begin
      jsonb_array_elements(c->'items') with ordinality as it(i,inumber)
    where s.id='main' and c->>'id' in ('soft','alcohol')
  ), valid as (
-   select m.iid,a.created_at,greatest(0,least(1000,(a.row_data->>'quantity')::int)) qty
+   select m.iid,a.created_at,greatest(0,(a.row_data->>'quantity')::int) qty
    from drink_private.analytics_orders a
    join lateral drink_private.analytics_menu(a.item_id,a.row_data->>'drink_name') resolved on true
    join menu m on m.iid=resolved.item_id
