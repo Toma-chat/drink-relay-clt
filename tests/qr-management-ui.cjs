@@ -1,0 +1,18 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {JSDOM}=require(path.join(process.env.TEMP,'warmup-validation/node_modules/jsdom'));
+const dom=new JSDOM(fs.readFileSync('index.html','utf8'),{url:'http://localhost/',runScripts:'outside-only'});
+const w=dom.window;w.DRINK_RELAY_STORE_CONFIG={instanceId:'qr-test'};
+const add=w.document.addEventListener.bind(w.document);w.document.addEventListener=(event,...args)=>{if(event!=='DOMContentLoaded')add(event,...args);};
+for(const file of ['initial-settings.js','unlimited-config.js','unlimited-shared.js'])w.eval(fs.readFileSync(file,'utf8'));
+let qrCount=0;w.QRCode=function(){qrCount++;};w.QRCode.CorrectLevel={M:1};
+let script=fs.readFileSync('unlimited-admin.js','utf8'),end=script.lastIndexOf('})();');
+script=script.slice(0,end)+'window.qrTest={renderCards,setCards(values){cards=values;menu=window.DRINK_RELAY_INITIAL_SETTINGS.menu;}};'+script.slice(end);w.eval(script);
+const base={planId:'unlimited-alcohol-all-day',kind:'permanent',token:'test-fixed-token',label:'テストカード'};
+const t=w.qrTest;t.setCards([{...base,id:'active',status:'active'},{...base,id:'disabled',status:'disabled'},{...base,id:'retired',kind:'additional',status:'retired'}]);t.renderCards();
+const list=w.document.querySelector('#unlimitedCardList'),archive=list.querySelector('details');
+assert.equal(list.querySelectorAll(':scope > article').length,1);assert.equal(archive.querySelectorAll('article').length,2);assert.equal(archive.open,false);assert.match(archive.querySelector('summary').textContent,/2枚/);assert.equal(qrCount,1);
+assert.equal(archive.querySelectorAll('[data-card-qr],a,[data-card-action="copy"]').length,0);assert.ok(archive.querySelector('[data-card-action="reissue"]'));
+console.log('PASS active cards and inactive archive separated; count, collapsed state, reissue retained; inactive QR/links hidden');
+t.setCards([{...base,id:'active',status:'disabled'}]);t.renderCards();assert.equal(list.querySelectorAll(':scope > article').length,0);assert.equal(list.querySelectorAll('details article').length,1);console.log('PASS newly disabled card moves to archive immediately');
+assert.equal(w.document.querySelector('.unlimited-location-manager'),null);assert.equal(w.document.querySelector('#unlimitedLocationPrintSheet'),null);assert.ok(w.document.querySelector('#unlimitedSessionLocationSave'));console.log('PASS location QR UI removed, manual destination controls retained');
+dom.window.close();

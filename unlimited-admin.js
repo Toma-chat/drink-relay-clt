@@ -12,7 +12,6 @@
   let refreshTimer = null;
   let editingSessionId = "";
   let cardActionResolver = null;
-  let locationPreview = { target: "bar", tableNo: "", seatNo: "" };
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
@@ -39,12 +38,6 @@
       event.preventDefault();
       closeCardActionDialog(false);
     });
-    $("#unlimitedLocationTarget")?.addEventListener("change", updateLocationPreviewFromFields);
-    $("#unlimitedLocationTable")?.addEventListener("change", updateLocationPreviewFromFields);
-    $("#unlimitedLocationSeat")?.addEventListener("change", updateLocationPreviewFromFields);
-    $("#unlimitedCopyLocationUrl")?.addEventListener("click", copyLocationUrl);
-    $("#unlimitedPrintLocationQr")?.addEventListener("click", printCurrentLocationQr);
-    $("#unlimitedPrintAllLocations")?.addEventListener("click", printAllLocationQrs);
     $("#unlimitedSessionLocationDialog")?.addEventListener("click", handleSessionLocationChoice);
     $("#unlimitedSessionLocationClose")?.addEventListener("click", closeSessionLocationDialog);
     $("#unlimitedSessionLocationCancel")?.addEventListener("click", closeSessionLocationDialog);
@@ -58,7 +51,6 @@
       if (JSON.stringify(cards) !== JSON.stringify(loadedCards)) cards = await gateway.saveCards(cards);
       renderCardPlanOptions();
       renderCards();
-      initializeLocationManager();
       updateCardOriginNote();
       gateway.onChange(() => {
         scheduleRefresh();
@@ -275,112 +267,6 @@
     return url.href;
   }
 
-  function locationUrlFor(location) {
-    const normalized = U.normalizeUnlimitedLocation(location);
-    const url = new URL("./unlimited-location.html", window.location.href);
-    url.search = "";
-    url.hash = "";
-    url.searchParams.set("target", normalized.target);
-    if (normalized.target !== "bar") {
-      url.searchParams.set("table", normalized.tableNo);
-      url.searchParams.set("seat", normalized.seatNo);
-    }
-    return url.href;
-  }
-
-  function initializeLocationManager() {
-    const target = $("#unlimitedLocationTarget");
-    const table = $("#unlimitedLocationTable");
-    const seat = $("#unlimitedLocationSeat");
-    if (!target || !table || !seat) return;
-    target.innerHTML = [
-      ["bar", "バーカウンター"],
-      ["ring", "リング"],
-      ["tournament", "トーナメント"],
-    ].map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
-    table.innerHTML = U.LOCATION_TABLES.map((value) => `<option value="${value}">${value}卓</option>`).join("");
-    seat.innerHTML = U.LOCATION_SEATS.map((value) => `<option value="${value}">${value}番席</option>`).join("");
-    updateLocationPreviewFromFields();
-  }
-
-  function updateLocationPreviewFromFields() {
-    const target = $("#unlimitedLocationTarget")?.value || "bar";
-    locationPreview = U.normalizeUnlimitedLocation({
-      target,
-      tableNo: $("#unlimitedLocationTable")?.value,
-      seatNo: $("#unlimitedLocationSeat")?.value,
-    });
-    const isBar = target === "bar";
-    $("#unlimitedLocationTableWrap").hidden = isBar;
-    $("#unlimitedLocationSeatWrap").hidden = isBar;
-    const url = locationUrlFor(locationPreview);
-    $("#unlimitedLocationLabel").textContent = U.formatUnlimitedLocation(locationPreview);
-    $("#unlimitedLocationUrl").textContent = url;
-    $("#unlimitedOpenLocationUrl").href = url;
-    renderQr($("#unlimitedLocationQr"), url, 144);
-  }
-
-  function renderQr(node, url, size = 144) {
-    if (!node) return;
-    node.replaceChildren();
-    if (!window.QRCode) {
-      node.textContent = "QRコードを読み込めません";
-      return;
-    }
-    new window.QRCode(node, {
-      text: url, width: size, height: size,
-      colorDark: "#292524", colorLight: "#ffffff",
-      correctLevel: window.QRCode.CorrectLevel.M,
-    });
-  }
-
-  async function copyLocationUrl() {
-    try {
-      await copyText(locationUrlFor(locationPreview));
-      setStatus("場所変更QRのURLをコピーしました", "success");
-    } catch {
-      setStatus("URLをコピーできませんでした", "error");
-    }
-  }
-
-  function allLocations() {
-    const seated = ["ring", "tournament"].flatMap((target) =>
-      U.LOCATION_TABLES.flatMap((tableNo) =>
-        U.LOCATION_SEATS.map((seatNo) => ({ target, tableNo, seatNo }))
-      )
-    );
-    return [{ target: "bar", tableNo: "", seatNo: "" }, ...seated];
-  }
-
-  function prepareLocationPrint(locations) {
-    const grid = $("#unlimitedLocationPrintGrid");
-    grid.innerHTML = locations.map((location, index) => `
-      <article class="unlimited-location-print-card">
-        <div class="unlimited-location-print-qr" data-location-print-qr="${index}"></div>
-        <strong>${escapeHtml(U.formatUnlimitedLocation(location))}</strong>
-        <span>このQRで現在の届け先を変更</span>
-      </article>`).join("");
-    locations.forEach((location, index) => {
-      renderQr($(`[data-location-print-qr="${index}"]`, grid), locationUrlFor(location), 150);
-    });
-  }
-
-  function printCurrentLocationQr() {
-    prepareLocationPrint([locationPreview]);
-    printLocationSheet();
-  }
-
-  function printAllLocationQrs() {
-    prepareLocationPrint(allLocations());
-    printLocationSheet();
-  }
-
-  function printLocationSheet() {
-    document.body.classList.add("print-unlimited-locations");
-    window.addEventListener("afterprint", () => document.body.classList.remove("print-unlimited-locations"), { once: true });
-    window.print();
-  }
-
   function renderCards() {
     const list = $("#unlimitedCardList");
     if (!list) return;
@@ -388,7 +274,7 @@
       list.innerHTML = '<p class="unlimited-session-empty">発行済みの固定QRカードはありません</p>';
       return;
     }
-    list.innerHTML = cards.map((card) => {
+    const renderCard = (card) => {
       const plan = U.findPlan(menu, card.planId);
       const url = fixedCardUrl(card);
       const active = card.status === "active";
@@ -418,7 +304,17 @@
             </div>
           </div>
         </article>`;
-    }).join("");
+    };
+    const activeCards = cards.filter(card => card.status === "active");
+    const inactiveCards = cards.filter(card => card.status !== "active");
+    list.innerHTML = activeCards.map(renderCard).join("")
+      || '<p class="unlimited-session-empty">利用可能なQRカードはありません</p>';
+    if (inactiveCards.length) {
+      list.insertAdjacentHTML("beforeend", `<details class="unlimited-inactive-cards" style="grid-column:1/-1">
+        <summary>無効化・廃止したQR（${inactiveCards.length}枚）</summary>
+        <div class="unlimited-card-list">${inactiveCards.map(renderCard).join("")}</div>
+      </details>`);
+    }
 
     if (!window.QRCode) {
       $$("[data-card-qr]", list).forEach((node) => { node.textContent = "QR読込待ち"; });
