@@ -422,6 +422,8 @@
     mainScroller.addEventListener("wheel", (event) => {
       const menuPicker = event.target.closest(".menu-picker");
       if (!menuPicker || !mainScroller.contains(menuPicker) || event.ctrlKey || !event.deltaY) return;
+      // Fixed ordering owns its scroll areas; let native mouse/touch scrolling work.
+      if (menuPicker.closest('.fixed-picker')) return;
 
       const menuScroller = event.target.closest(".menu-item-grid");
       const pageCanScrollUp = event.deltaY < 0 && mainScroller.scrollTop > 1;
