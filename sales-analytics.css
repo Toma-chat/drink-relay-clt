@@ -1,3 +1,4 @@
+#staffApplication[hidden]{display:none!important}
 .sales-sidebar{position:fixed;left:0;top:86px;width:112px;z-index:10;padding:12px;background:#fff;border:1px solid #e2e8f0;border-radius:0 16px 16px 0}
 .sales-sidebar button{width:100%;min-height:64px;border:0;border-radius:12px;background:#fff1e6;color:#9a3412;font-weight:800;font-size:15px;cursor:pointer}
 .sales-sidebar button.active{background:#ea580c;color:#fff}

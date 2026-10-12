@@ -27,7 +27,7 @@ Supabase Auth/PostgRESTがJWTを検証し、RPC内でauth.uid()とdrink_private.
 - sales-analytics.js / sales-analytics.css: レスポンシブ画面、期間指定、取得・更新・エラー保持・CSV。
 - supabase/functions/unlimited/index.ts: 注文イベントにitemIdを追加（その他の注文・QR・認証ロジックは維持）。
 - supabase/sales-analytics.sql: 非公開履歴、価格スナップショット、セッション一意保存、スタッフ専用drink_sales_summary RPC。
-- tests/sales-analytics.cjs / sales-analytics.sql / sales-http.cjs / unlimited-regression.cjs: 自動・再現可能なテスト。
+- tests/sales-analytics.cjs / sales-analytics.sql / sales-http.cjs / sales-ui.cjs / unlimited-regression.cjs: 自動・再現可能なテスト。
 
 security-foundation.sql、security-lockdown.sql、time-sync.sql、Warmup SQL/Functionのファイルは変更していません。
 
@@ -52,9 +52,14 @@ node tests/sales-analytics.cjs
 node tests/unlimited-time.cjs
 node tests/unlimited-regression.cjs
 node tests/sales-http.cjs
+node tests/sales-ui.cjs
 npx --yes supabase db query --linked --project-ref nngizmvyzujxrkaevliu --file tests/sales-analytics.sql
 ```
 
 SQLテストは既存の許可スタッフ1名を使用し、テスト用注文・セッション・Warmup認証をトランザクション内に作成して最後にROLLBACKします。実際の厨房にはテスト注文を残さず、Realtime通知もコミットされません。Edgeの注文・再接続テストは実ソースをメモリ上のSupabaseアダプターで実行し、実QRをアクティベートしません。
 
 適用前後で99件の既存注文の全内容、メニュー、固定QRカタログ、飲み放題セッション、Warmup固定QRのハッシュが一致しました。99件を集計用履歴へ保存しました。導入時の2026-10-12の実データは33杯・提供済み33杯・未提供0杯で、過去の33注文は価格不明として扱いました。
+
+公開画面で許可スタッフの実JWTによる今日33杯・昨日66杯の表示、CSV実ファイル（昨日66杯）、受付のアクティベートフォーム、Warmup管理、バー受信への切り替えを確認しました。390px（スマートフォン）、1024px（タブレット）、1440px（PC）で確認しています。未ログインの独立ブラウザと公開キーのみのHTTPでは集計を取得できません。既存のCSSがhidden属性を上書きしていたため、追加CSSで未ログイン時のstaffApplicationを確実に非表示にしています。
+
+自動テストは全て成功しました。実注文・QRの本番アクティベートは行わず、注文・提供・再接続の書き込みはロールバック付きSQLまたは実Edgeソースのメモリテストで検証しています。通信失敗時の既存値保持・再試行・Realtime更新・CSV権限確認はsales-ui.cjsで検証しています。
