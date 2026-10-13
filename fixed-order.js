@@ -60,7 +60,7 @@
           if (extra.length) list.push({id:c.id,label:c.label,items:extra.map(item=>({item,category:c.id}))});
         } else list.push({id:c.id,label:c.label,items:c.items.map(item=>({item,category:c.id}))});
       }
-      const priority=['popular','alcohol::beer','alcohol::highball','alcohol::sour','alcohol::cocktail','soft'];
+      const priority=['popular','alcohol::beer','alcohol::highball','alcohol::sour','alcohol::cocktail','water-tea','juice','red-bull'];
       const groups=list.sort((a,b)=>(priority.includes(a.id)?priority.indexOf(a.id):100)-(priority.includes(b.id)?priority.indexOf(b.id):100));
       return this.api.orderGroups ? this.api.orderGroups(groups) : groups;
     }

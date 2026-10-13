@@ -2725,54 +2725,55 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
 
   const menu = [
     {
-      id: "soft",
-      label: "ソフトドリンク",
-      subcategories: [
-        { id: "water-tea", label: "水・お茶" },
-        { id: "juice", label: "ジュース・その他" },
-        { id: "bottle-can", label: "ボトル・缶" },
-      ],
+      id: "water-tea",
+      label: "お茶・水",
+      subcategories: [{ id: "default", label: "未分類" }],
       items: [
-        item("oolong-tea", "ミネラルウォーター", 500, "water-tea", [option("room-temperature", "常温", ["常温"])]),
-        item("green-tea", "緑茶", 600, "water-tea", [ice, hot]),
-        item("item-1783049172799", "烏龍茶", 600, "water-tea", [ice, hot]),
-        item("item-1783049181927", "紅茶", 600, "water-tea", [ice, hot]),
-        item("item-1783049320701", "ジャスミン茶", 600, "water-tea", [hot, ice]),
-        item("item-1783049326313", "梅昆布茶", 600, "water-tea"),
-
-        item("cola", "コーヒー", 600, "juice", [
+        item("oolong-tea", "ミネラルウォーター", 500, "default", [option("room-temperature", "常温", ["常温"])]),
+        item("green-tea", "緑茶", 600, "default", [ice, hot]),
+        item("item-1783049172799", "烏龍茶", 600, "default", [ice, hot]),
+        item("item-1783049181927", "紅茶", 600, "default", [ice, hot]),
+        item("item-1783049320701", "ジャスミン茶", 600, "default", [hot, ice]),
+        item("item-1783049326313", "梅昆布茶", 600, "default"),
+        item("item-1783049632280", "ペリエ", 700, "default"),
+      ],
+    },
+    {
+      id: "juice",
+      label: "ジュース類",
+      subcategories: [{ id: "default", label: "未分類" }],
+      items: [
+        item("cola", "コーヒー", 600, "default", [
           hot,
           ice,
           option("milk", "ミルク", ["ミルクあり"]),
           option("gum-syrup", "ガムシロップ", ["ガムシロップあり", "ガムシロップ2個"]),
         ]),
-        item("ginger-ale", "カフェオレ", 600, "juice", [
+        item("ginger-ale", "カフェオレ", 600, "default", [
           option("more-milk", "牛乳", ["牛乳多め"]),
           hot,
           ice,
           option("gum-syrup", "ガムシロップ", ["ガムシロップあり", "ガムシロップ2個"]),
         ]),
-        item("orange-juice", "ココア", 600, "juice", [option("more-milk", "牛乳", ["牛乳多め"]), hot, ice]),
-        item("iced-coffee", "コーラ", 600, "juice", [ice]),
-        item("melon-soda", "メロンソーダ", 600, "juice", [ice]),
-        item("item-1783049531455", "ジンジャーエール", 600, "juice", [ice]),
-        item("item-1783049570152", "カルピス", 600, "juice", [
+        item("orange-juice", "ココア", 600, "default", [option("more-milk", "牛乳", ["牛乳多め"]), hot, ice]),
+        item("iced-coffee", "コーラ", 600, "default", [ice]),
+        item("melon-soda", "メロンソーダ", 600, "default", [ice]),
+        item("item-1783049531455", "ジンジャーエール", 600, "default", [ice]),
+        item("item-1783049570152", "カルピス", 600, "default", [
           option("calpis-mix", "割り方", ["ソーダ", "牛乳"]),
           strength,
           ice,
           hot,
         ]),
-        item("item-1783049580653", "マンゴージュース", 600, "juice", [
+        item("item-1783049580653", "マンゴージュース", 600, "default", [
           option("mango-mix", "割り方", ["ソーダ", "牛乳"]),
           ice,
         ]),
-        item("item-1783049599311", "オレンジジュース", 600, "juice", [ice]),
-        item("item-1783049610093", "グレープフルーツジュース", 600, "juice", [ice]),
-        item("corn-potage", "コーンポタージュ", 600, "juice"),
-        item("onion-soup", "オニオンスープ", 600, "juice"),
-
-        item("bottle-cola", "瓶コーラ", 600, "bottle-can", [option("bottle", "瓶", ["瓶のまま"])]),
-        item("item-1783049632280", "ペリエ", 700, "bottle-can"),
+        item("item-1783049599311", "オレンジジュース", 600, "default", [ice]),
+        item("item-1783049610093", "グレープフルーツジュース", 600, "default", [ice]),
+        item("corn-potage", "コーンポタージュ", 600, "default"),
+        item("onion-soup", "オニオンスープ", 600, "default"),
+        item("bottle-cola", "瓶コーラ", 600, "default", [option("bottle", "瓶", ["瓶のまま"])]),
       ],
     },
     {
