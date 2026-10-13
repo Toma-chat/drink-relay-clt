@@ -41,7 +41,9 @@
     "item-1783053343148",
     "item-1783053351523",
     "item-1783053374220",
-    "mistia",
+    "mistia-cola",
+    "mistia-ginger",
+    "mistia-soda",
     "ichiryuno-mugi",
     "tomino-hozan",
     "jasmine-jj",
@@ -72,7 +74,6 @@
     "item-1783053343148": { "peach-mix": ["炭酸", "オレンジジュース", "烏龍茶"] },
     "item-1783053351523": { "malibu-mix": ["コーラ", "炭酸", "マンゴージュース", "牛乳"] },
     "item-1783053374220": { "kahlua-mix": ["牛乳", "コーヒー"] },
-    mistia: { "mistia-mix": ["コーラ", "ジンジャーエール", "炭酸"] },
     dita: { "dita-mix": ["炭酸", "グレープフルーツジュース"] },
   };
 

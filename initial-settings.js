@@ -2859,11 +2859,12 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
           straw,
           ice,
         ], "カルーア30mlを牛乳で満たして軽くステアする"),
-        item("mistia", "ミスティア", 800, "mistia", [
-          option("mistia-mix", "割り方", ["コーラ", "ジンジャーエール", "炭酸"], true),
-          straw,
-          ice,
-        ]),
+        item("mistia-cola", "ミスティアコーク", 800, "mistia", [straw, ice],
+          "ミスティア30mlを入れる\nコーラで満たす\nレモンを添えて軽くステアする"),
+        item("mistia-ginger", "ミスティアジンジャー", 800, "mistia", [straw, ice],
+          "ミスティア30mlを入れる\nジンジャーエールで満たす\nレモンを添えて軽くステアする"),
+        item("mistia-soda", "ミスティアソーダ", 800, "mistia", [straw, ice],
+          "ミスティア30mlを入れる\n炭酸で満たす\nレモンを添えて軽くステアする"),
 
         item("dita", "ディタ", 800, "dita", [
           option("dita-mix", "割り方", ["炭酸", "グレープフルーツジュース"], true),
