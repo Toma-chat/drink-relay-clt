@@ -366,7 +366,7 @@ async function customerAction(action: string, body: JsonObject) {
     const at = new Date().toISOString();
     const previous = normalizeLocation(active.currentLocation || {});
     const saved = await saveSessionValue({
-      ...active, currentLocation: location, locationUpdatedAt: at,
+      ...active, currentLocation: location, locationConfirmed: true, locationUpdatedAt: at,
       locationSource: "customer", locationRevision: crypto.randomUUID(),
     });
     const orders = await sessionOrders(active.sessionId);
@@ -388,6 +388,7 @@ async function customerAction(action: string, body: JsonObject) {
   }
 
   if (action === "order") {
+    if (active.locationConfirmed === false) throw new ApiError("最初の届け先を設定してください", 409);
     const existing = await sessionOrders(active.sessionId);
     if (existing.some((order) => OPEN_STATUSES.includes(order.status))) {
       throw new ApiError("前のドリンクが提供済みになるまで次の注文はできません", 409, "UNLIMITED_ORDER_PENDING");
@@ -453,6 +454,7 @@ async function staffAction(req: Request, action: string, body: JsonObject) {
         ...current, status: "active", startedAt: new Date(now).toISOString(),
         expiresAt: new Date(expiresAt).toISOString(), activatedAt: new Date(now).toISOString(),
         activationRevision: crypto.randomUUID(), currentLocation: normalizeLocation(current.currentLocation || {}),
+        locationConfirmed: false,
       };
     } else if (current.status === "active" && current.reconnectRequest
       && desired.deviceBinding === current.reconnectRequest.deviceBinding) {
@@ -474,7 +476,7 @@ async function staffAction(req: Request, action: string, body: JsonObject) {
     if (!current || current.status !== "active" || Date.parse(current.expiresAt || "") <= Date.now()) throw new ApiError("利用中のセッションが見つかりません");
     const at = new Date().toISOString();
     const previous = normalizeLocation(current.currentLocation || {});
-    const saved = await saveSessionValue({ ...current, currentLocation: location, locationUpdatedAt: at, locationSource: "staff", locationRevision: crypto.randomUUID() });
+    const saved = await saveSessionValue({ ...current, currentLocation: location, locationConfirmed: true, locationUpdatedAt: at, locationSource: "staff", locationRevision: crypto.randomUUID() });
     const orders = await sessionOrders(id);
     const pending = orders.find((order) => OPEN_STATUSES.includes(order.status));
     let updatedOrder = null;

@@ -388,6 +388,7 @@
       const savedSession = await this.saveSession({
         ...session,
         currentLocation: normalized,
+        locationConfirmed: true,
         locationUpdatedAt: at,
         locationSource: source,
         locationRevision: makeId(),
