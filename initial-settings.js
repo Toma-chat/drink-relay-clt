@@ -2731,7 +2731,6 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         { id: "water-tea", label: "水・お茶" },
         { id: "juice", label: "ジュース・その他" },
         { id: "bottle-can", label: "ボトル・缶" },
-        { id: "red-bull", label: "レッドブル" },
       ],
       items: [
         item("oolong-tea", "ミネラルウォーター", 500, "water-tea", [option("room-temperature", "常温", ["常温"])]),
@@ -2774,9 +2773,16 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
 
         item("bottle-cola", "瓶コーラ", 600, "bottle-can", [option("bottle", "瓶", ["瓶のまま"])]),
         item("item-1783049632280", "ペリエ", 700, "bottle-can"),
-        item("item-1783049677236", "レッドブル（ノーマル）", 700, "red-bull"),
-        item("item-1790095632221", "レッドブル（ノンシュガー）", 700, "red-bull"),
-        item("item-1783053789682", "レッドブルウォッカ", 1000, "red-bull", [
+      ],
+    },
+    {
+      id: "red-bull",
+      label: "レッドブル",
+      subcategories: [{ id: "default", label: "未分類" }],
+      items: [
+        item("item-1783049677236", "レッドブル（ノーマル）", 700, "default"),
+        item("item-1790095632221", "レッドブル（ノンシュガー）", 700, "default"),
+        item("item-1783053789682", "レッドブルウォッカ", 1000, "default", [
           option("red-bull", "レッドブル種類", ["ノーマル", "ノンシュガー"], true),
           straw,
           ice,
