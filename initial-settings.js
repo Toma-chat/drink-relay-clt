@@ -2896,7 +2896,6 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         item("item-1783053833910", "テキーラ SHOT", 1000, "special"),
         item("kleiner", "クライナー", 1000, "special"),
         item("cast-drink", "Cast Drink", 1000, "special"),
-        item("tequila-ferris-wheel", "テキーラ観覧車", 15000, "special"),
       ],
     },
     {
