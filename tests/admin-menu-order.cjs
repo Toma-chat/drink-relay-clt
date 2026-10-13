@@ -1,0 +1,21 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {JSDOM}=require(path.join(process.env.TEMP,'warmup-validation/node_modules/jsdom'));
+const dom=new JSDOM('<div id="editor"></div>',{url:'http://localhost',runScripts:'outside-only'}),w=dom.window;
+w.DRINK_RELAY_STORE_CONFIG={instanceId:'test'};
+for(const file of ['admin-menu-order.js','fixed-order.js'])w.eval(fs.readFileSync(file,'utf8'));
+const menu=[{id:'soft',label:'ソフドリ',items:[{id:'a',name:'A'},{id:'b',name:'B'}]},
+ {id:'alcohol',label:'アルコール',subcategories:[{id:'sour',label:'サワー'}],items:[{id:'c',name:'C',subcategory_id:'sour'}]}];
+const original=JSON.stringify(menu),controller=Object.create(w.DrinkFixedOrder.prototype);
+controller.api={menu:()=>menu,orderGroups:groups=>w.DrinkAdminMenuOrder.apply(groups)};
+const root=w.document.querySelector('#editor');let changes=0;
+w.DrinkAdminMenuOrder.editor(root,()=>controller.categories(),()=>changes++);
+const sourceGroups=controller.categories().map(g=>g.id);
+let section=root.querySelector('[data-group="soft"]');section.open=true;
+section.querySelector('[aria-label="Bを上へ"]').click();
+assert.equal(controller.categories().find(g=>g.id==='soft').items[0].item.id,'b');assert(root.querySelector('[data-group="soft"]').open);assert.equal(JSON.stringify(menu),original);
+root.querySelector('[aria-label="ソフドリを上へ"]').click();assert.notDeepEqual(controller.categories().map(g=>g.id),sourceGroups);
+assert.equal(changes,2);console.log('PASS categories/items reorder in admin, expansion retained, shared customer menu unchanged');
+w.eval(fs.readFileSync('admin-menu-order.js','utf8'));assert.equal(controller.categories().find(g=>g.id==='soft').items[0].item.id,'b');console.log('PASS local preference survives reload');
+w.DrinkAdminMenuOrder.editor(root,()=>controller.categories(),()=>{});Array.from(root.querySelectorAll('button')).find(b=>b.textContent.includes('初期状態')).click();
+assert.equal(controller.categories().find(g=>g.id==='soft').items[0].item.id,'a');assert.equal(JSON.stringify(menu),original);console.log('PASS reset restores admin order without shared menu mutation');
+assert(!fs.readFileSync('unlimited-customer.html','utf8').includes('admin-menu-order'));console.log('PASS customer screen does not load admin ordering');dom.window.close();

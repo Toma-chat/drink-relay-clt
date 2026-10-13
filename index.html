@@ -23,8 +23,9 @@
     <script defer src="https://unpkg.com/lucide@1.55.0/dist/umd/lucide.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script defer src="./staff-auth.js?v=2026101201"></script>
-    <script defer src="./fixed-order.js?v=2026101204"></script>
-    <script defer src="./app.js?v=2026101205"></script>
+    <script defer src="./admin-menu-order.js?v=2026101302"></script>
+    <script defer src="./fixed-order.js?v=2026101302"></script>
+    <script defer src="./app.js?v=2026101302"></script>
     <script defer src="./unlimited-config.js?v=2026101301"></script>
     <script defer src="./unlimited-shared.js?v=2026101201"></script>
     <script defer src="./warmup-client.js"></script>
@@ -433,9 +434,13 @@
           <button class="active" type="button" data-config-section="drinks" aria-pressed="true">ドリンク</button>
           <button type="button" data-config-section="bell" aria-pressed="false">ベル</button>
           <button type="button" data-config-section="manual" aria-pressed="false">お酒作成M</button>
+          <button type="button" data-config-section="admin-order" aria-pressed="false">管理画面の並び順</button>
         </nav>
 
         <div class="config-content">
+          <section class="config-section" data-config-section-panel="admin-order" hidden>
+            <div id="adminMenuOrderEditor"></div>
+          </section>
           <section class="config-section active" data-config-section-panel="drinks">
             <div class="menu-editor" id="menuEditor" aria-label="メニュー編集"></div>
             <div class="setting-inline-actions">

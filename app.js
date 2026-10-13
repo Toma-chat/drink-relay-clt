@@ -1572,6 +1572,7 @@
   function fixedOrderController(form) {
     if (!form.fixedOrder) form.fixedOrder = new window.DrinkFixedOrder(form, {
       menu: () => state.menu,
+      orderGroups: groups => window.DrinkAdminMenuOrder?.apply(groups) || groups,
       cart: () => state.carts[form.dataset.source],
       clear: () => { state.carts[form.dataset.source] = []; },
       client: () => state.supabase,
@@ -3238,11 +3239,16 @@
   }
 
   function selectConfigSection(sectionId) {
-    if (!["drinks", "bell", "manual"].includes(sectionId)) return;
+    if (!["drinks", "bell", "manual", "admin-order"].includes(sectionId)) return;
     if (state.configSection === "drinks") syncActiveMenuEditorCategory();
     state.configSection = sectionId;
     if (sectionId === "drinks") renderMenuEditor();
     if (sectionId === "manual") renderAlcoholManualEditor();
+    if (sectionId === "admin-order") {
+      const form=$('.order-form[data-source="reception"]');
+      window.DrinkAdminMenuOrder?.editor($('#adminMenuOrderEditor'),
+        () => window.DrinkFixedOrder ? fixedOrderController(form).categories() : [], renderMenuPickers);
+    }
     updateConfigSectionUi();
   }
 
