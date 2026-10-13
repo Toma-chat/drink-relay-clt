@@ -23,7 +23,9 @@
   const SOFT_SP_EXTRA = ["item-1783049580653", "orange-juice", "item-1783049326313"];
 
   const ALCOHOL_STANDARD = [
-    "item-1783052940322",
+    "nikka-highball",
+    "nikka-cola-high",
+    "nikka-ginger-high",
     "item-1783053231839",
     "item-1783053242905",
     "calpis-sour",
@@ -72,7 +74,6 @@
     "item-1783049580653": { "mango-mix": [] },
   };
   const ALCOHOL_OPTIONS = {
-    "item-1783052940322": { "whiskey-mix": ["炭酸", "コーラ", "ジンジャーエール"] },
     "item-1783053519044": { "spirit-mix": ["炭酸"] },
     "item-1783053335099": {
       "cassis-mix": ["炭酸", "オレンジジュース", "烏龍茶", "グレープフルーツジュース"],

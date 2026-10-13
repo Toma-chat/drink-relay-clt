@@ -2487,7 +2487,8 @@ dialog {
   border: 0;
   padding: 0;
   border-radius: 8px;
-  background: transparent;
+  background: var(--surface);
+  color: var(--ink);
 }
 
 #confirmDialog {
@@ -3793,7 +3794,7 @@ dialog::backdrop {
 }
 
 #alcoholManualDialog::backdrop {
-  background: transparent;
+  background: rgba(33, 31, 28, 0.65);
 }
 
 .alcohol-manual-modal {

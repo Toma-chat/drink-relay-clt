@@ -2828,7 +2828,9 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
           "生ビールとコーラを1:1で注ぐ\n軽くステアする"
         ),
 
-        item("item-1783052940322", "ブラックニッカ", 800, "whiskey", [whiskeyMix, strength], whiskeyRecipe),
+        item("nikka-highball", "ハイボール", 800, "whiskey", [strength, straw, ice], "ブラックニッカを炭酸で割る"),
+        item("nikka-cola-high", "コークハイ", 800, "whiskey", [strength, straw, ice], "ブラックニッカをコーラで割る"),
+        item("nikka-ginger-high", "ジンジャーハイ", 800, "whiskey", [strength, straw, ice], "ブラックニッカをジンジャーエールで割る"),
         item("item-1783052950604", "メーカーズマーク", 800, "whiskey", [whiskeyMix, strength], whiskeyRecipe),
         item("item-1783052961537", "ジャックダニエル", 800, "whiskey", [
           whiskeyMix,
