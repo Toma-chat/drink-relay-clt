@@ -2731,6 +2731,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         { id: "water-tea", label: "水・お茶" },
         { id: "juice", label: "ジュース・その他" },
         { id: "bottle-can", label: "ボトル・缶" },
+        { id: "red-bull", label: "レッドブル" },
       ],
       items: [
         item("oolong-tea", "ミネラルウォーター", 500, "water-tea", [option("room-temperature", "常温", ["常温"])]),
@@ -2773,8 +2774,13 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
 
         item("bottle-cola", "瓶コーラ", 600, "bottle-can", [option("bottle", "瓶", ["瓶のまま"])]),
         item("item-1783049632280", "ペリエ", 700, "bottle-can"),
-        item("item-1783049677236", "レッドブル（ノーマル）", 700, "bottle-can"),
-        item("item-1790095632221", "レッドブル（ノンシュガー）", 700, "bottle-can"),
+        item("item-1783049677236", "レッドブル（ノーマル）", 700, "red-bull"),
+        item("item-1790095632221", "レッドブル（ノンシュガー）", 700, "red-bull"),
+        item("item-1783053789682", "レッドブルウォッカ", 1000, "red-bull", [
+          option("red-bull", "レッドブル種類", ["ノーマル", "ノンシュガー"], true),
+          straw,
+          ice,
+        ]),
       ],
     },
     {
@@ -2883,12 +2889,6 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         item("item-1783053600099", "ウォッカトニック", 800, "vodka", [straw, ice], "ウォッカ30mlを入れる\nトニックウォーターで満たす\nライムを添えて軽くステアする"),
         item("item-1783053614958", "スクリュードライバー", 800, "vodka", [straw, iceIn], "ウォッカ30mlを入れる\nオレンジジュースで満たして軽くステアする"),
         item("item-1783053634194", "モスコミュール", 800, "vodka", [straw, ice], "ウォッカ30mlとライムジュース1tspを入れる\nジンジャーエールで満たす\nライムを添えて軽くステアする"),
-        item("item-1783053789682", "レッドブルウォッカ", 1000, "special", [
-          option("red-bull", "レッドブル種類", ["ノーマル", "ノンシュガー"], true),
-          straw,
-          ice,
-        ]),
-
         item("item-1783053717209", "ラムコーク", 800, "rum", [straw, ice], "ラム30mlを入れる\nコーラで満たす\nライムを添えて軽くステアする"),
         item("rum-tonic", "ラムトニック", 800, "rum", [straw, ice]),
 
