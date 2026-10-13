@@ -2760,7 +2760,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         item("melon-soda", "メロンソーダ", 600, "default", [ice]),
         item("item-1783049531455", "ジンジャーエール", 600, "default", [ice]),
         item("item-1783049570152", "カルピス", 600, "default", [
-          option("calpis-mix", "割り方", ["ソーダ", "牛乳"]),
+          option("calpis-mix", "割り方", ["炭酸", "水", "牛乳", "マンゴー", "オレンジ"], true),
           strength,
           ice,
           hot,

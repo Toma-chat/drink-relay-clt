@@ -7,6 +7,8 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
  const menu=JSON.parse(fs.readFileSync('tests/fixtures/fixed-menu.json','utf8'));
  for(const i of menu.find(c=>c.id==='alcohol').items)if(['item-1783052940322','item-1783052950604','item-1783052961537'].includes(i.id))i.subcategory_id='highball';
  menu.find(c=>c.id==='alcohol').subcategories.push({id:'highball',label:'ハイボール'});
+ const calpis=menu.flatMap(c=>c.items).find(i=>i.id==='item-1783049570152'),calpisMix=calpis.optionGroups.find(g=>g.id==='calpis-mix');
+ calpisMix.choices=['炭酸','水','牛乳','マンゴー','オレンジ'];calpisMix.required=true;
  w.eval(fs.readFileSync('fixed-order.js','utf8'));
  let cart=[],calls=0,fail=false,release; const batches=[],notices=[];
  const api={menu:()=>menu,cart:()=>cart,clear:()=>cart=[],client:()=>({rpc:async()=>({data:{items:[{itemId:'beer'},{itemId:'oolong-tea'}]}})}),store:'casinolivetokyo',
@@ -31,6 +33,7 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
  ui.status='';ui.render();click('[data-fixed-category="alcohol::highball"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,3);
  click('[data-fixed-item="item-1783052940322"]');assert.equal(cart[0].fixedOptions['whiskey-mix'],'炭酸');assert.equal(cart[0].price,800);
  click('[data-fixed-category="soft"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,10);click('[data-fixed-page="product"][data-step="1"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,10);
+ opened=null;click('[data-fixed-item="item-1783049570152"]');assert.equal(opened,cart.at(-1).id,'Calpis opens its custom popup immediately');assert.deepEqual(calpisMix.choices,['炭酸','水','牛乳','マンゴー','オレンジ']);cart.pop();ui.undo.pop();ui.render();
  menu.push({id:'juice',label:'ジュース類',subcategories:[{id:'default',label:'未分類'}],items:Array.from({length:13},(_,index)=>({id:`juice-${index+1}`,name:`ジュース${index+1}`,price:600,subcategory_id:'default',optionGroups:[]}))});
  ui.render();click('[data-fixed-category="juice"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,13);assert.equal(form.querySelector('[data-fixed-page="product"]'),null,'13 juice items stay on one page');
  assert.ok(form.querySelector('[data-fixed-category="alcohol::gin"]'));assert.equal(form.querySelector('[data-fixed-page="category"]'),null);

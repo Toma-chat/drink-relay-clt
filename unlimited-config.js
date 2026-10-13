@@ -63,7 +63,7 @@
   // 空配列は、そのプランでは該当オプショングループを表示しない指定です。
   const SOFT_STANDARD_OPTIONS = {};
   const SOFT_SP_OPTIONS = {
-    "item-1783049570152": { "calpis-mix": [], hot: [] },
+    "item-1783049570152": { "calpis-mix": ["炭酸", "水", "牛乳", "マンゴー", "オレンジ"], hot: [] },
     "item-1783049580653": { "mango-mix": [] },
   };
   const ALCOHOL_OPTIONS = {

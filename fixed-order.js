@@ -4,6 +4,7 @@
   const yen = n => `¥${Number(n || 0).toLocaleString('ja-JP')}`;
   const PAGE_SIZE = 10;
   const JUICE_PAGE_SIZE = 15;
+  const AUTO_OPEN_CUSTOM_ITEM_IDS = new Set(['item-1783049570152']);
   const TARGETS = {ring:'リング',tournament:'トナメ',casino:'カジノ',bar:'バーカウンター'};
   class FixedOrder {
     constructor(form, api) {
@@ -162,6 +163,7 @@
         this.undo.push(added.id);this.cartPage=Math.floor(cart.indexOf(added)/2);this.render();
         const fresh=this.form.querySelector(`[data-fixed-item="${CSS.escape(item.id)}"]`);
         fresh?.classList.add('just-added');setTimeout(()=>fresh?.classList.remove('just-added'),450);
+        if(AUTO_OPEN_CUSTOM_ITEM_IDS.has(item.id))this.openCustom(added.id);
       } else if(b.hasAttribute('data-fixed-undo')) {
         const id=this.undo.pop(),index=cart.findIndex(x=>x.id===id);if(index>=0){if(cart[index].quantity>1){cart[index].quantity--;cart[index].locations.pop();}else cart.splice(index,1);}this.render();
       } else if(b.dataset.fixedQty) {
