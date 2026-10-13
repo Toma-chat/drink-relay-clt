@@ -7,7 +7,7 @@
     .trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-") || "standalone-store";
   const PREFIX = `drink-relay-${STORE_ID}`;
   const ORDER_KEY = `${PREFIX}-orders-v1`;
-  const MENU_KEY = `${PREFIX}-menu-v2`;
+  const MENU_KEY = `${PREFIX}-menu-v3`;
   const SESSION_KEY = `${PREFIX}-unlimited-sessions-v1`;
   const CARD_KEY = `${PREFIX}-unlimited-cards-v1`;
   const CHANNEL_NAME = `${PREFIX}-local`;

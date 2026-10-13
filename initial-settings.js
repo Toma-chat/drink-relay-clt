@@ -2728,57 +2728,53 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
       id: "soft",
       label: "ソフトドリンク",
       subcategories: [
-        { id: "water-tea", label: "水、お茶" },
+        { id: "water-tea", label: "水・お茶" },
         { id: "juice", label: "ジュース・その他" },
-        { id: "energy", label: "エナジードリンク" },
+        { id: "bottle-can", label: "ボトル・缶" },
       ],
       items: [
-        item("oolong-tea", "水", 500, "water-tea", [option("room-temperature", "常温", ["常温"])]),
-        item("green-tea", "緑茶", 500, "water-tea", [ice, hot]),
-        item("item-1783049172799", "烏龍茶", 500, "water-tea", [ice, hot]),
-        item("item-1783049181927", "紅茶", 500, "water-tea", [ice, hot]),
-        item("item-1783049320701", "ジャスミン茶", 500, "water-tea", [hot, ice]),
-        item("item-1783049326313", "梅昆布茶", 500, "water-tea"),
-        item("item-1790128481339", "tomaテスト中", 0, "water-tea"),
+        item("oolong-tea", "ミネラルウォーター", 500, "water-tea", [option("room-temperature", "常温", ["常温"])]),
+        item("green-tea", "緑茶", 600, "water-tea", [ice, hot]),
+        item("item-1783049172799", "烏龍茶", 600, "water-tea", [ice, hot]),
+        item("item-1783049181927", "紅茶", 600, "water-tea", [ice, hot]),
+        item("item-1783049320701", "ジャスミン茶", 600, "water-tea", [hot, ice]),
+        item("item-1783049326313", "梅昆布茶", 600, "water-tea"),
 
-        item("cola", "コーヒー", 500, "juice", [
+        item("cola", "コーヒー", 600, "juice", [
           hot,
           ice,
           option("milk", "ミルク", ["ミルクあり"]),
           option("gum-syrup", "ガムシロップ", ["ガムシロップあり", "ガムシロップ2個"]),
         ]),
-        item("ginger-ale", "カフェオレ", 500, "juice", [
+        item("ginger-ale", "カフェオレ", 600, "juice", [
           option("more-milk", "牛乳", ["牛乳多め"]),
           hot,
           ice,
           option("gum-syrup", "ガムシロップ", ["ガムシロップあり", "ガムシロップ2個"]),
         ]),
-        item("orange-juice", "ココア", 500, "juice", [option("more-milk", "牛乳", ["牛乳多め"]), hot, ice]),
-        item("iced-coffee", "コーラ", 500, "juice", [ice]),
-        item("melon-soda", "メロンソーダ", 500, "juice", [ice]),
-        item("item-1783049531455", "ジンジャーエール", 500, "juice", [ice]),
-        item("item-1783049570152", "カルピス", 500, "juice", [
+        item("orange-juice", "ココア", 600, "juice", [option("more-milk", "牛乳", ["牛乳多め"]), hot, ice]),
+        item("iced-coffee", "コーラ", 600, "juice", [ice]),
+        item("melon-soda", "メロンソーダ", 600, "juice", [ice]),
+        item("item-1783049531455", "ジンジャーエール", 600, "juice", [ice]),
+        item("item-1783049570152", "カルピス", 600, "juice", [
           option("calpis-mix", "割り方", ["ソーダ", "牛乳"]),
           strength,
           ice,
           hot,
         ]),
-        item("item-1783049580653", "マンゴージュース", 500, "juice", [
+        item("item-1783049580653", "マンゴージュース", 600, "juice", [
           option("mango-mix", "割り方", ["ソーダ", "牛乳"]),
           ice,
         ]),
-        item("item-1783049599311", "オレンジジュース", 500, "juice", [ice]),
-        item("item-1783049610093", "グレープフルーツジュース", 500, "juice", [ice]),
-        item("apple-juice", "リンゴジュース", 500, "juice", [ice]),
-        item("item-1783049632280", "ペリエ", 600, "juice"),
-        item("item-1783049641395", "牛乳", 500, "juice", [iceIn]),
-        item("corn-potage", "コーンポタージュ", 500, "juice"),
-        item("onion-soup", "オニオンスープ", 500, "juice"),
-        item("bottle-cola", "瓶コーラ", 600, "juice", [option("bottle", "瓶", ["瓶のまま"])]),
-        item("bottle-cola-zero", "瓶コーラゼロ", 500, "juice", [option("bottle", "瓶", ["瓶のまま"])]),
+        item("item-1783049599311", "オレンジジュース", 600, "juice", [ice]),
+        item("item-1783049610093", "グレープフルーツジュース", 600, "juice", [ice]),
+        item("corn-potage", "コーンポタージュ", 600, "juice"),
+        item("onion-soup", "オニオンスープ", 600, "juice"),
 
-        item("item-1783049677236", "レッドブル（ノーマル）", 700, "energy"),
-        item("item-1790095632221", "レッドブル（ノンシュガー）", 700, "energy"),
+        item("bottle-cola", "瓶コーラ", 600, "bottle-can", [option("bottle", "瓶", ["瓶のまま"])]),
+        item("item-1783049632280", "ペリエ", 700, "bottle-can"),
+        item("item-1783049677236", "レッドブル（ノーマル）", 700, "bottle-can"),
+        item("item-1790095632221", "レッドブル（ノンシュガー）", 700, "bottle-can"),
       ],
     },
     {
@@ -2791,18 +2787,18 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         { id: "tea-highs", label: "お茶ハイ" },
         { id: "shochu", label: "焼酎" },
         { id: "cocktail", label: "カクテル" },
+        { id: "mistia", label: "MISTIA" },
         { id: "dita", label: "SP LIQUEUR" },
         { id: "gin", label: "ジン" },
         { id: "vodka", label: "ウォッカ" },
         { id: "rum", label: "ラム" },
         { id: "alcohol-other", label: "その他" },
-        { id: "shot", label: "ショット" },
-        { id: "cast-drink", label: "キャストドリンク" },
+        { id: "special", label: "SPECIAL" },
       ],
       items: [
         item(
           "beer",
-          "生ビール",
+          "アサヒ生ビール（マルエフ）",
           800,
           "beer",
           [iceIn, option("beer-foam", "泡", ["泡なし"])],
@@ -2819,15 +2815,6 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
           [iceIn],
           "生ビールとジンジャーエールを1:1で注ぐ\n軽くステアする"
         ),
-        item(
-          "item-1783052913210",
-          "ビアコーク",
-          800,
-          "beer",
-          [ice],
-          "生ビールとコーラを1:1で注ぐ\n軽くステアする"
-        ),
-
         item("nikka-highball", "ハイボール", 800, "whiskey", [strength, straw, ice], "ブラックニッカを炭酸で割る"),
         item("nikka-cola-high", "コークハイ", 800, "whiskey", [strength, straw, ice], "ブラックニッカをコーラで割る"),
         item("nikka-ginger-high", "ジンジャーハイ", 800, "whiskey", [strength, straw, ice], "ブラックニッカをジンジャーエールで割る"),
@@ -2846,8 +2833,8 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         item("item-1783053301898", "緑茶ハイ", 800, "tea-highs", [strength, straw, ice], "サワーベース30mlを入れる\n緑茶で満たして軽くステアする"),
         item("item-1783053313814", "ジャスミンハイ", 800, "tea-highs", [strength, straw, ice], "サワーベース30mlを入れる\nジャスミン茶で満たして軽くステアする"),
 
-        item("ichiryuno-mugi", "一粒の麦（麦）", 800, "shochu", [whiskeyMix, strength]),
-        item("tomino-hozan", "富乃宝山（芋）", 800, "shochu", [whiskeyMix, strength]),
+        item("ichiryuno-mugi", "二階堂（麦）", 800, "shochu", [whiskeyMix, strength]),
+        item("tomino-hozan", "黒霧島（芋）", 800, "shochu", [whiskeyMix, strength]),
         item("jasmine-jj", "JJ", 800, "shochu", [straw, ice]),
         item("jasmine-jr", "JR", 800, "shochu", [straw, ice]),
         item("jasmine-jk", "JK", 800, "shochu", [straw, ice]),
@@ -2872,14 +2859,14 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
           straw,
           ice,
         ], "カルーア30mlを牛乳で満たして軽くステアする"),
-        item("amaretto", "アマレット", 800, "cocktail", [
-          option("amaretto-mix", "割り方", ["ロック", "炭酸", "コーラ", "ジンジャーエール", "オレンジジュース", "牛乳"], true),
+        item("mistia", "ミスティア", 800, "mistia", [
+          option("mistia-mix", "割り方", ["コーラ", "ジンジャーエール", "炭酸"], true),
           straw,
           ice,
         ]),
 
         item("dita", "ディタ", 800, "dita", [
-          option("dita-mix", "割り方", ["ジンジャーエール", "牛乳", "炭酸", "グレープフルーツジュース"], true),
+          option("dita-mix", "割り方", ["炭酸", "グレープフルーツジュース"], true),
           straw,
           ice,
         ]),
@@ -2892,13 +2879,10 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         item("item-1783053519044", "ジン", 800, "gin", [spiritMix, straw, ice]),
         item("item-1783053527395", "ジントニック", 800, "gin", [straw, ice], "ジン30mlを入れる\nトニックウォーターで満たす\nライムを添えて軽くステアする"),
         item("item-1783053542344", "ジンバック", 800, "gin", [straw, ice], "ジン30mlを入れる\nジンジャーエールで満たす\nライムを添えて軽くステアする"),
-        item("item-1783053550529", "ジンリッキー", 800, "gin", [straw, ice]),
-
-        item("item-1783053581016", "ウォッカ", 800, "vodka", [spiritMix, straw, ice]),
         item("item-1783053600099", "ウォッカトニック", 800, "vodka", [straw, ice], "ウォッカ30mlを入れる\nトニックウォーターで満たす\nライムを添えて軽くステアする"),
         item("item-1783053614958", "スクリュードライバー", 800, "vodka", [straw, iceIn], "ウォッカ30mlを入れる\nオレンジジュースで満たして軽くステアする"),
         item("item-1783053634194", "モスコミュール", 800, "vodka", [straw, ice], "ウォッカ30mlとライムジュース1tspを入れる\nジンジャーエールで満たす\nライムを添えて軽くステアする"),
-        item("item-1783053789682", "レッドブルウォッカ", 800, "vodka", [
+        item("item-1783053789682", "レッドブルウォッカ", 1000, "special", [
           option("red-bull", "レッドブル種類", ["ノーマル", "ノンシュガー"], true),
           straw,
           ice,
@@ -2906,14 +2890,13 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
 
         item("item-1783053717209", "ラムコーク", 800, "rum", [straw, ice], "ラム30mlを入れる\nコーラで満たす\nライムを添えて軽くステアする"),
         item("rum-tonic", "ラムトニック", 800, "rum", [straw, ice]),
-        item("rum-cocoa", "ラムココア", 800, "rum", [straw, ice]),
-        item("sol-cubano", "ソルクバーノ", 800, "rum", [straw, ice]),
 
-        item("glass-wine-red", "グラスワイン（赤）", 800, "alcohol-other"),
         item("plum-wine", "梅酒", 800, "alcohol-other", [whiskeyMix, strength]),
 
-        item("item-1783053833910", "テキーラ", 1000, "shot"),
-        item("cast-drink", "キャストドリンク", 1000, "cast-drink"),
+        item("item-1783053833910", "テキーラ SHOT", 1000, "special"),
+        item("kleiner", "クライナー", 1000, "special"),
+        item("cast-drink", "Cast Drink", 1000, "special"),
+        item("tequila-ferris-wheel", "テキーラ観覧車", 15000, "special"),
       ],
     },
     {

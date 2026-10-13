@@ -76,7 +76,7 @@ https://店舗の公開URL/unlimited-location.html?target=ring&table=A&seat=1
 - `excludeItemIds`: 対象外にする商品ID
 - `optionChoiceRules`: 商品ID・オプショングループIDごとに、そのプランで選択可能な選択肢を限定する設定。空配列はそのオプショングループを非表示
 
-現在は2026-09-29版の店頭メニュー画像に合わせ、STANDARD／SPの対象商品と、ICE・HOT・割り方の選択範囲を設定しています。Red Bull、Red Bull Sugarfree、Perrier、瓶コーラ、瓶コーラZERO、コロナビールなどの瓶・缶商品は対象へ含めていません。
+現在は2026-10-13確認版の店頭メニュー画像に合わせ、STANDARD／SPの対象商品と、ICE・HOT・割り方の選択範囲を設定しています。Red Bull、Red Bull Sugarfree、Perrier、瓶コーラ、コロナビールなどのボトル・缶商品は対象へ含めていません。
 
 ## 時刻とセキュリティ
 

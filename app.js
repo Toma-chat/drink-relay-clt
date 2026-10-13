@@ -14,7 +14,7 @@
   const SOUND_CHOICE_KEY = `${STORAGE_PREFIX}-sound-choice-v1`;
   const SOUND_CHOICES_KEY = `${STORAGE_PREFIX}-sound-choices-v2`;
   const SOUND_PREVIEWED_KEY = `${STORAGE_PREFIX}-sound-previewed-v1`;
-  const MENU_KEY = `${STORAGE_PREFIX}-menu-v2`;
+  const MENU_KEY = `${STORAGE_PREFIX}-menu-v3`;
   const OPTION_TEMPLATES_KEY = `${STORAGE_PREFIX}-option-templates-v1`;
   const RECEPTION_MENU_MODE_KEY = `${STORAGE_PREFIX}-reception-menu-mode-v1`;
   const LEGACY_DRINKS_KEY = `${STORAGE_PREFIX}-drinks-v1`;
