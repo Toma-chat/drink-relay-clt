@@ -11,7 +11,6 @@
   let cardLookupPromise = null;
   let refreshTimer = null;
   let editingSessionId = "";
-  let initialLocationSelectionRequired = false;
   let cardActionResolver = null;
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -44,9 +43,6 @@
     $("#unlimitedSessionLocationClose")?.addEventListener("click", closeSessionLocationDialog);
     $("#unlimitedSessionLocationCancel")?.addEventListener("click", closeSessionLocationDialog);
     $("#unlimitedSessionLocationSave")?.addEventListener("click", saveSessionLocation);
-    $("#unlimitedSessionLocationDialog")?.addEventListener("cancel", (event) => {
-      if (initialLocationSelectionRequired) event.preventDefault();
-    });
 
     try {
       gateway = await new U.Gateway().init();
@@ -566,8 +562,7 @@
       });
       input.value = "";
       await renderSessions();
-      setStatus(`${active.planName} をアクティベートしました。届け先を選択してください`, "success");
-      await openSessionLocationDialog(active.sessionId, { required: true });
+      setStatus(`${active.planName} をアクティベートしました`, "success");
     } catch (error) {
       setStatus(error.message || "アクティベートできませんでした", "error");
     } finally {
@@ -598,17 +593,13 @@
     }
   }
 
-  async function openSessionLocationDialog(sessionId, options = {}) {
+  async function openSessionLocationDialog(sessionId) {
     if (!gateway) return;
     try {
       const session = (await gateway.listSessions()).find((item) => item.sessionId === sessionId);
       if (!session || session.status !== "active") throw new Error("利用中のセッションが見つかりません");
       editingSessionId = sessionId;
-      initialLocationSelectionRequired = options.required === true;
-      $("#unlimitedSessionLocationTitle").textContent = initialLocationSelectionRequired ? "最初の届け先を選択" : "届け先を変更";
-      $("#unlimitedSessionLocationClose").hidden = initialLocationSelectionRequired;
-      $("#unlimitedSessionLocationCancel").hidden = initialLocationSelectionRequired;
-      renderSessionLocationChoices(U.normalizeUnlimitedLocation(session.currentLocation), initialLocationSelectionRequired);
+      renderSessionLocationChoices(U.normalizeUnlimitedLocation(session.currentLocation));
       setSessionLocationStatus("");
       $("#unlimitedSessionLocationDialog").showModal();
     } catch (error) {
@@ -617,13 +608,12 @@
   }
 
   function closeSessionLocationDialog() {
-    if (initialLocationSelectionRequired) return;
     const dialog = $("#unlimitedSessionLocationDialog");
     if (dialog?.open && !$("#unlimitedSessionLocationSave").disabled) dialog.close();
     editingSessionId = "";
   }
 
-  function renderSessionLocationChoices(location, requireChoice = false) {
+  function renderSessionLocationChoices(location) {
     const normalized = U.normalizeUnlimitedLocation(location);
     const targets = [
       ["bar", "バーカウンター"],
@@ -636,12 +626,8 @@
       <button type="button" class="unlimited-location-choice ${value === normalized.tableNo ? "active" : ""}" data-session-location-choice="tableNo" data-location-value="${value}">${value}卓</button>`).join("");
     $("#unlimitedSessionSeatChoices").innerHTML = U.LOCATION_SEATS.map((value) => `
       <button type="button" class="unlimited-location-choice ${value === normalized.seatNo ? "active" : ""}" data-session-location-choice="seatNo" data-location-value="${value}">${value}番</button>`).join("");
-    if (requireChoice) {
-      $$('[data-session-location-choice].active', $("#unlimitedSessionLocationDialog"))
-        .forEach((choice) => choice.classList.remove("active"));
-    }
-    $("#unlimitedSessionTableGroup").hidden = requireChoice || normalized.target === "bar";
-    $("#unlimitedSessionSeatGroup").hidden = requireChoice || normalized.target === "bar";
+    $("#unlimitedSessionTableGroup").hidden = normalized.target === "bar";
+    $("#unlimitedSessionSeatGroup").hidden = normalized.target === "bar";
   }
 
   function handleSessionLocationChoice(event) {
@@ -665,10 +651,6 @@
 
   async function saveSessionLocation() {
     if (!editingSessionId || !gateway) return;
-    if (initialLocationSelectionRequired && !$('[data-session-location-choice="target"].active', $("#unlimitedSessionLocationDialog"))) {
-      setSessionLocationStatus("エリアを選択してください", "error");
-      return;
-    }
     const location = selectedSessionLocation();
     if (!U.unlimitedLocationIsComplete(location)) {
       setSessionLocationStatus("テーブルと席番号を選択してください", "error");
@@ -678,21 +660,14 @@
     button.disabled = true;
     setSessionLocationStatus("届け先を更新しています...", "loading");
     try {
-      const wasInitialSelection = initialLocationSelectionRequired;
       const session = (await gateway.listSessions()).find((item) => item.sessionId === editingSessionId);
       const now = gateway.now();
       if (!session || session.status !== "active" || Date.parse(session.expiresAt) <= now) throw new Error("利用時間が終了しています");
       const result = await gateway.updateSessionLocation(session, location, "staff");
       $("#unlimitedSessionLocationDialog").close();
       editingSessionId = "";
-      initialLocationSelectionRequired = false;
-      $("#unlimitedSessionLocationTitle").textContent = "届け先を変更";
-      $("#unlimitedSessionLocationClose").hidden = false;
-      $("#unlimitedSessionLocationCancel").hidden = false;
       setStatus(
-        wasInitialSelection
-          ? "アクティベートと届け先の設定が完了しました"
-          : result.pendingOrder ? "届け先と未提供注文の届け先を変更しました" : "現在の届け先を変更しました",
+        result.pendingOrder ? "届け先と未提供注文の届け先を変更しました" : "現在の届け先を変更しました",
         "success"
       );
       await renderSessions();
