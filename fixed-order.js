@@ -3,6 +3,7 @@
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const yen = n => `¥${Number(n || 0).toLocaleString('ja-JP')}`;
   const PAGE_SIZE = 10;
+  const JUICE_PAGE_SIZE = 15;
   const TARGETS = {ring:'リング',tournament:'トナメ',casino:'カジノ',bar:'バーカウンター'};
   class FixedOrder {
     constructor(form, api) {
@@ -87,15 +88,17 @@
       const categories=this.categories(); if(!categories.some(c=>c.id===this.active)) this.active='popular';
       const category=categories.find(c=>c.id===this.active);
       const picker=this.form.querySelector('[data-drink-picker]'); picker.className='control-group drink-choice-panel fixed-picker';
+      picker.dataset.fixedCategory=this.active;
       const categoryNav=picker.querySelector('[data-menu-categories]'),scrollTop=categoryNav.scrollTop;
       categoryNav.innerHTML=categories.map(c=>
         `<button type="button" data-fixed-category="${esc(c.id)}" aria-pressed="${c.id===this.active}" class="${c.id===this.active?'active':''}">${esc(c.label)}</button>`).join('');
       categoryNav.scrollTop=scrollTop;
       const items=this.active==='popular'?this.popular.map(id=>this.find(id)).filter(Boolean):category.items;
-      const total=Math.ceil(items.length/PAGE_SIZE); this.page=Math.min(this.page,Math.max(0,total-1));
+      const pageSize=this.active==='juice'?JUICE_PAGE_SIZE:PAGE_SIZE;
+      const total=Math.ceil(items.length/pageSize); this.page=Math.min(this.page,Math.max(0,total-1));
       picker.querySelector('[data-drink-buttons]').innerHTML=`<div class="fixed-product-heading"><h2>${esc(category.label)}</h2>
         ${this.active==='popular'?'<span>直近30日を優先・最大10商品</span>':''}</div>
-        <div class="fixed-products">${items.slice(this.page*PAGE_SIZE,(this.page+1)*PAGE_SIZE).map(({item,category})=>{
+        <div class="fixed-products">${items.slice(this.page*pageSize,(this.page+1)*pageSize).map(({item,category})=>{
           const count=this.api.cart().filter(x=>x.menu_item_id===item.id).reduce((n,x)=>n+x.quantity,0);
           return `<button type="button" data-fixed-item="${esc(item.id)}" data-menu-item-id="${esc(item.id)}" data-menu-category-id="${esc(category)}" class="${count?'in-cart':''}">
             <span class="fixed-product-name">${esc(item.name)}</span><span>${yen(item.price)}${count?` · ${count}杯`:''}</span>

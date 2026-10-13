@@ -31,6 +31,8 @@ const tick=()=>new Promise(r=>setTimeout(r,30));
  ui.status='';ui.render();click('[data-fixed-category="alcohol::highball"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,3);
  click('[data-fixed-item="item-1783052940322"]');assert.equal(cart[0].fixedOptions['whiskey-mix'],'炭酸');assert.equal(cart[0].price,800);
  click('[data-fixed-category="soft"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,10);click('[data-fixed-page="product"][data-step="1"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,10);
+ menu.push({id:'juice',label:'ジュース類',subcategories:[{id:'default',label:'未分類'}],items:Array.from({length:13},(_,index)=>({id:`juice-${index+1}`,name:`ジュース${index+1}`,price:600,subcategory_id:'default',optionGroups:[]}))});
+ ui.render();click('[data-fixed-category="juice"]');assert.equal(form.querySelectorAll('[data-fixed-item]').length,13);assert.equal(form.querySelector('[data-fixed-page="product"]'),null,'13 juice items stay on one page');
  assert.ok(form.querySelector('[data-fixed-category="alcohol::gin"]'));assert.equal(form.querySelector('[data-fixed-page="category"]'),null);
  click('[data-fixed-item]');click('[data-fixed-item]');
  const entry=cart.at(-1);assert.equal(entry.quantity,2);

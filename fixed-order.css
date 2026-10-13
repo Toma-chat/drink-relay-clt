@@ -20,6 +20,7 @@ main:has(#view-reception.active:not(.fixed-management-open)) {padding:8px max(10
 .fixed-product-heading {display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:34px}
 .fixed-product-heading h2 {margin:0;font-size:22px}.fixed-product-heading>span {font-size:14px;color:#57534e}
 .fixed-products {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(4,minmax(56px,1fr));gap:10px;flex:1;min-height:0}
+.fixed-picker[data-fixed-category="juice"] .fixed-products {grid-template-rows:repeat(5,minmax(56px,1fr))}
 .fixed-products button {display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:6px;min-height:56px;min-width:56px;padding:12px;border:1px solid #d6d3d1;border-radius:14px;background:#fff;color:#292524;text-align:left;font:inherit;touch-action:manipulation}
 .fixed-products .fixed-product-name {font-size:clamp(17px,1.65vw,23px);font-weight:800;line-height:1.35;overflow-wrap:anywhere;white-space:normal}
 .fixed-products button>span:not(.fixed-product-name),.fixed-products small {font-size:14px;color:#57534e}
