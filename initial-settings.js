@@ -2529,7 +2529,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         },
         {
           "id": "unlimited-alcohol-sp-2h",
-          "name": "2時間アルコールSP飲み放題",
+          "name": "2時間 アルコールSP飲み放題",
           "price": 3000,
           "recipe": "",
           "optionGroups": [],
@@ -2553,7 +2553,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         },
         {
           "id": "unlimited-alcohol-all-day",
-          "name": "終日アルコール飲み放題",
+          "name": "終日 アルコール飲み放題",
           "price": 4000,
           "recipe": "",
           "optionGroups": [],
@@ -2561,7 +2561,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         },
         {
           "id": "unlimited-alcohol-sp-all-day",
-          "name": "終日アルコールSP飲み放題",
+          "name": "終日 アルコールSP飲み放題",
           "price": 5000,
           "recipe": "",
           "optionGroups": [],
@@ -2917,11 +2917,11 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         item("unlimited-soft-2h", "2時間ソフトドリンク飲み放題", 1500, "two-hours"),
         item("unlimited-soft-sp-2h", "2時間ソフトドリンクSP飲み放題", 2000, "two-hours"),
         item("unlimited-alcohol-2h", "2時間アルコール飲み放題", 2500, "two-hours"),
-        item("unlimited-alcohol-sp-2h", "2時間アルコールSP飲み放題", 3000, "two-hours"),
+        item("unlimited-alcohol-sp-2h", "2時間 アルコールSP飲み放題", 3000, "two-hours"),
         item("unlimited-soft-all-day", "終日ソフトドリンク飲み放題", 3000, "all-day"),
         item("unlimited-soft-sp-all-day", "終日ソフトドリンクSP飲み放題", 3500, "all-day"),
-        item("unlimited-alcohol-all-day", "終日アルコール飲み放題", 4000, "all-day"),
-        item("unlimited-alcohol-sp-all-day", "終日アルコールSP飲み放題", 5000, "all-day"),
+        item("unlimited-alcohol-all-day", "終日 アルコール飲み放題", 4000, "all-day"),
+        item("unlimited-alcohol-sp-all-day", "終日 アルコールSP飲み放題", 5000, "all-day"),
       ],
     },
     {

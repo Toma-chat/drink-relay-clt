@@ -37,5 +37,11 @@ const {PGlite}=require(path.join(process.env.TEMP,'warmup-validation/node_module
   assert.equal((await db.query('select status from public.drink_orders')).rows[0].status,'ordered');
   const saved=await read('main');assert.equal(saved[0].items[0].name,'2時間ソフトドリンクSP飲み放題');assert.equal(saved[0].items[0].price,2000);assert.equal(saved[0].items[0].custom,'preserve');assert.deepEqual(saved[1],menu[1]);
   await db.exec(sql);assert.deepEqual(await read('aycd-card-catalog'),cards);
+  const rename=fs.readFileSync('supabase/rename-unlimited-cards-20261017.sql','utf8');
+  await db.exec(rename);const renamed=await read('aycd-card-catalog');
+  assert.deepEqual(renamed.map(({label,...card})=>card),cards.map(({label,...card})=>card));
+  for(const p of config.planCatalog){const group=renamed.filter(c=>c.planId===p.id&&c.status==='active');assert.equal(group.length,20);assert.deepEqual(new Set(group.map(c=>c.label)),new Set(Array.from({length:20},(_,i)=>p.name+' '+(i+1)+'番')));}
+  await db.exec(rename);assert.deepEqual(await read('aycd-card-catalog'),renamed);
+  console.log('PASS rename changes only labels, matches all 14 names and 1-20 numbers, preserves every token/ID/status and is repeat safe');
   await db.close();console.log('PASS migration creates 20 x14, archives old, revokes sessions, keeps pending orders/prices, repeat is no-op');
 })().catch(e=>{console.error(e);process.exitCode=1});

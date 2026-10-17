@@ -48,7 +48,7 @@ begin
     into archived from jsonb_array_elements(old_cards) with ordinality x(c,n);
   select jsonb_agg(jsonb_build_object(
     'id',gen_random_uuid()::text,'token',encode(extensions.gen_random_bytes(24),'hex'),
-    'planId',p->>'id','label',(p->>'name') || ' / ' || (p->>'profile') || ' ' || num || '番',
+    'planId',p->>'id','label',(p->>'name') || ' ' || num || '番',
     'createdAt',stamp,'kind','permanent','status','active','immutable',true,
     'tokenHistory','[]'::jsonb,'catalogVersion','20261017') order by ordinal,num)
     into fresh from jsonb_array_elements($plans$${catalog}$plans$::jsonb) with ordinality x(p,ordinal) cross join generate_series(1,20) num;

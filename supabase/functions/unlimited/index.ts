@@ -326,7 +326,7 @@ const COMPILED_PLANS = {
     "profile": "アルコールSTD"
   },
   "unlimited-alcohol-sp-2h": {
-    "name": "2時間アルコールSP飲み放題",
+    "name": "2時間 アルコールSP飲み放題",
     "duration": 120,
     "endHour": 22,
     "endMinute": 30,
@@ -347,14 +347,14 @@ const COMPILED_PLANS = {
     "profile": "ソフトドリンクSP"
   },
   "unlimited-alcohol-all-day": {
-    "name": "終日アルコール飲み放題",
+    "name": "終日 アルコール飲み放題",
     "duration": null,
     "endHour": 22,
     "endMinute": 30,
     "profile": "アルコールSTD"
   },
   "unlimited-alcohol-sp-all-day": {
-    "name": "終日アルコールSP飲み放題",
+    "name": "終日 アルコールSP飲み放題",
     "duration": null,
     "endHour": 22,
     "endMinute": 30,
