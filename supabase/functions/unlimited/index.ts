@@ -16,1184 +16,360 @@ const LOCATION_SEATS = new Set(["1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
 // BEGIN GENERATED PLANS (scripts/build-unlimited-catalog.cjs)
 type JsonObject = Record<string, any>;
+const COMPILED_PROFILES = {
+  "アルコールSTD": {
+    "itemIds": [
+      "iced-coffee",
+      "item-1783049531455",
+      "melon-soda",
+      "item-1783049599311",
+      "item-1783049610093",
+      "green-tea",
+      "item-1783049181927",
+      "item-1783049172799",
+      "item-1783049320701",
+      "cola",
+      "item-1783049326313",
+      "nikka-highball",
+      "nikka-cola-high",
+      "nikka-ginger-high",
+      "item-1783053231839",
+      "item-1783053242905",
+      "calpis-sour",
+      "item-1783053258647",
+      "item-1783053270509",
+      "item-1783053301898",
+      "item-1783053313814",
+      "item-1783053519044",
+      "item-1783053527395",
+      "item-1783053542344",
+      "item-1783053634194",
+      "item-1783053600099",
+      "item-1783053614958",
+      "item-1783053717209",
+      "rum-tonic",
+      "item-1783053335099",
+      "item-1783053343148",
+      "item-1783053351523",
+      "item-1783053374220",
+      "mistia-cola",
+      "mistia-ginger",
+      "mistia-soda",
+      "ichiryuno-mugi",
+      "tomino-hozan",
+      "jasmine-jj",
+      "jasmine-jr",
+      "jasmine-jk",
+      "plum-wine"
+    ],
+    "options": {
+      "item-1783053519044": {
+        "spirit-mix": [
+          "炭酸"
+        ]
+      },
+      "item-1783053335099": {
+        "cassis-mix": [
+          "炭酸",
+          "オレンジジュース",
+          "烏龍茶",
+          "グレープフルーツジュース"
+        ]
+      },
+      "item-1783053343148": {
+        "peach-mix": [
+          "炭酸",
+          "オレンジジュース",
+          "烏龍茶"
+        ]
+      },
+      "item-1783053351523": {
+        "malibu-mix": [
+          "コーラ",
+          "炭酸",
+          "マンゴージュース",
+          "牛乳"
+        ]
+      },
+      "item-1783053374220": {
+        "kahlua-mix": [
+          "牛乳",
+          "コーヒー"
+        ]
+      },
+      "dita": {
+        "dita-mix": [
+          "炭酸",
+          "グレープフルーツジュース"
+        ]
+      }
+    }
+  },
+  "アルコールSP": {
+    "itemIds": [
+      "iced-coffee",
+      "item-1783049531455",
+      "melon-soda",
+      "item-1783049599311",
+      "item-1783049610093",
+      "green-tea",
+      "item-1783049181927",
+      "item-1783049172799",
+      "item-1783049320701",
+      "cola",
+      "item-1783049326313",
+      "item-1783049580653",
+      "orange-juice",
+      "ginger-ale",
+      "item-1783049570152",
+      "nikka-highball",
+      "nikka-cola-high",
+      "nikka-ginger-high",
+      "item-1783053231839",
+      "item-1783053242905",
+      "calpis-sour",
+      "item-1783053258647",
+      "item-1783053270509",
+      "item-1783053301898",
+      "item-1783053313814",
+      "item-1783053519044",
+      "item-1783053527395",
+      "item-1783053542344",
+      "item-1783053634194",
+      "item-1783053600099",
+      "item-1783053614958",
+      "item-1783053717209",
+      "rum-tonic",
+      "item-1783053335099",
+      "item-1783053343148",
+      "item-1783053351523",
+      "item-1783053374220",
+      "mistia-cola",
+      "mistia-ginger",
+      "mistia-soda",
+      "ichiryuno-mugi",
+      "tomino-hozan",
+      "jasmine-jj",
+      "jasmine-jr",
+      "jasmine-jk",
+      "plum-wine",
+      "beer",
+      "item-1783052901930",
+      "item-1783052950604",
+      "item-1783052961537",
+      "tiffin",
+      "dita"
+    ],
+    "options": {
+      "item-1783049570152": {
+        "calpis-mix": [
+          "炭酸",
+          "水",
+          "牛乳",
+          "マンゴー",
+          "オレンジ"
+        ],
+        "hot": []
+      },
+      "item-1783049580653": {
+        "mango-mix": []
+      },
+      "item-1783053519044": {
+        "spirit-mix": [
+          "炭酸"
+        ]
+      },
+      "item-1783053335099": {
+        "cassis-mix": [
+          "炭酸",
+          "オレンジジュース",
+          "烏龍茶",
+          "グレープフルーツジュース"
+        ]
+      },
+      "item-1783053343148": {
+        "peach-mix": [
+          "炭酸",
+          "オレンジジュース",
+          "烏龍茶"
+        ]
+      },
+      "item-1783053351523": {
+        "malibu-mix": [
+          "コーラ",
+          "炭酸",
+          "マンゴージュース",
+          "牛乳"
+        ]
+      },
+      "item-1783053374220": {
+        "kahlua-mix": [
+          "牛乳",
+          "コーヒー"
+        ]
+      },
+      "dita": {
+        "dita-mix": [
+          "炭酸",
+          "グレープフルーツジュース"
+        ]
+      }
+    }
+  },
+  "ソフトドリンクSTD": {
+    "itemIds": [
+      "iced-coffee",
+      "item-1783049531455",
+      "melon-soda",
+      "item-1783049599311",
+      "item-1783049610093",
+      "green-tea",
+      "item-1783049181927",
+      "item-1783049172799",
+      "item-1783049320701",
+      "cola",
+      "item-1783049326313"
+    ],
+    "options": {}
+  },
+  "ソフトドリンクSP": {
+    "itemIds": [
+      "iced-coffee",
+      "item-1783049531455",
+      "melon-soda",
+      "item-1783049599311",
+      "item-1783049610093",
+      "green-tea",
+      "item-1783049181927",
+      "item-1783049172799",
+      "item-1783049320701",
+      "cola",
+      "item-1783049326313",
+      "item-1783049580653",
+      "orange-juice",
+      "ginger-ale",
+      "item-1783049570152"
+    ],
+    "options": {
+      "item-1783049570152": {
+        "calpis-mix": [
+          "炭酸",
+          "水",
+          "牛乳",
+          "マンゴー",
+          "オレンジ"
+        ],
+        "hot": []
+      },
+      "item-1783049580653": {
+        "mango-mix": []
+      }
+    }
+  }
+};
+const SHARED_PROFILES = Object.fromEntries(Object.entries(COMPILED_PROFILES).map(([id, profile]) => [id, { items: new Set(profile.itemIds), options: profile.options }]));
 const COMPILED_PLANS = {
   "unlimited-warmup-std": {
     "name": "Warm Up 飛ぶまで飲み放題",
     "duration": null,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "nikka-highball",
-      "nikka-cola-high",
-      "nikka-ginger-high",
-      "item-1783053231839",
-      "item-1783053242905",
-      "calpis-sour",
-      "item-1783053258647",
-      "item-1783053270509",
-      "item-1783053301898",
-      "item-1783053313814",
-      "item-1783053519044",
-      "item-1783053527395",
-      "item-1783053542344",
-      "item-1783053634194",
-      "item-1783053600099",
-      "item-1783053614958",
-      "item-1783053717209",
-      "rum-tonic",
-      "item-1783053335099",
-      "item-1783053343148",
-      "item-1783053351523",
-      "item-1783053374220",
-      "mistia-cola",
-      "mistia-ginger",
-      "mistia-soda",
-      "ichiryuno-mugi",
-      "tomino-hozan",
-      "jasmine-jj",
-      "jasmine-jr",
-      "jasmine-jk",
-      "plum-wine"
-    ],
-    "options": {
-      "item-1783053519044": {
-        "spirit-mix": [
-          "炭酸"
-        ]
-      },
-      "item-1783053335099": {
-        "cassis-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶",
-          "グレープフルーツジュース"
-        ]
-      },
-      "item-1783053343148": {
-        "peach-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶"
-        ]
-      },
-      "item-1783053351523": {
-        "malibu-mix": [
-          "コーラ",
-          "炭酸",
-          "マンゴージュース",
-          "牛乳"
-        ]
-      },
-      "item-1783053374220": {
-        "kahlua-mix": [
-          "牛乳",
-          "コーヒー"
-        ]
-      },
-      "dita": {
-        "dita-mix": [
-          "炭酸",
-          "グレープフルーツジュース"
-        ]
-      }
-    }
+    "profile": "アルコールSTD"
   },
   "unlimited-warmup-sp": {
     "name": "Warm Up 飛ぶまで飲み放題 SP版",
     "duration": null,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "item-1783049580653",
-      "orange-juice",
-      "ginger-ale",
-      "item-1783049570152",
-      "nikka-highball",
-      "nikka-cola-high",
-      "nikka-ginger-high",
-      "item-1783053231839",
-      "item-1783053242905",
-      "calpis-sour",
-      "item-1783053258647",
-      "item-1783053270509",
-      "item-1783053301898",
-      "item-1783053313814",
-      "item-1783053519044",
-      "item-1783053527395",
-      "item-1783053542344",
-      "item-1783053634194",
-      "item-1783053600099",
-      "item-1783053614958",
-      "item-1783053717209",
-      "rum-tonic",
-      "item-1783053335099",
-      "item-1783053343148",
-      "item-1783053351523",
-      "item-1783053374220",
-      "mistia-cola",
-      "mistia-ginger",
-      "mistia-soda",
-      "ichiryuno-mugi",
-      "tomino-hozan",
-      "jasmine-jj",
-      "jasmine-jr",
-      "jasmine-jk",
-      "plum-wine",
-      "beer",
-      "item-1783052901930",
-      "item-1783052950604",
-      "item-1783052961537",
-      "tiffin",
-      "dita"
-    ],
-    "options": {
-      "item-1783049570152": {
-        "calpis-mix": [
-          "炭酸",
-          "水",
-          "牛乳",
-          "マンゴー",
-          "オレンジ"
-        ],
-        "hot": []
-      },
-      "item-1783049580653": {
-        "mango-mix": []
-      },
-      "item-1783053519044": {
-        "spirit-mix": [
-          "炭酸"
-        ]
-      },
-      "item-1783053335099": {
-        "cassis-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶",
-          "グレープフルーツジュース"
-        ]
-      },
-      "item-1783053343148": {
-        "peach-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶"
-        ]
-      },
-      "item-1783053351523": {
-        "malibu-mix": [
-          "コーラ",
-          "炭酸",
-          "マンゴージュース",
-          "牛乳"
-        ]
-      },
-      "item-1783053374220": {
-        "kahlua-mix": [
-          "牛乳",
-          "コーヒー"
-        ]
-      },
-      "dita": {
-        "dita-mix": [
-          "炭酸",
-          "グレープフルーツジュース"
-        ]
-      }
-    }
+    "profile": "アルコールSP"
   },
   "unlimited-weekend-std": {
     "name": "Weekend Championship 飛ぶまで飲み放題 アルコール版",
     "duration": null,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "nikka-highball",
-      "nikka-cola-high",
-      "nikka-ginger-high",
-      "item-1783053231839",
-      "item-1783053242905",
-      "calpis-sour",
-      "item-1783053258647",
-      "item-1783053270509",
-      "item-1783053301898",
-      "item-1783053313814",
-      "item-1783053519044",
-      "item-1783053527395",
-      "item-1783053542344",
-      "item-1783053634194",
-      "item-1783053600099",
-      "item-1783053614958",
-      "item-1783053717209",
-      "rum-tonic",
-      "item-1783053335099",
-      "item-1783053343148",
-      "item-1783053351523",
-      "item-1783053374220",
-      "mistia-cola",
-      "mistia-ginger",
-      "mistia-soda",
-      "ichiryuno-mugi",
-      "tomino-hozan",
-      "jasmine-jj",
-      "jasmine-jr",
-      "jasmine-jk",
-      "plum-wine"
-    ],
-    "options": {
-      "item-1783053519044": {
-        "spirit-mix": [
-          "炭酸"
-        ]
-      },
-      "item-1783053335099": {
-        "cassis-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶",
-          "グレープフルーツジュース"
-        ]
-      },
-      "item-1783053343148": {
-        "peach-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶"
-        ]
-      },
-      "item-1783053351523": {
-        "malibu-mix": [
-          "コーラ",
-          "炭酸",
-          "マンゴージュース",
-          "牛乳"
-        ]
-      },
-      "item-1783053374220": {
-        "kahlua-mix": [
-          "牛乳",
-          "コーヒー"
-        ]
-      },
-      "dita": {
-        "dita-mix": [
-          "炭酸",
-          "グレープフルーツジュース"
-        ]
-      }
-    }
+    "profile": "アルコールSTD"
   },
   "unlimited-super-weekend-sp": {
     "name": "超Weekend Championship 飛ぶまで飲み放題 SP版",
     "duration": null,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "item-1783049580653",
-      "orange-juice",
-      "ginger-ale",
-      "item-1783049570152",
-      "nikka-highball",
-      "nikka-cola-high",
-      "nikka-ginger-high",
-      "item-1783053231839",
-      "item-1783053242905",
-      "calpis-sour",
-      "item-1783053258647",
-      "item-1783053270509",
-      "item-1783053301898",
-      "item-1783053313814",
-      "item-1783053519044",
-      "item-1783053527395",
-      "item-1783053542344",
-      "item-1783053634194",
-      "item-1783053600099",
-      "item-1783053614958",
-      "item-1783053717209",
-      "rum-tonic",
-      "item-1783053335099",
-      "item-1783053343148",
-      "item-1783053351523",
-      "item-1783053374220",
-      "mistia-cola",
-      "mistia-ginger",
-      "mistia-soda",
-      "ichiryuno-mugi",
-      "tomino-hozan",
-      "jasmine-jj",
-      "jasmine-jr",
-      "jasmine-jk",
-      "plum-wine",
-      "beer",
-      "item-1783052901930",
-      "item-1783052950604",
-      "item-1783052961537",
-      "tiffin",
-      "dita"
-    ],
-    "options": {
-      "item-1783049570152": {
-        "calpis-mix": [
-          "炭酸",
-          "水",
-          "牛乳",
-          "マンゴー",
-          "オレンジ"
-        ],
-        "hot": []
-      },
-      "item-1783049580653": {
-        "mango-mix": []
-      },
-      "item-1783053519044": {
-        "spirit-mix": [
-          "炭酸"
-        ]
-      },
-      "item-1783053335099": {
-        "cassis-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶",
-          "グレープフルーツジュース"
-        ]
-      },
-      "item-1783053343148": {
-        "peach-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶"
-        ]
-      },
-      "item-1783053351523": {
-        "malibu-mix": [
-          "コーラ",
-          "炭酸",
-          "マンゴージュース",
-          "牛乳"
-        ]
-      },
-      "item-1783053374220": {
-        "kahlua-mix": [
-          "牛乳",
-          "コーヒー"
-        ]
-      },
-      "dita": {
-        "dita-mix": [
-          "炭酸",
-          "グレープフルーツジュース"
-        ]
-      }
-    }
+    "profile": "アルコールSP"
   },
   "unlimited-happy-hour-sp": {
     "name": "超ハッピーアワー18:00まで飲み放題",
     "duration": null,
     "endHour": 18,
     "endMinute": 0,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "item-1783049580653",
-      "orange-juice",
-      "ginger-ale",
-      "item-1783049570152",
-      "nikka-highball",
-      "nikka-cola-high",
-      "nikka-ginger-high",
-      "item-1783053231839",
-      "item-1783053242905",
-      "calpis-sour",
-      "item-1783053258647",
-      "item-1783053270509",
-      "item-1783053301898",
-      "item-1783053313814",
-      "item-1783053519044",
-      "item-1783053527395",
-      "item-1783053542344",
-      "item-1783053634194",
-      "item-1783053600099",
-      "item-1783053614958",
-      "item-1783053717209",
-      "rum-tonic",
-      "item-1783053335099",
-      "item-1783053343148",
-      "item-1783053351523",
-      "item-1783053374220",
-      "mistia-cola",
-      "mistia-ginger",
-      "mistia-soda",
-      "ichiryuno-mugi",
-      "tomino-hozan",
-      "jasmine-jj",
-      "jasmine-jr",
-      "jasmine-jk",
-      "plum-wine",
-      "beer",
-      "item-1783052901930",
-      "item-1783052950604",
-      "item-1783052961537",
-      "tiffin",
-      "dita"
-    ],
-    "options": {
-      "item-1783049570152": {
-        "calpis-mix": [
-          "炭酸",
-          "水",
-          "牛乳",
-          "マンゴー",
-          "オレンジ"
-        ],
-        "hot": []
-      },
-      "item-1783049580653": {
-        "mango-mix": []
-      },
-      "item-1783053519044": {
-        "spirit-mix": [
-          "炭酸"
-        ]
-      },
-      "item-1783053335099": {
-        "cassis-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶",
-          "グレープフルーツジュース"
-        ]
-      },
-      "item-1783053343148": {
-        "peach-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶"
-        ]
-      },
-      "item-1783053351523": {
-        "malibu-mix": [
-          "コーラ",
-          "炭酸",
-          "マンゴージュース",
-          "牛乳"
-        ]
-      },
-      "item-1783053374220": {
-        "kahlua-mix": [
-          "牛乳",
-          "コーヒー"
-        ]
-      },
-      "dita": {
-        "dita-mix": [
-          "炭酸",
-          "グレープフルーツジュース"
-        ]
-      }
-    }
+    "profile": "アルコールSP"
   },
   "unlimited-soft-2h": {
     "name": "2時間ソフトドリンク飲み放題",
     "duration": 120,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313"
-    ],
-    "options": {}
+    "profile": "ソフトドリンクSTD"
   },
   "unlimited-soft-sp-2h": {
     "name": "2時間ソフトドリンクSP飲み放題",
     "duration": 120,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "item-1783049580653",
-      "orange-juice",
-      "ginger-ale",
-      "item-1783049570152"
-    ],
-    "options": {
-      "item-1783049570152": {
-        "calpis-mix": [
-          "炭酸",
-          "水",
-          "牛乳",
-          "マンゴー",
-          "オレンジ"
-        ],
-        "hot": []
-      },
-      "item-1783049580653": {
-        "mango-mix": []
-      }
-    }
+    "profile": "ソフトドリンクSP"
   },
   "unlimited-alcohol-2h": {
     "name": "2時間アルコール飲み放題",
     "duration": 120,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "nikka-highball",
-      "nikka-cola-high",
-      "nikka-ginger-high",
-      "item-1783053231839",
-      "item-1783053242905",
-      "calpis-sour",
-      "item-1783053258647",
-      "item-1783053270509",
-      "item-1783053301898",
-      "item-1783053313814",
-      "item-1783053519044",
-      "item-1783053527395",
-      "item-1783053542344",
-      "item-1783053634194",
-      "item-1783053600099",
-      "item-1783053614958",
-      "item-1783053717209",
-      "rum-tonic",
-      "item-1783053335099",
-      "item-1783053343148",
-      "item-1783053351523",
-      "item-1783053374220",
-      "mistia-cola",
-      "mistia-ginger",
-      "mistia-soda",
-      "ichiryuno-mugi",
-      "tomino-hozan",
-      "jasmine-jj",
-      "jasmine-jr",
-      "jasmine-jk",
-      "plum-wine"
-    ],
-    "options": {
-      "item-1783053519044": {
-        "spirit-mix": [
-          "炭酸"
-        ]
-      },
-      "item-1783053335099": {
-        "cassis-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶",
-          "グレープフルーツジュース"
-        ]
-      },
-      "item-1783053343148": {
-        "peach-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶"
-        ]
-      },
-      "item-1783053351523": {
-        "malibu-mix": [
-          "コーラ",
-          "炭酸",
-          "マンゴージュース",
-          "牛乳"
-        ]
-      },
-      "item-1783053374220": {
-        "kahlua-mix": [
-          "牛乳",
-          "コーヒー"
-        ]
-      },
-      "dita": {
-        "dita-mix": [
-          "炭酸",
-          "グレープフルーツジュース"
-        ]
-      }
-    }
+    "profile": "アルコールSTD"
   },
   "unlimited-alcohol-sp-2h": {
     "name": "2時間アルコールSP飲み放題",
     "duration": 120,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "item-1783049580653",
-      "orange-juice",
-      "ginger-ale",
-      "item-1783049570152",
-      "nikka-highball",
-      "nikka-cola-high",
-      "nikka-ginger-high",
-      "item-1783053231839",
-      "item-1783053242905",
-      "calpis-sour",
-      "item-1783053258647",
-      "item-1783053270509",
-      "item-1783053301898",
-      "item-1783053313814",
-      "item-1783053519044",
-      "item-1783053527395",
-      "item-1783053542344",
-      "item-1783053634194",
-      "item-1783053600099",
-      "item-1783053614958",
-      "item-1783053717209",
-      "rum-tonic",
-      "item-1783053335099",
-      "item-1783053343148",
-      "item-1783053351523",
-      "item-1783053374220",
-      "mistia-cola",
-      "mistia-ginger",
-      "mistia-soda",
-      "ichiryuno-mugi",
-      "tomino-hozan",
-      "jasmine-jj",
-      "jasmine-jr",
-      "jasmine-jk",
-      "plum-wine",
-      "beer",
-      "item-1783052901930",
-      "item-1783052950604",
-      "item-1783052961537",
-      "tiffin",
-      "dita"
-    ],
-    "options": {
-      "item-1783049570152": {
-        "calpis-mix": [
-          "炭酸",
-          "水",
-          "牛乳",
-          "マンゴー",
-          "オレンジ"
-        ],
-        "hot": []
-      },
-      "item-1783049580653": {
-        "mango-mix": []
-      },
-      "item-1783053519044": {
-        "spirit-mix": [
-          "炭酸"
-        ]
-      },
-      "item-1783053335099": {
-        "cassis-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶",
-          "グレープフルーツジュース"
-        ]
-      },
-      "item-1783053343148": {
-        "peach-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶"
-        ]
-      },
-      "item-1783053351523": {
-        "malibu-mix": [
-          "コーラ",
-          "炭酸",
-          "マンゴージュース",
-          "牛乳"
-        ]
-      },
-      "item-1783053374220": {
-        "kahlua-mix": [
-          "牛乳",
-          "コーヒー"
-        ]
-      },
-      "dita": {
-        "dita-mix": [
-          "炭酸",
-          "グレープフルーツジュース"
-        ]
-      }
-    }
+    "profile": "アルコールSP"
   },
   "unlimited-soft-all-day": {
     "name": "終日ソフトドリンク飲み放題",
     "duration": null,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313"
-    ],
-    "options": {}
+    "profile": "ソフトドリンクSTD"
   },
   "unlimited-soft-sp-all-day": {
     "name": "終日ソフトドリンクSP飲み放題",
     "duration": null,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "item-1783049580653",
-      "orange-juice",
-      "ginger-ale",
-      "item-1783049570152"
-    ],
-    "options": {
-      "item-1783049570152": {
-        "calpis-mix": [
-          "炭酸",
-          "水",
-          "牛乳",
-          "マンゴー",
-          "オレンジ"
-        ],
-        "hot": []
-      },
-      "item-1783049580653": {
-        "mango-mix": []
-      }
-    }
+    "profile": "ソフトドリンクSP"
   },
   "unlimited-alcohol-all-day": {
     "name": "終日アルコール飲み放題",
     "duration": null,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "nikka-highball",
-      "nikka-cola-high",
-      "nikka-ginger-high",
-      "item-1783053231839",
-      "item-1783053242905",
-      "calpis-sour",
-      "item-1783053258647",
-      "item-1783053270509",
-      "item-1783053301898",
-      "item-1783053313814",
-      "item-1783053519044",
-      "item-1783053527395",
-      "item-1783053542344",
-      "item-1783053634194",
-      "item-1783053600099",
-      "item-1783053614958",
-      "item-1783053717209",
-      "rum-tonic",
-      "item-1783053335099",
-      "item-1783053343148",
-      "item-1783053351523",
-      "item-1783053374220",
-      "mistia-cola",
-      "mistia-ginger",
-      "mistia-soda",
-      "ichiryuno-mugi",
-      "tomino-hozan",
-      "jasmine-jj",
-      "jasmine-jr",
-      "jasmine-jk",
-      "plum-wine"
-    ],
-    "options": {
-      "item-1783053519044": {
-        "spirit-mix": [
-          "炭酸"
-        ]
-      },
-      "item-1783053335099": {
-        "cassis-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶",
-          "グレープフルーツジュース"
-        ]
-      },
-      "item-1783053343148": {
-        "peach-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶"
-        ]
-      },
-      "item-1783053351523": {
-        "malibu-mix": [
-          "コーラ",
-          "炭酸",
-          "マンゴージュース",
-          "牛乳"
-        ]
-      },
-      "item-1783053374220": {
-        "kahlua-mix": [
-          "牛乳",
-          "コーヒー"
-        ]
-      },
-      "dita": {
-        "dita-mix": [
-          "炭酸",
-          "グレープフルーツジュース"
-        ]
-      }
-    }
+    "profile": "アルコールSTD"
   },
   "unlimited-alcohol-sp-all-day": {
     "name": "終日アルコールSP飲み放題",
     "duration": null,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "item-1783049580653",
-      "orange-juice",
-      "ginger-ale",
-      "item-1783049570152",
-      "nikka-highball",
-      "nikka-cola-high",
-      "nikka-ginger-high",
-      "item-1783053231839",
-      "item-1783053242905",
-      "calpis-sour",
-      "item-1783053258647",
-      "item-1783053270509",
-      "item-1783053301898",
-      "item-1783053313814",
-      "item-1783053519044",
-      "item-1783053527395",
-      "item-1783053542344",
-      "item-1783053634194",
-      "item-1783053600099",
-      "item-1783053614958",
-      "item-1783053717209",
-      "rum-tonic",
-      "item-1783053335099",
-      "item-1783053343148",
-      "item-1783053351523",
-      "item-1783053374220",
-      "mistia-cola",
-      "mistia-ginger",
-      "mistia-soda",
-      "ichiryuno-mugi",
-      "tomino-hozan",
-      "jasmine-jj",
-      "jasmine-jr",
-      "jasmine-jk",
-      "plum-wine",
-      "beer",
-      "item-1783052901930",
-      "item-1783052950604",
-      "item-1783052961537",
-      "tiffin",
-      "dita"
-    ],
-    "options": {
-      "item-1783049570152": {
-        "calpis-mix": [
-          "炭酸",
-          "水",
-          "牛乳",
-          "マンゴー",
-          "オレンジ"
-        ],
-        "hot": []
-      },
-      "item-1783049580653": {
-        "mango-mix": []
-      },
-      "item-1783053519044": {
-        "spirit-mix": [
-          "炭酸"
-        ]
-      },
-      "item-1783053335099": {
-        "cassis-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶",
-          "グレープフルーツジュース"
-        ]
-      },
-      "item-1783053343148": {
-        "peach-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶"
-        ]
-      },
-      "item-1783053351523": {
-        "malibu-mix": [
-          "コーラ",
-          "炭酸",
-          "マンゴージュース",
-          "牛乳"
-        ]
-      },
-      "item-1783053374220": {
-        "kahlua-mix": [
-          "牛乳",
-          "コーヒー"
-        ]
-      },
-      "dita": {
-        "dita-mix": [
-          "炭酸",
-          "グレープフルーツジュース"
-        ]
-      }
-    }
+    "profile": "アルコールSP"
   },
   "unlimited-ring-sp": {
     "name": "リングゲームプレイ中飲み放題",
     "duration": null,
     "endHour": 22,
     "endMinute": 30,
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "item-1783049580653",
-      "orange-juice",
-      "ginger-ale",
-      "item-1783049570152",
-      "nikka-highball",
-      "nikka-cola-high",
-      "nikka-ginger-high",
-      "item-1783053231839",
-      "item-1783053242905",
-      "calpis-sour",
-      "item-1783053258647",
-      "item-1783053270509",
-      "item-1783053301898",
-      "item-1783053313814",
-      "item-1783053519044",
-      "item-1783053527395",
-      "item-1783053542344",
-      "item-1783053634194",
-      "item-1783053600099",
-      "item-1783053614958",
-      "item-1783053717209",
-      "rum-tonic",
-      "item-1783053335099",
-      "item-1783053343148",
-      "item-1783053351523",
-      "item-1783053374220",
-      "mistia-cola",
-      "mistia-ginger",
-      "mistia-soda",
-      "ichiryuno-mugi",
-      "tomino-hozan",
-      "jasmine-jj",
-      "jasmine-jr",
-      "jasmine-jk",
-      "plum-wine",
-      "beer",
-      "item-1783052901930",
-      "item-1783052950604",
-      "item-1783052961537",
-      "tiffin",
-      "dita"
-    ],
-    "options": {
-      "item-1783049570152": {
-        "calpis-mix": [
-          "炭酸",
-          "水",
-          "牛乳",
-          "マンゴー",
-          "オレンジ"
-        ],
-        "hot": []
-      },
-      "item-1783049580653": {
-        "mango-mix": []
-      },
-      "item-1783053519044": {
-        "spirit-mix": [
-          "炭酸"
-        ]
-      },
-      "item-1783053335099": {
-        "cassis-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶",
-          "グレープフルーツジュース"
-        ]
-      },
-      "item-1783053343148": {
-        "peach-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶"
-        ]
-      },
-      "item-1783053351523": {
-        "malibu-mix": [
-          "コーラ",
-          "炭酸",
-          "マンゴージュース",
-          "牛乳"
-        ]
-      },
-      "item-1783053374220": {
-        "kahlua-mix": [
-          "牛乳",
-          "コーヒー"
-        ]
-      },
-      "dita": {
-        "dita-mix": [
-          "炭酸",
-          "グレープフルーツジュース"
-        ]
-      }
-    }
+    "profile": "アルコールSP"
   }
 };
 const PLAN_RULES: Record<string, { name: string; duration: number | null; endHour: number; endMinute: number; items: Set<string>; options: Record<string, Record<string, string[]>> }> = Object.fromEntries(
-  Object.entries(COMPILED_PLANS).map(([id, rule]) => [id, { ...rule, items: new Set(rule.itemIds) }])
+  Object.entries(COMPILED_PLANS).map(([id, rule]) => [id, { ...rule, ...SHARED_PROFILES[rule.profile] }])
 );
 // END GENERATED PLANS
 

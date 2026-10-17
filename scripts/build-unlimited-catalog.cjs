@@ -5,10 +5,14 @@ const context = { window: {} };
 vm.runInNewContext(fs.readFileSync('unlimited-config.js', 'utf8'), context);
 const config = context.window.DRINK_RELAY_UNLIMITED_CONFIG;
 const plans = config.planCatalog;
+const profiles = Object.fromEntries([...new Set(plans.map(plan => plan.profile))].map(profile => {
+  const rule = config.planRules[plans.find(plan => plan.profile === profile).id];
+  return [profile, { itemIds: rule.includeItemIds, options: rule.optionChoiceRules }];
+}));
 const rules = Object.fromEntries(plans.map(plan => {
   const rule = config.planRules[plan.id];
   return [plan.id, { name: plan.name, duration: rule.durationMinutes, endHour: rule.endHour ?? 22,
-    endMinute: rule.endMinute ?? 30, itemIds: rule.includeItemIds, options: rule.optionChoiceRules }];
+    endMinute: rule.endMinute ?? 30, profile: plan.profile }];
 }));
 const edgePath = 'supabase/functions/unlimited/index.ts';
 let edge = fs.readFileSync(edgePath, 'utf8');
@@ -17,9 +21,11 @@ const end = edge.indexOf('class ApiError');
 if (start >= 0) edge = edge.slice(0, start) + '__GENERATED_PLANS__\n\n' + edge.slice(end);
 const generated = `// BEGIN GENERATED PLANS (scripts/build-unlimited-catalog.cjs)\n` +
   `type JsonObject = Record<string, any>;\n` +
+  `const COMPILED_PROFILES = ${JSON.stringify(profiles, null, 2)};\n` +
+  `const SHARED_PROFILES = Object.fromEntries(Object.entries(COMPILED_PROFILES).map(([id, profile]) => [id, { items: new Set(profile.itemIds), options: profile.options }]));\n` +
   `const COMPILED_PLANS = ${JSON.stringify(rules, null, 2)};\n` +
   `const PLAN_RULES: Record<string, { name: string; duration: number | null; endHour: number; endMinute: number; items: Set<string>; options: Record<string, Record<string, string[]>> }> = Object.fromEntries(\n` +
-  `  Object.entries(COMPILED_PLANS).map(([id, rule]) => [id, { ...rule, items: new Set(rule.itemIds) }])\n);\n` +
+  `  Object.entries(COMPILED_PLANS).map(([id, rule]) => [id, { ...rule, ...SHARED_PROFILES[rule.profile] }])\n);\n` +
   `// END GENERATED PLANS`;
 edge = edge.replace(/__GENERATED_PLANS__|\/\/ BEGIN GENERATED PLANS[\s\S]*?\/\/ END GENERATED PLANS/, generated);
 fs.writeFileSync(edgePath, edge);
