@@ -42,7 +42,9 @@
   function findPlan(menu, planId) {
     const source = Array.isArray(menu) ? menu : [];
     const category = source.find((entry) => entry?.id === "all-you-can-drink");
-    return category?.items?.find((item) => item?.id === planId) || null;
+    const existing = category?.items?.find((item) => item?.id === planId);
+    const definition = CONFIG.planCatalog?.find((item) => item.id === planId);
+    return definition ? { ...existing, ...definition } : existing || null;
   }
 
   function normalizeCardCatalog(cards) {
@@ -148,10 +150,10 @@
     const rule = CONFIG.planRules?.[planId];
     if (!rule) return startedAtMs;
 
-    const endHour = Number.isFinite(CONFIG.lastOrderEndHour)
+    const endHour = Number.isFinite(rule.endHour) ? rule.endHour : Number.isFinite(CONFIG.lastOrderEndHour)
       ? CONFIG.lastOrderEndHour
       : Number.isFinite(CONFIG.allDayEndHour) ? CONFIG.allDayEndHour : 22;
-    const endMinute = Number.isFinite(CONFIG.lastOrderEndMinute)
+    const endMinute = Number.isFinite(rule.endMinute) ? rule.endMinute : Number.isFinite(CONFIG.lastOrderEndMinute)
       ? CONFIG.lastOrderEndMinute
       : Number.isFinite(CONFIG.allDayEndMinute) ? CONFIG.allDayEndMinute : 30;
     // Store closing time is in Japan, regardless of the activating device's timezone.

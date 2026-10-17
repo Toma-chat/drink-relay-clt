@@ -56,4 +56,17 @@ const crypto=require('node:crypto').webcrypto;
   const activation=await request('staff-save-session',{session:{...current,status:'active'}},'allowed');
   assert.equal(activation.status,200);assert.equal((await activation.json()).session.locationConfirmed,false);
   console.log('PASS Edge JWT allowlist, fixed QR, ordering, first-location guard, device binding and reconnection');
+  const configWindow={};vm.runInNewContext(fs.readFileSync('unlimited-config.js','utf8'),{window:configWindow});
+  const catalog=settings.find(x=>x.id==='aycd-card-catalog');
+  catalog.menu[0].status='retired';
+  assert.equal((await request('card')).status,403,'archived QR rejected by actual handler');
+  assert.equal((await request('order',{device:'new-device-binding',item:{itemId:'green-tea'}})).status,403,'archived QR cannot use existing session');
+  for(const p of configWindow.DRINK_RELAY_UNLIMITED_CONFIG.planCatalog){
+    catalog.menu[0]={token,status:'active',planId:p.id};
+    settings.find(x=>x.id.startsWith('aycd-session-')).menu.status='revoked';
+    assert.equal((await request('card',{plan:p.id})).status,200,p.id);
+    const response=await request('save-session',{plan:p.id});
+    assert.equal(response.status,200,p.id);assert.equal((await response.json()).session.planName,p.name);
+  }
+  console.log('PASS all 14 new QR plans resolve server names and activation requests; retired QR rejects orders');
 })().catch(e=>{console.error(e);process.exitCode=1;});

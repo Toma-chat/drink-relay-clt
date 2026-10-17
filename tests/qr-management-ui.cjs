@@ -6,7 +6,7 @@ const add=w.document.addEventListener.bind(w.document);w.document.addEventListen
 for(const file of ['initial-settings.js','unlimited-config.js','unlimited-shared.js'])w.eval(fs.readFileSync(file,'utf8'));
 let qrCount=0;w.QRCode=function(){qrCount++;};w.QRCode.CorrectLevel={M:1};
 let script=fs.readFileSync('unlimited-admin.js','utf8'),end=script.lastIndexOf('})();');
-script=script.slice(0,end)+'window.qrTest={renderCards,setCards(values){cards=values;menu=window.DRINK_RELAY_INITIAL_SETTINGS.menu;}};'+script.slice(end);w.eval(script);
+script=script.slice(0,end)+'window.qrTest={renderCards,renderCardPlanOptions,setCards(values){cards=values;menu=window.DRINK_RELAY_INITIAL_SETTINGS.menu;}};'+script.slice(end);w.eval(script);
 const base={planId:'unlimited-alcohol-all-day',kind:'permanent',token:'test-fixed-token',label:'テストカード'};
 const t=w.qrTest;t.setCards([{...base,id:'active',status:'active'},{...base,id:'disabled',status:'disabled'},{...base,id:'retired',kind:'additional',status:'retired'}]);t.renderCards();
 const list=w.document.querySelector('#unlimitedCardList'),archive=list.querySelector('details');
@@ -15,4 +15,8 @@ assert.equal(archive.querySelectorAll('[data-card-qr],a,[data-card-action="copy"
 console.log('PASS active cards and inactive archive separated; count, collapsed state, reissue retained; inactive QR/links hidden');
 t.setCards([{...base,id:'active',status:'disabled'}]);t.renderCards();assert.equal(list.querySelectorAll(':scope > article').length,0);assert.equal(list.querySelectorAll('details article').length,1);console.log('PASS newly disabled card moves to archive immediately');
 assert.equal(w.document.querySelector('.unlimited-location-manager'),null);assert.equal(w.document.querySelector('#unlimitedLocationPrintSheet'),null);assert.ok(w.document.querySelector('#unlimitedSessionLocationSave'));console.log('PASS location QR UI removed, manual destination controls retained');
+t.renderCardPlanOptions();assert.equal(w.document.querySelectorAll('#unlimitedCardPlan option').length,14);
+for(const p of w.DRINK_RELAY_UNLIMITED_CONFIG.planCatalog)assert.equal(w.DrinkRelayUnlimited.findPlan([],p.id).name,p.name);
+t.setCards([{...base,id:'old-retired-permanent',status:'retired'}]);t.renderCards();assert.equal(list.querySelectorAll('[data-card-action="reissue"]').length,0);
+console.log('PASS 14 QR-only plans available without sale prices; retired permanent cards cannot be reissued from UI');
 dom.window.close();

@@ -85,7 +85,7 @@
   function renderCardPlanOptions() {
     const select = $("#unlimitedCardPlan");
     if (!select) return;
-    const plans = menu.find((category) => category?.id === "all-you-can-drink")?.items || [];
+    const plans = U.CONFIG.planCatalog || menu.find((category) => category?.id === "all-you-can-drink")?.items || [];
     select.innerHTML = plans
       .filter((plan) => U.CONFIG.planRules?.[plan.id])
       .map((plan) => `<option value="${escapeHtml(plan.id)}">${escapeHtml(plan.name)}</option>`)
@@ -129,7 +129,7 @@
     if (!gateway) return;
     const button = $("#unlimitedCreateAllCards");
     const targetQuantity = 20;
-    const plans = (menu.find((category) => category?.id === "all-you-can-drink")?.items || [])
+    const plans = (U.CONFIG.planCatalog || menu.find((category) => category?.id === "all-you-can-drink")?.items || [])
       .filter((plan) => U.CONFIG.planRules?.[plan.id])
       .map((plan) => ({ planId: plan.id, planName: plan.name, baseLabel: plan.name }));
     if (!plans.length) return;
@@ -161,7 +161,7 @@
     const createdAt = new Date(gateway.now()).toISOString();
     const additions = planInputs.flatMap(({ planId, planName, baseLabel }) => {
       const planCards = current.filter((card) => card.planId === planId);
-      const permanentCount = planCards.filter((card) => card.kind === "permanent").length;
+      const permanentCount = planCards.filter((card) => card.kind === "permanent" && card.status !== "retired").length;
       const missingCount = Math.max(0, targetQuantity - permanentCount);
       return Array.from({ length: missingCount }, (_, index) =>
         createCardRecord(`${baseLabel || planName} ${permanentCount + index + 1}番`, planId, createdAt, "permanent")
@@ -281,7 +281,7 @@
       const active = card.status === "active";
       const permanent = card.kind === "permanent";
       const statusLabel = card.status === "disabled" ? "無効化済み" : card.status === "retired" ? "廃止済み" : "利用可能";
-      const managementActions = permanent
+      const managementActions = permanent && card.status !== "retired"
         ? `${active ? `<button class="button unlimited-card-disable" type="button" data-card-action="disable" data-card-id="${escapeHtml(card.id)}">無効化</button>` : ""}
            <button class="button unlimited-card-reissue" type="button" data-card-action="reissue" data-card-id="${escapeHtml(card.id)}">再発行</button>`
         : active

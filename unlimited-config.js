@@ -103,12 +103,35 @@
   );
 
   window.DRINK_RELAY_UNLIMITED_CONFIG = Object.freeze({
+    // QR専用プランは販売価格を持たず、通常注文の商品には追加しません。
+    planCatalog: [
+      { id: "unlimited-warmup-std", name: "Warm Up 飛ぶまで飲み放題", profile: "アルコールSTD", endMode: "staff" },
+      { id: "unlimited-warmup-sp", name: "Warm Up 飛ぶまで飲み放題 SP版", profile: "アルコールSP", endMode: "staff" },
+      { id: "unlimited-weekend-std", name: "Weekend Championship 飛ぶまで飲み放題 アルコール版", profile: "アルコールSTD", endMode: "staff" },
+      { id: "unlimited-super-weekend-sp", name: "超Weekend Championship 飛ぶまで飲み放題 SP版", profile: "アルコールSP", endMode: "staff" },
+      { id: "unlimited-happy-hour-sp", name: "超ハッピーアワー18:00まで飲み放題", profile: "アルコールSP", endMode: "18:00" },
+      { id: "unlimited-soft-2h", name: "2時間ソフトドリンク飲み放題", profile: "ソフトドリンクSTD" },
+      { id: "unlimited-soft-sp-2h", name: "2時間ソフトドリンクSP飲み放題", profile: "ソフトドリンクSP" },
+      { id: "unlimited-alcohol-2h", name: "2時間アルコール飲み放題", profile: "アルコールSTD" },
+      { id: "unlimited-alcohol-sp-2h", name: "2時間アルコールSP飲み放題", profile: "アルコールSP" },
+      { id: "unlimited-soft-all-day", name: "終日ソフトドリンク飲み放題", profile: "ソフトドリンクSTD" },
+      { id: "unlimited-soft-sp-all-day", name: "終日ソフトドリンクSP飲み放題", profile: "ソフトドリンクSP" },
+      { id: "unlimited-alcohol-all-day", name: "終日アルコール飲み放題", profile: "アルコールSTD" },
+      { id: "unlimited-alcohol-sp-all-day", name: "終日アルコールSP飲み放題", profile: "アルコールSP" },
+      { id: "unlimited-ring-sp", name: "リングゲームプレイ中飲み放題", profile: "アルコールSP", endMode: "staff" },
+    ],
     activationRequestMinutes: 15,
     allDayEndHour: 22,
     allDayEndMinute: 30,
     lastOrderEndHour: 22,
     lastOrderEndMinute: 30,
     planRules: Object.freeze({
+      "unlimited-warmup-std": alcoholStandardRule(null),
+      "unlimited-warmup-sp": alcoholSpRule(null),
+      "unlimited-weekend-std": alcoholStandardRule(null),
+      "unlimited-super-weekend-sp": alcoholSpRule(null),
+      "unlimited-happy-hour-sp": { ...alcoholSpRule(null), endHour: 18, endMinute: 0 },
+      "unlimited-ring-sp": alcoholSpRule(null),
       "unlimited-soft-2h": softStandardRule(120),
       "unlimited-soft-sp-2h": softSpRule(120),
       "unlimited-alcohol-2h": alcoholStandardRule(120),
