@@ -17,94 +17,6 @@ const LOCATION_SEATS = new Set(["1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 // BEGIN GENERATED PLANS (scripts/build-unlimited-catalog.cjs)
 type JsonObject = Record<string, any>;
 const COMPILED_PROFILES = {
-  "アルコールSTD": {
-    "itemIds": [
-      "iced-coffee",
-      "item-1783049531455",
-      "melon-soda",
-      "item-1783049599311",
-      "item-1783049610093",
-      "green-tea",
-      "item-1783049181927",
-      "item-1783049172799",
-      "item-1783049320701",
-      "cola",
-      "item-1783049326313",
-      "nikka-highball",
-      "nikka-cola-high",
-      "nikka-ginger-high",
-      "item-1783053231839",
-      "item-1783053242905",
-      "calpis-sour",
-      "item-1783053258647",
-      "item-1783053270509",
-      "item-1783053301898",
-      "item-1783053313814",
-      "item-1783053519044",
-      "item-1783053527395",
-      "item-1783053542344",
-      "item-1783053634194",
-      "item-1783053600099",
-      "item-1783053614958",
-      "item-1783053717209",
-      "rum-tonic",
-      "item-1783053335099",
-      "item-1783053343148",
-      "item-1783053351523",
-      "item-1783053374220",
-      "mistia-cola",
-      "mistia-ginger",
-      "mistia-soda",
-      "ichiryuno-mugi",
-      "tomino-hozan",
-      "jasmine-jj",
-      "jasmine-jr",
-      "jasmine-jk",
-      "plum-wine"
-    ],
-    "options": {
-      "item-1783053519044": {
-        "spirit-mix": [
-          "炭酸"
-        ]
-      },
-      "item-1783053335099": {
-        "cassis-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶",
-          "グレープフルーツジュース"
-        ]
-      },
-      "item-1783053343148": {
-        "peach-mix": [
-          "炭酸",
-          "オレンジジュース",
-          "烏龍茶"
-        ]
-      },
-      "item-1783053351523": {
-        "malibu-mix": [
-          "コーラ",
-          "炭酸",
-          "マンゴージュース",
-          "牛乳"
-        ]
-      },
-      "item-1783053374220": {
-        "kahlua-mix": [
-          "牛乳",
-          "コーヒー"
-        ]
-      },
-      "dita": {
-        "dita-mix": [
-          "炭酸",
-          "グレープフルーツジュース"
-        ]
-      }
-    }
-  },
   "アルコールSP": {
     "itemIds": [
       "iced-coffee",
@@ -216,6 +128,94 @@ const COMPILED_PROFILES = {
       }
     }
   },
+  "アルコールSTD": {
+    "itemIds": [
+      "iced-coffee",
+      "item-1783049531455",
+      "melon-soda",
+      "item-1783049599311",
+      "item-1783049610093",
+      "green-tea",
+      "item-1783049181927",
+      "item-1783049172799",
+      "item-1783049320701",
+      "cola",
+      "item-1783049326313",
+      "nikka-highball",
+      "nikka-cola-high",
+      "nikka-ginger-high",
+      "item-1783053231839",
+      "item-1783053242905",
+      "calpis-sour",
+      "item-1783053258647",
+      "item-1783053270509",
+      "item-1783053301898",
+      "item-1783053313814",
+      "item-1783053519044",
+      "item-1783053527395",
+      "item-1783053542344",
+      "item-1783053634194",
+      "item-1783053600099",
+      "item-1783053614958",
+      "item-1783053717209",
+      "rum-tonic",
+      "item-1783053335099",
+      "item-1783053343148",
+      "item-1783053351523",
+      "item-1783053374220",
+      "mistia-cola",
+      "mistia-ginger",
+      "mistia-soda",
+      "ichiryuno-mugi",
+      "tomino-hozan",
+      "jasmine-jj",
+      "jasmine-jr",
+      "jasmine-jk",
+      "plum-wine"
+    ],
+    "options": {
+      "item-1783053519044": {
+        "spirit-mix": [
+          "炭酸"
+        ]
+      },
+      "item-1783053335099": {
+        "cassis-mix": [
+          "炭酸",
+          "オレンジジュース",
+          "烏龍茶",
+          "グレープフルーツジュース"
+        ]
+      },
+      "item-1783053343148": {
+        "peach-mix": [
+          "炭酸",
+          "オレンジジュース",
+          "烏龍茶"
+        ]
+      },
+      "item-1783053351523": {
+        "malibu-mix": [
+          "コーラ",
+          "炭酸",
+          "マンゴージュース",
+          "牛乳"
+        ]
+      },
+      "item-1783053374220": {
+        "kahlua-mix": [
+          "牛乳",
+          "コーヒー"
+        ]
+      },
+      "dita": {
+        "dita-mix": [
+          "炭酸",
+          "グレープフルーツジュース"
+        ]
+      }
+    }
+  },
   "ソフトドリンクSTD": {
     "itemIds": [
       "iced-coffee",
@@ -269,13 +269,6 @@ const COMPILED_PROFILES = {
 };
 const SHARED_PROFILES = Object.fromEntries(Object.entries(COMPILED_PROFILES).map(([id, profile]) => [id, { items: new Set(profile.itemIds), options: profile.options }]));
 const COMPILED_PLANS = {
-  "unlimited-warmup-std": {
-    "name": "Warm Up 飛ぶまで飲み放題",
-    "duration": null,
-    "endHour": 22,
-    "endMinute": 30,
-    "profile": "アルコールSTD"
-  },
   "unlimited-warmup-sp": {
     "name": "Warm Up 飛ぶまで飲み放題 SP版",
     "duration": null,

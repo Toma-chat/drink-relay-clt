@@ -131,7 +131,7 @@
     const targetQuantity = 20;
     const plans = (U.CONFIG.planCatalog || menu.find((category) => category?.id === "all-you-can-drink")?.items || [])
       .filter((plan) => U.CONFIG.planRules?.[plan.id])
-      .map((plan) => ({ planId: plan.id, planName: plan.name, baseLabel: plan.name }));
+      .map((plan) => ({ planId: plan.id, planName: plan.name, baseLabel: plan.name, quantity: plan.permanentCardCount || 20 }));
     if (!plans.length) return;
     button.disabled = true;
     try {
@@ -140,8 +140,8 @@
       renderCards();
       setStatus(
         result.addedCount
-          ? `既存QRを維持し、不足分${result.addedCount}枚を追加しました（各${targetQuantity}枚）`
-          : `全${plans.length}プランとも固定QRカードは各${targetQuantity}枚用意済みです`,
+          ? `既存QRを維持し、不足分${result.addedCount}枚を追加しました（プラン別の規定枚数）`
+          : `全${plans.length}プランとも固定QRカードは規定枚数を用意済みです`,
         "success"
       );
     } catch (error) {
@@ -159,10 +159,10 @@
     }));
     const migratedExistingCards = JSON.stringify(current) !== JSON.stringify(loaded);
     const createdAt = new Date(gateway.now()).toISOString();
-    const additions = planInputs.flatMap(({ planId, planName, baseLabel }) => {
+    const additions = planInputs.flatMap(({ planId, planName, baseLabel, quantity }) => {
       const planCards = current.filter((card) => card.planId === planId);
       const permanentCount = planCards.filter((card) => card.kind === "permanent" && card.status !== "retired").length;
-      const missingCount = Math.max(0, targetQuantity - permanentCount);
+      const missingCount = Math.max(0, (quantity || targetQuantity) - permanentCount);
       return Array.from({ length: missingCount }, (_, index) =>
         createCardRecord(`${baseLabel || planName} ${permanentCount + index + 1}番`, planId, createdAt, "permanent")
       );
@@ -294,7 +294,7 @@
             <span>${escapeHtml(plan?.name || card.planId)}</span>
             <strong>${escapeHtml(card.label)}</strong>
             <div class="unlimited-card-badges">
-              <span class="unlimited-card-kind">${permanent ? `常設 ${U.PERMANENT_CARD_COUNT}枚枠` : "追加QR"}</span>
+              <span class="unlimited-card-kind">${permanent ? `常設 ${U.CONFIG.planCatalog?.find((plan) => plan.id === card.planId)?.permanentCardCount || U.PERMANENT_CARD_COUNT}枚枠` : "追加QR"}</span>
               <span class="unlimited-card-status is-${escapeHtml(card.status)}">${escapeHtml(statusLabel)}</span>
             </div>
             <code>${active ? escapeHtml(url) : "このQRはアクティベート・注文に利用できません"}</code>

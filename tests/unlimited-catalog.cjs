@@ -4,7 +4,7 @@ const {PGlite}=require(path.join(process.env.TEMP,'warmup-validation/node_module
 (async()=>{
   const window={};vm.runInNewContext(fs.readFileSync('unlimited-config.js','utf8'),{window});
   const config=window.DRINK_RELAY_UNLIMITED_CONFIG;
-  assert.equal(config.planCatalog.length,14);assert.equal(new Set(config.planCatalog.map(p=>p.id)).size,14);
+  assert.equal(config.planCatalog.length,13);assert.equal(new Set(config.planCatalog.map(p=>p.id)).size,13);
   const edge=fs.readFileSync('supabase/functions/unlimited/index.ts','utf8').replace(/^import .*\n/,'');
   const scope={Deno:{env:{get:()=>''},serve(){}},createClient:()=>({})};
   vm.runInNewContext(stripTypeScriptTypes(edge)+'\nthis.testRules=PLAN_RULES;this.expiry=expiryFor;',scope);
@@ -43,5 +43,15 @@ const {PGlite}=require(path.join(process.env.TEMP,'warmup-validation/node_module
   for(const p of config.planCatalog){const group=renamed.filter(c=>c.planId===p.id&&c.status==='active');assert.equal(group.length,20);assert.deepEqual(new Set(group.map(c=>c.label)),new Set(Array.from({length:20},(_,i)=>p.name+' '+(i+1)+'番')));}
   await db.exec(rename);assert.deepEqual(await read('aycd-card-catalog'),renamed);
   console.log('PASS rename changes only labels, matches all 14 names and 1-20 numbers, preserves every token/ID/status and is repeat safe');
+  // Simulate the earlier deletion of archived cards before the new count reduction.
+  await db.query("update public.drink_app_settings set menu=$1 where id='aycd-card-catalog'",[JSON.stringify(renamed.filter(c=>c.status==='active'))]);
+  const reduction=fs.readFileSync('supabase/reduce-unlimited-cards-20261017.sql','utf8');
+  await db.exec("create function extensions.digest(t text,a text) returns bytea language sql as $$select decode(md5(t),'hex')$$");
+  await db.exec(reduction);const reduced=await read('aycd-card-catalog');
+  assert.equal(reduced.length,245);assert.equal(reduced.filter(c=>c.planId==='unlimited-happy-hour-sp').length,5);
+  assert(!reduced.some(c=>c.planId==='unlimited-warmup-std'));
+  for(const card of reduced)assert.deepEqual(card,renamed.find(c=>c.id===card.id));
+  await db.exec(reduction);assert.deepEqual(await read('aycd-card-catalog'),reduced);
+  console.log('PASS reduce to 245 cards, happy-hour 1-5 only, standard Warm Up removed, remaining QR identities unchanged, repeat safe');
   await db.close();console.log('PASS migration creates 20 x14, archives old, revokes sessions, keeps pending orders/prices, repeat is no-op');
 })().catch(e=>{console.error(e);process.exitCode=1});

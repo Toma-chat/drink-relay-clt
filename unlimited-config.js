@@ -105,11 +105,10 @@
   window.DRINK_RELAY_UNLIMITED_CONFIG = Object.freeze({
     // QR専用プランは販売価格を持たず、通常注文の商品には追加しません。
     planCatalog: [
-      { id: "unlimited-warmup-std", name: "Warm Up 飛ぶまで飲み放題", profile: "アルコールSTD", endMode: "staff" },
       { id: "unlimited-warmup-sp", name: "Warm Up 飛ぶまで飲み放題 SP版", profile: "アルコールSP", endMode: "staff" },
       { id: "unlimited-weekend-std", name: "Weekend Championship 飛ぶまで飲み放題 アルコール版", profile: "アルコールSTD", endMode: "staff" },
       { id: "unlimited-super-weekend-sp", name: "超Weekend Championship 飛ぶまで飲み放題 SP版", profile: "アルコールSP", endMode: "staff" },
-      { id: "unlimited-happy-hour-sp", name: "超ハッピーアワー18:00まで飲み放題", profile: "アルコールSP", endMode: "18:00" },
+      { id: "unlimited-happy-hour-sp", name: "超ハッピーアワー18:00まで飲み放題", permanentCardCount: 5, profile: "アルコールSP", endMode: "18:00" },
       { id: "unlimited-soft-2h", name: "2時間ソフトドリンク飲み放題", profile: "ソフトドリンクSTD" },
       { id: "unlimited-soft-sp-2h", name: "2時間ソフトドリンクSP飲み放題", profile: "ソフトドリンクSP" },
       { id: "unlimited-alcohol-2h", name: "2時間アルコール飲み放題", profile: "アルコールSTD" },
@@ -126,7 +125,6 @@
     lastOrderEndHour: 22,
     lastOrderEndMinute: 30,
     planRules: Object.freeze({
-      "unlimited-warmup-std": alcoholStandardRule(null),
       "unlimited-warmup-sp": alcoholSpRule(null),
       "unlimited-weekend-std": alcoholStandardRule(null),
       "unlimited-super-weekend-sp": alcoholSpRule(null),

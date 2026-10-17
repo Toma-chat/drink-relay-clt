@@ -29,6 +29,7 @@ const generated = `// BEGIN GENERATED PLANS (scripts/build-unlimited-catalog.cjs
   `// END GENERATED PLANS`;
 edge = edge.replace(/__GENERATED_PLANS__|\/\/ BEGIN GENERATED PLANS[\s\S]*?\/\/ END GENERATED PLANS/, generated);
 fs.writeFileSync(edgePath, edge);
+if (process.argv.includes("--edge-only") || plans.length !== 14) { console.log("Compiled current shared Edge profiles."); process.exit(0); }
 const catalog = JSON.stringify(plans);
 fs.writeFileSync('supabase/replace-unlimited-catalog-20261017.sql', `-- Re-runnable one-time replacement. Keeps all order history and archived cards.
 -- Run only after deploying the matching unlimited Edge Function and frontend.
