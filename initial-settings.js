@@ -22,6 +22,24 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
           "subcategory_id": "water-tea"
         },
         {
+          "id": "sparkling-water",
+          "name": "炭酸水",
+          "price": 600,
+          "recipe": "",
+          "optionGroups": [
+            {
+              "id": "ice",
+              "label": "氷",
+              "choices": [
+                "氷あり",
+                "氷なし"
+              ],
+              "required": true
+            }
+          ],
+          "subcategory_id": "water-tea"
+        },
+        {
           "id": "green-tea",
           "name": "緑茶",
           "price": 600,

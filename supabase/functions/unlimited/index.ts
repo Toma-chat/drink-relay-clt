@@ -19,6 +19,7 @@ type JsonObject = Record<string, any>;
 const COMPILED_PROFILES = {
   "アルコールSP": {
     "itemIds": [
+      "sparkling-water",
       "iced-coffee",
       "item-1783049531455",
       "melon-soda",
@@ -130,6 +131,7 @@ const COMPILED_PROFILES = {
   },
   "アルコールSTD": {
     "itemIds": [
+      "sparkling-water",
       "iced-coffee",
       "item-1783049531455",
       "melon-soda",
@@ -218,6 +220,7 @@ const COMPILED_PROFILES = {
   },
   "ソフトドリンクSTD": {
     "itemIds": [
+      "sparkling-water",
       "iced-coffee",
       "item-1783049531455",
       "melon-soda",
@@ -234,6 +237,7 @@ const COMPILED_PROFILES = {
   },
   "ソフトドリンクSP": {
     "itemIds": [
+      "sparkling-water",
       "iced-coffee",
       "item-1783049531455",
       "melon-soda",

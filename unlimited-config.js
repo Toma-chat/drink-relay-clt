@@ -4,6 +4,7 @@
   // 2026-10-13確認版 FREE DRINK MENU の対象商品。
   // 商品名・価格・オプション本体は既存メニューを参照します。
   const SOFT_STANDARD = [
+    "sparkling-water",
     "iced-coffee",
     "item-1783049531455",
     "melon-soda",
