@@ -411,7 +411,8 @@
       ...category,
       items: (category.items || [])
         .filter((item) => !exclude.has(item.id) && (allowed.has(category.id) || include.has(item.id)))
-        .map(applyPlanOptionRules),
+        .map(applyPlanOptionRules)
+        .map((item) => item.id === "oolong-tea" ? { ...item, name: "水" } : item),
     })).filter((category) => category.items.length);
   }
 

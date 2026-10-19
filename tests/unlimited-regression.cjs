@@ -6,7 +6,7 @@ const crypto=require('node:crypto').webcrypto;
 (async()=>{
   const token='fixed-existing-qr-token',device='original-device-binding',plan='unlimited-soft-2h';
   const hash=Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('casinolivetokyo:'+token))).toString('hex');
-  const settings=[{id:'main',menu:[{id:'soft',items:[{id:'green-tea',name:'緑茶',price:500,optionGroups:[]}]}]},
+  const settings=[{id:'main',menu:[{id:'soft',items:[{id:'green-tea',name:'緑茶',price:500,optionGroups:[]},{id:'oolong-tea',name:'ミネラルウォーター',price:500,optionGroups:[]}]}]},
     {id:'aycd-card-catalog',menu:[{token,status:'active',planId:plan}]},
     {id:'aycd-session-'+hash.slice(0,40),menu:{sessionId:'test-session',cardHash:hash,planId:plan,planName:'テスト',status:'active',deviceBinding:device,activatedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),currentLocation:{target:'bar',tableNo:'',seatNo:''}}}];
   const orders=[];
@@ -38,6 +38,10 @@ const crypto=require('node:crypto').webcrypto;
   orders[0].status='served';
   assert.equal((await request('order',{item:{itemId:'green-tea'}})).status,200,'served enables next cup');
   orders[1].status='served';
+  assert.equal((await request('order',{item:{itemId:'oolong-tea'}})).status,200,'water can be ordered');
+  assert.equal(orders[2].drink_name,'水','unlimited order uses water label');
+  assert.equal(settings[0].menu[0].items[1].name,'ミネラルウォーター','shared à-la-carte name is unchanged');
+  orders[2].status='served';
   const session=settings.find(x=>x.id.startsWith('aycd-session-')).menu;
   session.locationConfirmed=false;
   assert.equal((await request('order',{item:{itemId:'green-tea'}})).status,409,'unconfirmed first location blocks ordering');

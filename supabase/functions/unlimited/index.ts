@@ -707,7 +707,7 @@ async function customerAction(action: string, body: JsonObject) {
     const at = new Date().toISOString();
     const row = {
       id: await orderId(active.sessionId, sequence, context.store),
-      created_at: at, updated_at: at, source: "table", drink_name: String(item.name || ""), quantity: 1,
+      created_at: at, updated_at: at, source: "table", drink_name: itemId === "oolong-tea" ? "水" : String(item.name || ""), quantity: 1,
       target: location.target, table_no: location.tableNo, seat_no: location.seatNo,
       payment_status: "paid", payment_method: "cash",
       notes: [`飲み放題: ${active.planName || active.planId}`, ...options].join(" / "),
