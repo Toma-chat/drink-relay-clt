@@ -36,8 +36,11 @@
       state.deviceBinding = warmup ? window.DrinkRelayWarmup.device : await U.digest(getDeviceId());
       state.gateway = await new (warmup ? window.DrinkRelayWarmup.Gateway : U.Gateway)().init();
       if (!warmup) state.gateway.configureCustomer({ cardToken, deviceBinding: state.deviceBinding, planId });
-      if (!warmup) await assertCardAuthorized(planId);
-      state.menu = await state.gateway.loadMenu();
+      const [, menu] = await Promise.all([
+        warmup ? Promise.resolve() : assertCardAuthorized(planId),
+        state.gateway.loadMenu(),
+      ]);
+      state.menu = menu;
       state.plan = U.findPlan(state.menu, planId);
       if (warmup && state.plan) state.plan = { ...state.plan, name: "Warmup飲み放題" };
       state.rule = U.CONFIG.planRules[planId];

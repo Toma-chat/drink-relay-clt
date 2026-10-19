@@ -511,8 +511,11 @@
     button.disabled = true;
     setStatus("コードを確認中...", "loading");
     try {
-      await gateway.ensureServerClock();
-      const sessions = await gateway.listSessions();
+      const [, sessions, cardByHash] = await Promise.all([
+        gateway.ensureServerClock(),
+        gateway.listSessions(),
+        buildCardLookup(),
+      ]);
       const now = gateway.now();
       const matches = sessions.flatMap((session) => {
         if (session.status === "pending" && session.activationCode === code) {
@@ -528,7 +531,7 @@
       if (valid.length > 1) throw new Error("同じコードが複数あります。お客様画面でコードを再発行してください");
 
       const { type, session } = valid[0];
-      const card = (await buildCardLookup()).get(session.cardHash);
+      const card = cardByHash.get(session.cardHash);
       if (!card || card.status !== "active") throw new Error("このQRカードは無効化または廃止されています");
       const plan = U.findPlan(menu, session.planId);
       if (!plan || !U.CONFIG.planRules?.[session.planId]) throw new Error("このカードのプラン設定が無効です");
@@ -543,7 +546,7 @@
         });
         input.value = "";
         setStatus(`${reconnected.planName || plan.name} をこの端末へ再接続しました`, "success");
-        await renderSessions();
+        void renderSessions();
         return;
       }
       const startedAt = now;
@@ -561,8 +564,8 @@
         locationConfirmed: false,
       });
       input.value = "";
-      await renderSessions();
       setStatus(`${active.planName} をアクティベートしました`, "success");
+      void renderSessions();
     } catch (error) {
       setStatus(error.message || "アクティベートできませんでした", "error");
     } finally {
