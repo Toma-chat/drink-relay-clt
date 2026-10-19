@@ -608,12 +608,13 @@
   function optionGroup(group, index) {
     const choices = Array.isArray(group.choices) ? group.choices : [];
     const name = `item-option-${index}`;
+    const label = group.id === "hot" ? "温度" : group.label;
     return `
       <fieldset class="option-group" data-required="${group.required ? "true" : "false"}">
-        <legend>${escapeHtml(group.label)}${group.required ? "（必須）" : ""}</legend>
+        <legend>${escapeHtml(label)}${group.required ? "（必須）" : ""}</legend>
         <div class="option-choices">
           ${!group.required ? `<label><input type="radio" name="${name}" value=""><span>指定なし</span></label>` : ""}
-          ${choices.map((choice) => `<label><input type="radio" name="${name}" value="${escapeHtml(choice)}"><span>${escapeHtml(choice)}</span></label>`).join("")}
+          ${choices.map((choice) => `<label><input type="radio" name="${name}" value="${escapeHtml(choice)}"><span>${escapeHtml(group.id === "hot" && choice === "hot" ? "ホット" : choice)}</span></label>`).join("")}
         </div>
       </fieldset>`;
   }

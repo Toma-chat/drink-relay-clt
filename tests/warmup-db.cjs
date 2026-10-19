@@ -25,8 +25,10 @@ async function main() {
  const vm=require('node:vm'); const context={window:{}};vm.createContext(context);vm.runInContext(fs.readFileSync('initial-settings.js','utf8'),context);
  await db.query(`insert into public.drink_app_settings(id,menu) values('main',$1)`,[JSON.stringify(context.window.DRINK_RELAY_INITIAL_SETTINGS.menu)]);
  await db.exec(fs.readFileSync('supabase/warmup-water-20261019.sql','utf8'));
+ await db.exec(fs.readFileSync('supabase/warmup-tea-hot-20261019.sql','utf8'));
  const st=(await db.query('select * from warmup_private.stores')).rows[0];
  for(const id of ['oolong-tea','sparkling-water'])assert.ok(st.profile.includeItemIds.includes(id),`Weekday Warmup includes ${id}`);
+ for(const id of ['green-tea','item-1783049172799','item-1783049181927','item-1783049320701'])assert.deepEqual(st.profile.optionChoiceRules[id].hot,['hot']);
  const user='11111111-1111-4111-8111-111111111111';
  await db.query('insert into auth.users values($1)',[user]); await db.query('insert into warmup_private.staff values($1,$2)',[st.id,user]);
  let params={store:st.id,qr:st.qr,device:'123456789012345678901234567890123456',token:''};let count=0;
@@ -64,6 +66,8 @@ async function main() {
  const menu=context.window.DRINK_RELAY_INITIAL_SETTINGS.menu;for(const c of menu)for(const i of c.items||[])if(i.id===item)i.name='Changed standard drink';
  await db.query('update public.drink_app_settings set menu=$1 where id=\'main\'',[JSON.stringify(menu)]);
  ok((await call('order',{item,quantity:1})).order.drink_name==='Changed standard drink','live standard menu change reflected');
+ await db.exec("update public.drink_orders set status='served' where warmup_session_id is not null");
+ ok((await call('order',{item:'green-tea',quantity:1,options:['hot']})).order.drink_name==='緑茶','hot tea option accepted');
  await db.exec("update public.drink_orders set status='served' where warmup_session_id is not null");
  await assert.rejects(call('order',{item:'beer',quantity:1}),/対象外/);ok(true,'nonstandard item rejected');
  await assert.rejects(call('order',{item,quantity:1,options:['forged-choice']}),/オプション/);ok(true,'forged option rejected');
