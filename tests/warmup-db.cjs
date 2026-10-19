@@ -24,7 +24,9 @@ async function main() {
  await db.exec(fs.readFileSync('supabase/warmup-bootstrap.sql','utf8'));
  const vm=require('node:vm'); const context={window:{}};vm.createContext(context);vm.runInContext(fs.readFileSync('initial-settings.js','utf8'),context);
  await db.query(`insert into public.drink_app_settings(id,menu) values('main',$1)`,[JSON.stringify(context.window.DRINK_RELAY_INITIAL_SETTINGS.menu)]);
+ await db.exec(fs.readFileSync('supabase/warmup-water-20261019.sql','utf8'));
  const st=(await db.query('select * from warmup_private.stores')).rows[0];
+ for(const id of ['oolong-tea','sparkling-water'])assert.ok(st.profile.includeItemIds.includes(id),`Weekday Warmup includes ${id}`);
  const user='11111111-1111-4111-8111-111111111111';
  await db.query('insert into auth.users values($1)',[user]); await db.query('insert into warmup_private.staff values($1,$2)',[st.id,user]);
  let params={store:st.id,qr:st.qr,device:'123456789012345678901234567890123456',token:''};let count=0;

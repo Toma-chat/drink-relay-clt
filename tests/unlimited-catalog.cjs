@@ -4,6 +4,7 @@ const {PGlite}=require(path.join(process.env.TEMP,'warmup-validation/node_module
 (async()=>{
   const window={};vm.runInNewContext(fs.readFileSync('unlimited-config.js','utf8'),{window});
   const config=window.DRINK_RELAY_UNLIMITED_CONFIG;
+  for(const id of ['oolong-tea','sparkling-water'])assert.ok(config.planRules['unlimited-warmup-sp'].includeItemIds.includes(id),`Warm Up includes ${id}`);
   assert.equal(config.planCatalog.length,13);assert.equal(new Set(config.planCatalog.map(p=>p.id)).size,13);
   const edge=fs.readFileSync('supabase/functions/unlimited/index.ts','utf8').replace(/^import .*\n/,'');
   const scope={Deno:{env:{get:()=>''},serve(){}},createClient:()=>({})};

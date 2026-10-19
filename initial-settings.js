@@ -2748,6 +2748,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
       subcategories: [{ id: "default", label: "未分類" }],
       items: [
         item("oolong-tea", "ミネラルウォーター", 500, "default", [option("room-temperature", "常温", ["常温"])]),
+        item("sparkling-water", "炭酸水", 600, "default", [option("ice", "氷", ["氷あり", "氷なし"], true)]),
         item("green-tea", "緑茶", 600, "default", [ice, hot]),
         item("item-1783049172799", "烏龍茶", 600, "default", [ice, hot]),
         item("item-1783049181927", "紅茶", 600, "default", [ice, hot]),
