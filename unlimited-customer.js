@@ -465,7 +465,7 @@
   function menuGroups(categories) {
     return categories.flatMap((category) => {
       const subcategories = Array.isArray(category.subcategories) ? category.subcategories : [];
-      if (!subcategories.length) {
+      if (!subcategories.length || (subcategories.length === 1 && subcategories[0].id === "default")) {
         return [{
           id: category.id,
           label: category.label,
