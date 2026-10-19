@@ -280,10 +280,15 @@
     render();
     setInterval(render, 15000);
     setInterval(refreshSharedOrders, 60000);
+    setInterval(() => {
+      if (state.view === "bar") refreshSharedOrders({ openOnly: true });
+    }, 5000);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") refreshSharedOrders();
     });
     window.addEventListener("online", refreshSharedOrders);
+    window.addEventListener("pageshow", refreshSharedOrders);
+    window.addEventListener("focus", refreshSharedOrders);
     if (window.lucide) window.lucide.createIcons();
   }
 
@@ -304,6 +309,7 @@
 
   function switchView(viewName) {
     state.view = viewName;
+    if (viewName === "bar" && state.booted) refreshSharedOrders();
     if (viewName === "bar" && state.soundEnabled) {
       unlockAudio();
     }
@@ -2008,16 +2014,23 @@
   }
 
   let sharedRefreshPending = false;
-  async function refreshSharedOrders() {
+  let lastSharedClockSync = -Infinity;
+  async function refreshSharedOrders(options = {}) {
     if (state.syncMode !== "supabase" || !state.supabase || document.visibilityState === "hidden") return;
     if (sharedRefreshPending) return;
     sharedRefreshPending = true;
     try {
       const config = readConfig();
-      await window.DrinkRelayClock?.sync(config.url, config.anonKey);
-      await loadOrders();
+      // Clock synchronization must not delay receiving orders.
+      if (performance.now() - lastSharedClockSync >= 60000) {
+        lastSharedClockSync = performance.now();
+        void window.DrinkRelayClock?.sync(config.url, config.anonKey)?.catch((error) => {
+          console.warn("時刻同期に失敗しました", error);
+        });
+      }
+      const changed = await loadOrders({ openOnly: options.openOnly === true });
       detectNewOrders();
-      render();
+      if (changed) render();
     } catch (error) {
       console.warn("共有注文の再取得に失敗しました", error);
     } finally {
@@ -2318,8 +2331,9 @@
     return Array.isArray(row?.menu) && row.menu.length > 0;
   }
 
-  async function loadOrders() {
+  async function loadOrders({ openOnly = false } = {}) {
     if (state.syncMode === "supabase" && state.supabase) {
+      const before = JSON.stringify(state.orders);
       const historyCutoff = new Date(orderNow() - COMPLETED_HISTORY_MS).toISOString();
       const [openResult, historyResult] = await Promise.all([
         state.supabase
@@ -2327,7 +2341,7 @@
           .select("*")
           .in("status", ["ordered", "making", "made"])
           .order("created_at", { ascending: true }),
-        state.supabase
+        openOnly ? Promise.resolve({ data: state.orders.filter((order) => ["served", "canceled"].includes(order.status)), error: null }) : state.supabase
           .from("drink_orders")
           .select("*")
           .in("status", ["served", "canceled"])
@@ -2348,6 +2362,8 @@
         return;
       }
 
+      // A response started before a local action or realtime event must not undo it.
+      if (JSON.stringify(state.orders) !== before) return false;
       const ordersById = new Map(
         [...(openResult.data || []), ...(historyResult.data || [])]
           .map(normalizeOrder)
@@ -2356,7 +2372,7 @@
       state.orders = [...ordersById.values()];
       pruneCompletedHistory();
       sortOrders();
-      return;
+      return JSON.stringify(state.orders) !== before;
     }
 
     loadLocalOrders();
