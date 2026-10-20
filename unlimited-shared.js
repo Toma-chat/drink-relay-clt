@@ -476,7 +476,7 @@
 
       if (this.mode === "supabase") {
         if (!this.customerContext) throw new Error("お客様用セッションを確認できませんでした");
-        return (await this.edgeApi("order", { item })).order;
+        return (await this.edgeApi("order", { item, sessionId: item.sessionId })).order;
       } else {
         const orders = readJson(ORDER_KEY, []);
         const hasPending = orders.some((order) =>

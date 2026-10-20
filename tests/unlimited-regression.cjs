@@ -22,12 +22,21 @@ const crypto=require('node:crypto').webcrypto;
     single(){return Promise.resolve({data:this.result()[0],error:null});} maybeSingle(){return this.single();}
     then(resolve,reject){return Promise.resolve({data:this.result(),error:null}).then(resolve,reject);}
   }
-  const admin={from:name=>new Query(name),auth:{getUser:async(jwt)=>({data:{user:jwt==='allowed'||jwt==='denied'?{id:jwt}:null},error:null})},rpc:async(name,p)=>({data:p.p_user_id==='allowed',error:null})};
+  const admin={from:name=>new Query(name),auth:{getUser:async(jwt)=>({data:{user:jwt==='allowed'||jwt==='denied'?{id:jwt}:null},error:null})},rpc:async(name,p)=>{
+    if(name==='drink_staff_allowed')return {data:p.p_user_id==='allowed',error:null};
+    const row=settings.find(x=>x.id==='aycd-session-'+p.p_hash.slice(0,40));
+    if(p.p_action==='save'){row.menu=p.p_value;return {data:{session:p.p_value},error:null};}
+    if(p.p_action==='order'){orders.push(p.p_value);return {data:{order:p.p_value},error:null};}
+    if(p.p_action==='location'){
+      row.menu={...row.menu,currentLocation:{target:p.p_value.target,tableNo:p.p_value.tableNo,seatNo:p.p_value.seatNo},locationConfirmed:true};
+      return {data:{session:row.menu},error:null};
+    }
+  }};
   let handler;
   const context={createClient:()=>admin,Deno:{env:{get:name=>name==='DRINK_RELAY_STORE_ID'?'casinolivetokyo':''},serve:fn=>{handler=fn;}},crypto,TextEncoder,Date,Uint32Array,Request,Response,console};
   const source=fs.readFileSync('supabase/functions/unlimited/index.ts','utf8').replace(/^import .*\n/,'');
   vm.runInNewContext(stripTypeScriptTypes(source),context);
-  const request=(action,extra={},jwt='')=>handler(new Request('https://test/unlimited',{method:'POST',headers:{'content-type':'application/json',...(jwt?{Authorization:'Bearer '+jwt}:{})},body:JSON.stringify({action,store:'casinolivetokyo',card:token,plan,device,...extra})}));
+  const request=(action,extra={},jwt='')=>handler(new Request('https://test/unlimited',{method:'POST',headers:{'content-type':'application/json',...(jwt?{Authorization:'Bearer '+jwt}:{})},body:JSON.stringify({action,store:'casinolivetokyo',card:token,plan,device,sessionId:settings.find(x=>x.id.startsWith('aycd-session-'))?.menu.sessionId,...extra})}));
   assert.equal((await request('staff-list-sessions')).status,401);
   assert.equal((await request('staff-list-sessions',{},'denied')).status,403);
   assert.equal((await request('staff-list-sessions',{},'allowed')).status,200);
@@ -48,18 +57,17 @@ const crypto=require('node:crypto').webcrypto;
   const located=await request('location',{sessionId:session.sessionId,location:{target:'ring',tableNo:'A',seatNo:'1'}});
   assert.equal(located.status,200);assert.equal((await located.json()).session.locationConfirmed,true);
   assert.equal((await request('order',{item:{itemId:'green-tea'}})).status,200,'confirmed location enables ordering');
-  assert.equal((await request('order',{device:'different-device-binding',item:{itemId:'green-tea'}})).status,403);
+  assert.equal((await request('order-state',{device:'different-device-binding'})).status,200);
   const reconnectCurrent=settings.find(x=>x.id.startsWith('aycd-session-')).menu;
   reconnectCurrent.reconnectRequest={deviceBinding:'new-device-binding'};
   const reconnect=await request('staff-save-session',{session:{...reconnectCurrent,deviceBinding:'new-device-binding'}},'allowed');
-  assert.equal(reconnect.status,200);const updated=(await reconnect.json()).session;
-  assert.equal(updated.sessionId,'test-session');assert.equal(updated.activatedAt,reconnectCurrent.activatedAt);
+  assert.equal(reconnect.status,403,'reconnect approval is no longer supported');
   assert.equal(settings.find(x=>x.id==='aycd-card-catalog').menu[0].token,token);
   const current=settings.find(x=>x.id.startsWith('aycd-session-')).menu;
-  current.status='pending';current.deviceBinding='new-device-binding';
+  current.status='pending';current.requestExpiresAt=new Date(Date.now()+60000).toISOString();
   const activation=await request('staff-save-session',{session:{...current,status:'active'}},'allowed');
   assert.equal(activation.status,200);assert.equal((await activation.json()).session.locationConfirmed,false);
-  console.log('PASS Edge JWT allowlist, fixed QR, ordering, first-location guard, device binding and reconnection');
+  console.log('PASS Edge JWT allowlist, fixed QR, ordering, first-location guard, card access and rejected reconnection');
   const configWindow={};vm.runInNewContext(fs.readFileSync('unlimited-config.js','utf8'),{window:configWindow});
   const catalog=settings.find(x=>x.id==='aycd-card-catalog');
   catalog.menu[0].status='retired';

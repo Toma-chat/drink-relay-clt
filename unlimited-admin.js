@@ -521,34 +521,17 @@
         if (session.status === "pending" && session.activationCode === code) {
           return [{ type: "activation", session, expiresAt: session.requestExpiresAt }];
         }
-        if (session.status === "active" && session.reconnectRequest?.code === code) {
-          return [{ type: "reconnect", session, expiresAt: session.reconnectRequest.expiresAt }];
-        }
         return [];
       });
       const valid = matches.filter((match) => Date.parse(match.expiresAt) > now);
       if (!valid.length) throw new Error(matches.length ? "このコードは期限切れです" : "有効な4桁コードが見つかりません");
       if (valid.length > 1) throw new Error("同じコードが複数あります。お客様画面でコードを再発行してください");
 
-      const { type, session } = valid[0];
+      const { session } = valid[0];
       const card = cardByHash.get(session.cardHash);
       if (!card || card.status !== "active") throw new Error("このQRカードは無効化または廃止されています");
       const plan = U.findPlan(menu, session.planId);
       if (!plan || !U.CONFIG.planRules?.[session.planId]) throw new Error("このカードのプラン設定が無効です");
-      if (type === "reconnect") {
-        if (Date.parse(session.expiresAt) <= now) throw new Error("このカードの利用時間は終了しています");
-        const reconnected = await gateway.saveSession({
-          ...session,
-          deviceBinding: session.reconnectRequest.deviceBinding,
-          reconnectRequest: null,
-          reconnectedAt: new Date(now).toISOString(),
-          activationRevision: U.makeId(),
-        });
-        input.value = "";
-        setStatus(`${reconnected.planName || plan.name} をこの端末へ再接続しました`, "success");
-        void renderSessions();
-        return;
-      }
       const startedAt = now;
       const expiresAt = U.calculateExpiry(startedAt, session.planId);
       if (expiresAt <= startedAt) throw new Error("終日プランの受付は22:30で終了しています");
@@ -710,20 +693,17 @@
         const card = cardByHash.get(session.cardHash);
         const cardNumber = formatCardNumber(card);
         const pending = session.status === "pending";
-        const reconnect = !pending && session.reconnectRequest?.code && Date.parse(session.reconnectRequest.expiresAt) > now
-          ? session.reconnectRequest
-          : null;
         const limit = pending ? session.requestExpiresAt : session.expiresAt;
         const location = U.formatUnlimitedLocation(session.currentLocation);
         return `
-          <article class="unlimited-session-card ${pending ? "is-pending" : "is-active"} ${reconnect ? "has-reconnect" : ""}">
+          <article class="unlimited-session-card ${pending ? "is-pending" : "is-active"}">
             <div>
               <div class="unlimited-session-heading">
-                <span class="unlimited-session-state">${pending ? `待機中 · ${escapeHtml(session.activationCode)}` : reconnect ? `再接続待ち · ${escapeHtml(reconnect.code)}` : "利用中"}</span>
+                <span class="unlimited-session-state">${pending ? `待機中 · ${escapeHtml(session.activationCode)}` : "利用中"}</span>
                 <span class="unlimited-session-card-number">${escapeHtml(cardNumber)}</span>
               </div>
               <strong>${escapeHtml(name)}</strong>
-              <small>${reconnect ? `再接続コード期限 ${escapeHtml(U.formatRemaining(Date.parse(reconnect.expiresAt) - now))} · ` : ""}${pending ? "コード期限" : "残り"} ${escapeHtml(U.formatRemaining(Date.parse(limit) - now))}</small>
+              <small>${pending ? "コード期限" : "残り"} ${escapeHtml(U.formatRemaining(Date.parse(limit) - now))}</small>
               ${pending ? "" : `<span class="unlimited-session-location">届け先: ${escapeHtml(location)}</span>`}
             </div>
             ${pending ? "" : `<div class="unlimited-session-actions">

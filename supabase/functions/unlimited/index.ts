@@ -456,7 +456,7 @@ async function cardContext(body: JsonObject) {
   const token = String(body.card || "").trim();
   const plan = String(body.plan || "").trim();
   const device = String(body.device || "").trim();
-  if (token.length < 16 || device.length < 16 || !PLAN_RULES[plan]) throw new ApiError("無効なQRコードです", 403);
+  if (token.length < 16 || !PLAN_RULES[plan]) throw new ApiError("無効なQRコードです", 403);
   const catalog = await cards();
   const card = catalog.find((entry: JsonObject) => entry?.token === token);
   if (!card || card.status !== "active" || card.planId !== plan) throw new ApiError("このQRカードは利用できません", 403);
@@ -470,22 +470,16 @@ async function currentSession(cardHash: string) {
   return value && !Array.isArray(value) && typeof value === "object" ? value as JsonObject : null;
 }
 
-async function saveSessionValue(value: JsonObject) {
+async function saveSessionValue(value: JsonObject, expected: JsonObject | null, store: string) {
   const next = { ...value, updatedAt: new Date().toISOString() };
-  await saveSetting(sessionRowId(String(next.cardHash || "")), next);
+  await mutate("save", { p_store: store, p_hash: next.cardHash, p_expected: expected, p_value: next });
   return next;
 }
 
-function safeSession(session: JsonObject | null, device: string) {
+function safeSession(session: JsonObject | null, _device: string) {
   if (!session) return null;
-  const sameDevice = session.deviceBinding === device;
-  const reconnect = session.reconnectRequest?.deviceBinding === device ? session.reconnectRequest : null;
-  return {
-    ...session,
-    deviceBinding: sameDevice ? device : "different-device",
-    activationCode: session.status === "pending" && sameDevice ? session.activationCode : undefined,
-    reconnectRequest: reconnect || null,
-  };
+  const { deviceBinding, reconnectRequest, ...value } = session;
+  return { ...value, activationCode: session.status === "pending" ? session.activationCode : undefined };
 }
 
 async function uniqueActivationCode() {
@@ -544,8 +538,8 @@ function validLocation(value: JsonObject) {
 
 function assertActiveSession(session: JsonObject | null, context: JsonObject) {
   if (!session || session.status !== "active" || session.cardHash !== context.cardHash
-    || session.planId !== context.plan || session.deviceBinding !== context.device
-    || Date.parse(session.expiresAt || "") <= Date.now()) {
+    || session.planId !== context.plan
+    || !Number.isFinite(Date.parse(session.expiresAt || "")) || Date.parse(session.expiresAt || "") <= Date.now()) {
     throw new ApiError("この飲み放題セッションは利用できません", 403, "SESSION_ENDED");
   }
   return session;
@@ -612,6 +606,13 @@ async function orderId(sessionId: string, sequence: number, store: string) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
+async function mutate(action: string, args: JsonObject) {
+  const { data, error } = await admin.rpc("drink_unlimited_mutate", { p_action: action, p_store: EXPECTED_STORE, ...args });
+  if (error) throw new ApiError("利用状態を更新できません", 500);
+  if (data?.error) throw new ApiError(data.error, data.code === "UNLIMITED_ORDER_PENDING" ? 409 : 403, data.code);
+  return data;
+}
+
 async function customerAction(action: string, body: JsonObject) {
   const context = await cardContext(body);
   const session = await currentSession(context.cardHash);
@@ -628,7 +629,6 @@ async function customerAction(action: string, body: JsonObject) {
   if (action === "status") return { session: safeSession(session, context.device), serverNow: new Date().toISOString() };
 
   if (action === "save-session") {
-    const desired = body.session || {};
     const now = Date.now();
     const expiredPending = session?.status === "pending" && Date.parse(session.requestExpiresAt || "") <= now;
     const expiredActive = session?.status === "active" && Date.parse(session.expiresAt || "") <= now;
@@ -638,24 +638,13 @@ async function customerAction(action: string, body: JsonObject) {
         planName: await planDisplayName(context.plan),
         activationCode: await uniqueActivationCode(),
       };
-      return { session: safeSession(await saveSessionValue(next), context.device) };
-    }
-    if (session.status === "pending") {
-      if (session.deviceBinding !== context.device) return { session: safeSession(session, context.device) };
-      return { session: safeSession(session, context.device) };
-    }
-    if (session.status === "active" && desired.reconnectRequest && session.deviceBinding !== context.device) {
-      const reconnectRequest = {
-        code: await uniqueActivationCode(), deviceBinding: context.device,
-        requestedAt: new Date(now).toISOString(), expiresAt: new Date(now + 15 * 60 * 1000).toISOString(),
-      };
-      const next = await saveSessionValue({ ...session, reconnectRequest });
-      return { session: safeSession(next, context.device) };
+      return { session: safeSession(await saveSessionValue(next, session, context.store), context.device) };
     }
     return { session: safeSession(session, context.device) };
   }
 
   const active = assertActiveSession(session, context);
+  if (body.sessionId !== active.sessionId) throw new ApiError("この利用は終了しました", 403, "SESSION_ENDED");
   if (action === "order-state") {
     const orders = await sessionOrders(active.sessionId);
     return { orders, pendingOrder: orders.find((order) => OPEN_STATUSES.includes(order.status)) || null, nextSequence: orders.length + 1 };
@@ -664,28 +653,7 @@ async function customerAction(action: string, body: JsonObject) {
   if (action === "location") {
     const location = normalizeLocation(body.location || {});
     if (!validLocation(location)) throw new ApiError("届け先を確認してください");
-    const at = new Date().toISOString();
-    const previous = normalizeLocation(active.currentLocation || {});
-    const saved = await saveSessionValue({
-      ...active, currentLocation: location, locationConfirmed: true, locationUpdatedAt: at,
-      locationSource: "customer", locationRevision: crypto.randomUUID(),
-    });
-    const orders = await sessionOrders(active.sessionId);
-    const pending = orders.find((order) => OPEN_STATUSES.includes(order.status));
-    let updatedOrder = null;
-    if (pending) {
-      const events = [...(Array.isArray(pending.events) ? pending.events : []), {
-        type: "location-changed", at, source: "customer", sessionId: active.sessionId,
-        previousDeliveryLocation: previous, sessionCurrentLocation: location,
-      }];
-      const result = await admin.from("drink_orders").update({
-        target: location.target, table_no: location.tableNo, seat_no: location.seatNo, updated_at: at, events,
-      }).eq("id", pending.id).in("status", OPEN_STATUSES)
-        .select("id,status,target,table_no,seat_no,events").maybeSingle();
-      if (result.error) throw new ApiError("未提供注文の届け先を更新できません", 500);
-      updatedOrder = result.data;
-    }
-    return { session: safeSession(saved, context.device), pendingOrder: updatedOrder };
+    return mutate("location", { p_store: context.store, p_hash: context.cardHash, p_session: active.sessionId, p_value: { ...location, source: "customer" } });
   }
 
   if (action === "order") {
@@ -714,10 +682,7 @@ async function customerAction(action: string, body: JsonObject) {
       status: "ordered", made_at: null, served_at: null, paid_at: null,
       events: [{ type: "ordered", at, source: "unlimited", itemId, sessionId: active.sessionId, sequence, orderLocation: location, sessionCurrentLocation: location }],
     };
-    const result = await admin.from("drink_orders").insert(row).select("*").single();
-    if (result.error?.code === "23505") throw new ApiError("前のドリンクが提供済みになるまで次の注文はできません", 409, "UNLIMITED_ORDER_PENDING");
-    if (result.error) throw new ApiError("注文を送信できません", 500);
-    return { order: result.data };
+    return mutate("order", { p_store: context.store, p_hash: context.cardHash, p_session: active.sessionId, p_value: row });
   }
 
   throw new ApiError("操作を確認できません", 404);
@@ -748,7 +713,7 @@ async function staffAction(req: Request, action: string, body: JsonObject) {
     let next: JsonObject;
     if (desired.status === "revoked") {
       next = { ...current, status: "revoked", revokedAt: new Date(now).toISOString(), reconnectRequest: null };
-    } else if (current.status === "pending" && desired.status === "active") {
+    } else if (current.status === "pending" && desired.status === "active" && Date.parse(current.requestExpiresAt || "") > now) {
       const expiresAt = expiryFor(current.planId, now);
       if (expiresAt <= now) throw new ApiError("本日のラストオーダー時刻を過ぎています");
       next = {
@@ -757,16 +722,10 @@ async function staffAction(req: Request, action: string, body: JsonObject) {
         activationRevision: crypto.randomUUID(), currentLocation: normalizeLocation(current.currentLocation || {}),
         locationConfirmed: false,
       };
-    } else if (current.status === "active" && current.reconnectRequest
-      && desired.deviceBinding === current.reconnectRequest.deviceBinding) {
-      next = {
-        ...current, deviceBinding: current.reconnectRequest.deviceBinding, reconnectRequest: null,
-        reconnectedAt: new Date(now).toISOString(), activationRevision: crypto.randomUUID(),
-      };
     } else {
       throw new ApiError("許可されていないセッション変更です", 403);
     }
-    return { session: await saveSessionValue(next) };
+    return { session: await saveSessionValue(next, current, assertStore(body)) };
   }
   if (action === "staff-location") {
     const id = String(body.sessionId || "");
@@ -775,24 +734,9 @@ async function staffAction(req: Request, action: string, body: JsonObject) {
     const sessionsResult = await admin.from("drink_app_settings").select("menu").like("id", `${SESSION_PREFIX}%`);
     const current = (sessionsResult.data || []).map((row) => row.menu as JsonObject).find((value) => value?.sessionId === id);
     if (!current || current.status !== "active" || Date.parse(current.expiresAt || "") <= Date.now()) throw new ApiError("利用中のセッションが見つかりません");
-    const at = new Date().toISOString();
-    const previous = normalizeLocation(current.currentLocation || {});
-    const saved = await saveSessionValue({ ...current, currentLocation: location, locationConfirmed: true, locationUpdatedAt: at, locationSource: "staff", locationRevision: crypto.randomUUID() });
-    const orders = await sessionOrders(id);
-    const pending = orders.find((order) => OPEN_STATUSES.includes(order.status));
-    let updatedOrder = null;
-    if (pending) {
-      const events = [...(Array.isArray(pending.events) ? pending.events : []), {
-        type: "location-changed", at, source: "staff", sessionId: id,
-        previousDeliveryLocation: previous, sessionCurrentLocation: location,
-      }];
-      const result = await admin.from("drink_orders").update({ target: location.target, table_no: location.tableNo, seat_no: location.seatNo, updated_at: at, events })
-        .eq("id", pending.id).in("status", OPEN_STATUSES).select("id,status,target,table_no,seat_no,events").maybeSingle();
-      if (result.error) throw new ApiError("未提供注文の届け先を更新できません", 500);
-      updatedOrder = result.data;
-    }
-    return { session: saved, pendingOrder: updatedOrder };
+    return mutate("location", { p_store: assertStore(body), p_hash: current.cardHash, p_session: id, p_value: { ...location, source: "staff" } });
   }
+
   throw new ApiError("操作を確認できません", 404);
 }
 

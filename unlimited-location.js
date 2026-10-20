@@ -4,6 +4,7 @@
   const U = window.DrinkRelayUnlimited;
   const $ = (selector) => document.querySelector(selector);
   let gateway = null;
+  let sessionId = "";
 
   document.addEventListener("DOMContentLoaded", init);
 
@@ -23,7 +24,9 @@
         return;
       }
 
-      if (localStorage.getItem(window.DrinkRelayWarmup.key + '-token')) {
+      let warmupToken = "";
+      try { warmupToken = localStorage.getItem(window.DrinkRelayWarmup.key + '-token'); } catch {}
+      if (warmupToken) {
         const warm = await new window.DrinkRelayWarmup.Gateway().init();
         const session = await warm.getSession();
         if (session) {
@@ -37,30 +40,30 @@
       if (!customerUrl) {
         showError(
           "利用中の飲み放題が見つかりません",
-          "注文用QRをアクティベートした同じ端末・ブラウザで読み込んでください。"
+          "個別カードの注文用QRを開き、注文画面から届け先を変更してください。"
         );
         return;
       }
       const customerParams = new URL(customerUrl).searchParams;
       const cardToken = String(customerParams.get("card") || "");
       const planId = String(customerParams.get("plan") || "");
-      const binding = await U.digest(getDeviceId());
       if (!gateway) {
         gateway = await new U.Gateway().init();
-        gateway.configureCustomer({ cardToken, deviceBinding: binding, planId });
+        gateway.configureCustomer({ cardToken, planId });
       }
       const now = gateway.now();
       const cardHash = await U.digest(`${U.STORE_ID}:${cardToken}`);
       const session = await gateway.getSession(cardHash);
 
-      if (!session || session.status !== "active" || session.deviceBinding !== binding || Date.parse(session.expiresAt) <= now) {
+      if (!session || session.status !== "active" || (sessionId && session.sessionId !== sessionId) || Date.parse(session.expiresAt) <= now) {
         showError(
           "利用中の飲み放題が見つかりません",
-          "注文用QRをアクティベートした同じ端末・ブラウザで読み込んでください。"
+          "個別カードの注文用QRを開き、注文画面から届け先を変更してください。"
         );
         return;
       }
 
+      sessionId = session.sessionId;
       const result = await gateway.updateSessionLocation(session, locationValue, "location-qr");
       $("#locationSuccessLabel").textContent = U.formatUnlimitedLocation(result.session.currentLocation);
       $("#locationSuccessDetail").textContent = result.pendingOrder
@@ -81,22 +84,6 @@
     if (!U.LOCATION_TARGETS.includes(target)) return null;
     if (target !== "bar" && (!U.LOCATION_TABLES.includes(tableNo) || !U.LOCATION_SEATS.includes(seatNo))) return null;
     return U.normalizeUnlimitedLocation({ target, tableNo, seatNo });
-  }
-
-  function getDeviceId() {
-    const key = `drink-relay-${U.STORE_ID}-unlimited-device-v1`;
-    const cookieKey = `${key}-cookie`;
-    let id = "";
-    try { id = localStorage.getItem(key) || ""; } catch {}
-    if (!id) {
-      const cookie = document.cookie.split("; ").find((entry) => entry.startsWith(`${encodeURIComponent(cookieKey)}=`));
-      if (cookie) id = decodeURIComponent(cookie.slice(cookie.indexOf("=") + 1));
-    }
-    if (!id) id = U.makeId();
-    try { localStorage.setItem(key, id); } catch {}
-    const secure = window.location.protocol === "https:" ? "; Secure" : "";
-    document.cookie = `${encodeURIComponent(cookieKey)}=${encodeURIComponent(id)}; Max-Age=31536000; Path=/; SameSite=Lax${secure}`;
-    return id;
   }
 
   function configureReturnLinks() {

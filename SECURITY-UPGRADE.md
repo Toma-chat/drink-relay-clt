@@ -34,7 +34,7 @@ DRINK_RELAY_ALLOWED_ORIGINS=https://toma-chat.github.io
 
 `SUPABASE_URL` と `SUPABASE_SERVICE_ROLE_KEY` はSupabaseがEdge Functionへ提供する値を利用します。Service RoleキーをHTML、JavaScript、Gitへ保存しないでください。
 
-5. `supabase/functions/unlimited` を `verify_jwt = false` でデプロイします。公開操作はカード・端末・セッションをFunction内で検証し、スタッフ操作はJWTと許可リストの両方を検証します。
+5. `supabase/functions/unlimited` を `verify_jwt = false` でデプロイします。公開操作はカード・現在のセッションをFunction内で検証し、スタッフ操作はJWTと許可リストの両方を検証します。
 6. 更新したHTML、CSS、JavaScriptを公開します。
 7. 遮断前に次を確認します。
    - 許可スタッフが管理画面へログインできる
@@ -58,7 +58,7 @@ Supabaseの公開キーだけを使った次の直接アクセスは、権限エ
 ## サーバー側で強制される項目
 
 - QRカードが有効で、URLのプランと一致すること
-- アクティベート済みセッションと端末が一致すること
+- アクティベート済みの現在のカードセッションとリクエストのセッションIDが一致すること
 - 利用期限内であること
 - 届け先が許可されたエリア・卓・席であること
 - 商品が選択プランの対象であること
@@ -71,3 +71,11 @@ Supabaseの公開キーだけを使った次の直接アクセスは、権限エ
 
 固定QRカタログとセッションは現在の `drink_app_settings` 内の行をそのまま利用します。遮断後はService RoleのEdge Functionと許可スタッフだけが読み書きするため、QRの印刷し直しや既存注文の移行は不要です。
 
+
+## 通常飲み放題のカード単位利用への更新（2026-10-19）
+
+公開時は、先に `supabase/unlimited-card-sessions.sql`、次に `supabase/functions/unlimited`、最後にフロントエンドを適用してください。SQLはService Role専用RPCを追加し、既存データを変更しません。既存のスタッフ認証・RLSは維持してください。旧フロントエンドは更新後に再読み込みが必要です。
+
+通常飲み放題はQRを知っているブラウザ・端末から現在の利用セッションを共有します。端末再接続コード・受付承認はありません。開始・終了時刻は再アクセスで変更しません。注文・届け先変更・利用終了・新セッション作成はDBロックと比較更新で競合を防ぎます。Warmupの共通コード・端末認証は対象外です。
+
+検証は本番接続なしで実行できます。`@electric-sql/pglite` を隔離環境へインストールし、`PGLITE_MODULE` にパッケージの絶対パスを指定して `node tests/unlimited-card-sessions.cjs` を実行してください。画面検証は `node tests/unlimited-card-ui.cjs`（既存UIテストと同じ一時フォルダ内のjsdomを利用）です。PGliteは単一接続のため、複数リクエストの競合は検証しますが、独立したPostgreSQL接続間のロック待ちは検証しません。

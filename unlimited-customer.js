@@ -6,7 +6,7 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const state = {
-    gateway: null, menu: [], plan: null, rule: null, session: null,
+    gateway: null, menu: [], plan: null, rule: null, session: null, sessionId: "",
     cardToken: "", cardRecord: null, cardHash: "", deviceBinding: "", cart: [], activeItem: null,
     submitting: false, pendingOrder: null, orderStatusLoading: true, orderStatusError: false,
     orderAvailabilityInitialized: false, locationSaving: false,
@@ -33,7 +33,7 @@
       rememberCustomerUrl();
 
       state.cardHash = await U.digest(`${U.STORE_ID}:${cardToken}`);
-      state.deviceBinding = warmup ? window.DrinkRelayWarmup.device : await U.digest(getDeviceId());
+      state.deviceBinding = warmup ? window.DrinkRelayWarmup.device : "";
       state.gateway = await new (warmup ? window.DrinkRelayWarmup.Gateway : U.Gateway)().init();
       if (!warmup) state.gateway.configureCustomer({ cardToken, deviceBinding: state.deviceBinding, planId });
       const [, menu] = await Promise.all([
@@ -97,7 +97,6 @@
       finally { button.disabled = false; }
     });
     $("#retryActivation")?.addEventListener("click", retryActivation);
-    $("#requestReconnect")?.addEventListener("click", requestReconnect);
     $("#retryMenu")?.addEventListener("click", reloadMenu);
     $("#categoryNav")?.addEventListener("click", handleCategoryClick);
     $("#menuSections")?.addEventListener("click", handleMenuClick);
@@ -111,30 +110,6 @@
     $("#closeLocationDialog")?.addEventListener("click", closeLocationDialog);
     $("#locationDialog")?.addEventListener("click", handleLocationChoice);
     $("#saveCurrentLocation")?.addEventListener("click", saveCurrentLocation);
-  }
-
-  function getDeviceId() {
-    const key = `drink-relay-${U.STORE_ID}-unlimited-device-v1`;
-    const cookieKey = `${key}-cookie`;
-    let id = "";
-    try {
-      id = localStorage.getItem(key) || "";
-    } catch {
-    }
-    if (!id) {
-      const cookie = document.cookie.split("; ").find((entry) => entry.startsWith(`${encodeURIComponent(cookieKey)}=`));
-      if (cookie) id = decodeURIComponent(cookie.slice(cookie.indexOf("=") + 1));
-    }
-    if (!id) {
-      id = U.makeId();
-    }
-    try {
-      localStorage.setItem(key, id);
-    } catch {
-    }
-    const secure = location.protocol === "https:" ? "; Secure" : "";
-    document.cookie = `${encodeURIComponent(cookieKey)}=${encodeURIComponent(id)}; Max-Age=31536000; Path=/; SameSite=Lax${secure}`;
-    return id;
   }
 
   function rememberCustomerUrl() {
@@ -158,9 +133,10 @@
       let session = await state.gateway.getSession(state.cardHash);
       if (!session && createIfMissing) session = await createActivationRequest();
       if (!session) return;
-      state.session = session;
       const now = state.gateway.now();
-      const sameDevice = session.deviceBinding === state.deviceBinding;
+      if (state.sessionId && state.sessionId !== session.sessionId) { showEnded(); return; }
+      state.sessionId = session.sessionId;
+      state.session = session;
 
       if (session.planId !== state.plan.id) {
         showError("カードのプランが一致しません", "受付スタッフへカードをご提示ください。");
@@ -171,15 +147,11 @@
           if (createIfMissing) {
             const renewed = await createActivationRequest();
             state.session = renewed;
+            state.sessionId = renewed.sessionId;
             showActivation(renewed);
             return;
           }
           showError("アクティベーションコードの期限が切れました", "新しい4桁コードを発行して、受付スタッフへお伝えください。", true);
-          return;
-        }
-        if (!sameDevice) {
-          showError("別のブラウザで受付待ちです", "同じ端末でも開き方が変わると別端末として認識されます。新しいコードを発行してください。", true);
-          $("#retryActivation").textContent = "新しい4桁コードを発行する";
           return;
         }
         showActivation(session);
@@ -187,22 +159,13 @@
       }
       if (session.status === "active") {
         if (Date.parse(session.expiresAt) <= now) {
-          if (!sameDevice && createIfMissing) {
-            const renewed = await createActivationRequest();
-            state.session = renewed;
-            showActivation(renewed);
+          if (createIfMissing) {
+            state.session = await createActivationRequest();
+            state.sessionId = state.session.sessionId;
+            showActivation(state.session);
             return;
           }
           showEnded();
-          return;
-        }
-        if (!sameDevice) {
-          const reconnect = validReconnectRequest(session, now);
-          if (reconnect?.deviceBinding === state.deviceBinding) {
-            showActivation(session, true);
-            return;
-          }
-          showDeviceConflict();
           return;
         }
         if (session.locationConfirmed === false) {
@@ -221,6 +184,7 @@
         if (createIfMissing) {
           const renewed = await createActivationRequest();
           state.session = renewed;
+          state.sessionId = renewed.sessionId;
           showActivation(renewed);
           return;
         }
@@ -264,51 +228,17 @@
     try {
       await assertCardAuthorized(state.plan?.id);
       const current = await state.gateway.getSession(state.cardHash);
-      if (current?.status === "active") {
+      if (current?.status === "active" && Date.parse(current.expiresAt) > state.gateway.now()) {
         await checkSession(false);
         return;
       }
       state.session = await createActivationRequest();
+      state.sessionId = state.session.sessionId;
       showActivation(state.session);
     } catch (error) {
       if (error instanceof CardAccessError) showError(error.title, error.message);
       else showError("再確認できませんでした", error.message || "通信状態を確認してください。", true);
     }
-  }
-
-  async function requestReconnect() {
-    const button = $("#requestReconnect");
-    if (!button || !state.gateway) return;
-    button.disabled = true;
-    showOnly("loadingState");
-    try {
-      await state.gateway.ensureServerClock();
-      await assertCardAuthorized(state.plan?.id);
-      const current = await state.gateway.getSession(state.cardHash);
-      const now = state.gateway.now();
-      if (!current || current.status !== "active" || Date.parse(current.expiresAt) <= now) {
-        throw new Error("このカードの利用時間は終了しています");
-      }
-      const minutes = Number(U.CONFIG.activationRequestMinutes || 15);
-      const reconnectRequest = {
-        code: U.makeActivationCode(),
-        deviceBinding: state.deviceBinding,
-        requestedAt: new Date(now).toISOString(),
-        expiresAt: new Date(now + minutes * 60000).toISOString(),
-      };
-      state.session = await state.gateway.saveSession({ ...current, reconnectRequest });
-      showActivation(state.session, true);
-    } catch (error) {
-      if (error instanceof CardAccessError) showError(error.title, error.message);
-      else showError("再接続を申請できませんでした", error.message || "通信状態を確認してください。");
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  function validReconnectRequest(session, now = state.gateway?.now() || Date.now()) {
-    const request = session?.reconnectRequest;
-    return request?.code && Date.parse(request.expiresAt) > now ? request : null;
   }
 
   async function assertCardAuthorized(planId) {
@@ -337,22 +267,14 @@
     return card;
   }
 
-  function showDeviceConflict() {
-    showError(
-      "このQRカードは別のブラウザで利用中です",
-      "同じ端末でもブラウザやQRの開き方が変わると再接続が必要です。受付スタッフの承認後、残り時間を引き継いで利用できます。"
-    );
-    $("#requestReconnect").hidden = false;
-  }
-
-  function showActivation(session, reconnecting = false) {
+  function showActivation(session) {
     closeDialogs(true);
     showOnly("activationState");
-    $("#activationEyebrow").textContent = reconnecting ? "端末の再接続が必要です" : "受付での操作が必要です";
-    $("#activationTitle").textContent = reconnecting ? "再接続待ち" : "アクティベーション待ち";
+    $("#activationEyebrow").textContent = "受付での操作が必要です";
+    $("#activationTitle").textContent = "アクティベーション待ち";
     $("#activationMessage").textContent = "このコードを受付スタッフへお伝えください";
-    $("#activationWaitingLabel").textContent = reconnecting ? "再接続の承認を待っています" : "アクティベートを待っています";
-    $("#activationCode").textContent = reconnecting ? session.reconnectRequest.code : session.activationCode;
+    $("#activationWaitingLabel").textContent = "アクティベートを待っています";
+    $("#activationCode").textContent = session.activationCode;
     $("#activationPlanName").textContent = state.plan.name;
   }
 
@@ -781,7 +703,7 @@
       await assertCardAuthorized(state.plan?.id);
       const current = await state.gateway.getSession(state.cardHash);
       const now = state.gateway.now();
-      if (!current || current.status !== "active" || current.deviceBinding !== state.deviceBinding || Date.parse(current.expiresAt) <= now) {
+      if (!current || current.status !== "active" || (warmup ? current.deviceBinding !== state.deviceBinding : current.sessionId !== state.sessionId) || Date.parse(current.expiresAt) <= now) {
         throw new SessionEndedError();
       }
       const result = await state.gateway.updateSessionLocation(current, location, "customer-manual");
@@ -794,7 +716,7 @@
     } catch (error) {
       console.error(error);
       if (error instanceof CardAccessError) showError(error.title, error.message);
-      else if (error instanceof SessionEndedError) showEnded();
+      else if (error instanceof SessionEndedError || error?.code === "SESSION_ENDED") showEnded();
       else setLocationDialogStatus(error.message || "届け先を変更できませんでした", "error");
     } finally {
       state.locationSaving = false;
@@ -819,7 +741,7 @@
       await assertCardAuthorized(state.plan?.id);
       const current = await state.gateway.getSession(state.cardHash);
       const now = state.gateway.now();
-      if (!current || current.status !== "active" || current.deviceBinding !== state.deviceBinding || Date.parse(current.expiresAt) <= now) {
+      if (!current || current.status !== "active" || (warmup ? current.deviceBinding !== state.deviceBinding : current.sessionId !== state.sessionId) || Date.parse(current.expiresAt) <= now) {
         throw new SessionEndedError();
       }
       const orderLocation = U.normalizeUnlimitedLocation(current.currentLocation);
@@ -829,7 +751,7 @@
         drinkName: item.name, itemId: item.itemId, options: item.options,
         quantity: 1,
         location: orderLocation,
-        sessionId: current.sessionId,
+        sessionId: warmup ? current.sessionId : state.sessionId,
         notes: [`飲み放題: ${state.plan.name}`, ...item.options].join(" / "),
       };
       const createdOrder = await state.gateway.createUnlimitedOrder(row);
@@ -848,7 +770,7 @@
       console.error(error);
       if (error instanceof CardAccessError) {
         showError(error.title, error.message);
-      } else if (error instanceof SessionEndedError) {
+      } else if (error instanceof SessionEndedError || error?.code === "SESSION_ENDED") {
         showEnded();
       } else if (error?.code === "UNLIMITED_ORDER_PENDING") {
         state.cart = [];
@@ -871,7 +793,7 @@
       session
       && session.status === "active"
       && session.locationConfirmed !== false
-      && session.deviceBinding === state.deviceBinding
+      && (warmup ? session.deviceBinding === state.deviceBinding : session.sessionId === state.sessionId)
       && Date.parse(session.expiresAt) > state.gateway.now()
       && !state.pendingOrder
       && !state.orderStatusLoading
