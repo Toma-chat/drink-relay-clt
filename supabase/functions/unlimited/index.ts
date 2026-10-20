@@ -86,7 +86,7 @@ const COMPILED_PROFILES = {
         "hot": []
       },
       "item-1783049580653": {
-        "mango-mix": []
+        "mango-mix": ["牛乳"]
       },
       "item-1783053519044": {
         "spirit-mix": [
@@ -270,7 +270,7 @@ const COMPILED_PROFILES = {
         "hot": []
       },
       "item-1783049580653": {
-        "mango-mix": []
+        "mango-mix": ["牛乳"]
       }
     }
   }

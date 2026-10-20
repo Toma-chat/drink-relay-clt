@@ -5,10 +5,15 @@ const {PGlite}=require(path.join(process.env.TEMP,'warmup-validation/node_module
   const window={};vm.runInNewContext(fs.readFileSync('unlimited-config.js','utf8'),{window});
   const config=window.DRINK_RELAY_UNLIMITED_CONFIG;
   for(const id of ['oolong-tea','sparkling-water'])assert.ok(config.planRules['unlimited-warmup-sp'].includeItemIds.includes(id),`Warm Up includes ${id}`);
+  for(const id of ['unlimited-soft-sp-2h','unlimited-soft-sp-all-day','unlimited-alcohol-sp-2h','unlimited-alcohol-sp-all-day','unlimited-warmup-sp'])
+    assert.deepEqual(JSON.parse(JSON.stringify(config.planRules[id].optionChoiceRules['item-1783049580653']['mango-mix'])),['牛乳'],`${id} allows mango juice with milk`);
   assert.equal(config.planCatalog.length,13);assert.equal(new Set(config.planCatalog.map(p=>p.id)).size,13);
   const edge=fs.readFileSync('supabase/functions/unlimited/index.ts','utf8').replace(/^import .*\n/,'');
   const scope={Deno:{env:{get:()=>''},serve(){}},createClient:()=>({})};
-  vm.runInNewContext(stripTypeScriptTypes(edge)+'\nthis.testRules=PLAN_RULES;this.expiry=expiryFor;',scope);
+  vm.runInNewContext(stripTypeScriptTypes(edge)+'\nthis.testRules=PLAN_RULES;this.expiry=expiryFor;this.validateOptions=validateOptions;',scope);
+  const mango={id:'item-1783049580653',optionGroups:[{id:'mango-mix',choices:['ソーダ','牛乳'],required:false}]};
+  assert.deepEqual(JSON.parse(JSON.stringify(scope.validateOptions(mango,'unlimited-soft-sp-2h',['牛乳']))),['牛乳']);
+  assert.throws(()=>scope.validateOptions(mango,'unlimited-soft-sp-2h',['ソーダ']),/選択できないカスタム/);
   for(const plan of config.planCatalog){
     const rule=config.planRules[plan.id],server=scope.testRules[plan.id];
     assert.deepEqual([...server.items], [...rule.includeItemIds]);

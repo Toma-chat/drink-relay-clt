@@ -66,7 +66,7 @@
   const SOFT_STANDARD_OPTIONS = {};
   const SOFT_SP_OPTIONS = {
     "item-1783049570152": { "calpis-mix": ["炭酸", "水", "牛乳", "マンゴー", "オレンジ"], hot: [] },
-    "item-1783049580653": { "mango-mix": [] },
+    "item-1783049580653": { "mango-mix": ["牛乳"] },
   };
   const ALCOHOL_OPTIONS = {
     "item-1783053519044": { "spirit-mix": ["炭酸"] },
