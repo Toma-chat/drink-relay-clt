@@ -80,11 +80,11 @@
   };
 
   const mergeOptions = (...rules) => Object.assign({}, ...rules);
-  const makeRule = (durationMinutes, includeItemIds, optionChoiceRules) => Object.freeze({
+  const makeRule = (durationMinutes, includeItemIds, optionChoiceRules, excludeItemIds = []) => Object.freeze({
     durationMinutes,
     categories: [],
     includeItemIds: [...includeItemIds],
-    excludeItemIds: [],
+    excludeItemIds: [...excludeItemIds],
     optionChoiceRules,
   });
   const softStandardRule = (duration) => makeRule(duration, SOFT_STANDARD, SOFT_STANDARD_OPTIONS);
@@ -96,7 +96,8 @@
   const alcoholStandardRule = (duration) => makeRule(
     duration,
     [...SOFT_STANDARD, ...ALCOHOL_STANDARD],
-    mergeOptions(SOFT_STANDARD_OPTIONS, ALCOHOL_OPTIONS)
+    mergeOptions(SOFT_STANDARD_OPTIONS, ALCOHOL_OPTIONS),
+    ["item-1783052950604", "item-1783052961537"]
   );
   const alcoholSpRule = (duration) => makeRule(
     duration,

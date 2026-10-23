@@ -5,6 +5,10 @@ const {PGlite}=require(path.join(process.env.TEMP,'warmup-validation/node_module
   const window={};vm.runInNewContext(fs.readFileSync('unlimited-config.js','utf8'),{window});
   const config=window.DRINK_RELAY_UNLIMITED_CONFIG;
   for(const id of ['oolong-tea','sparkling-water'])assert.ok(config.planRules['unlimited-warmup-sp'].includeItemIds.includes(id),`Warm Up includes ${id}`);
+  for(const plan of config.planCatalog.filter(p=>p.profile==='アルコールSTD'))for(const id of ['item-1783052950604','item-1783052961537']){
+    assert(!config.planRules[plan.id].includeItemIds.includes(id),`${plan.id} does not include premium whiskey ${id}`);
+    assert(config.planRules[plan.id].excludeItemIds.includes(id),`${plan.id} explicitly hides premium whiskey ${id}`);
+  }
   for(const id of ['unlimited-soft-sp-2h','unlimited-soft-sp-all-day','unlimited-alcohol-sp-2h','unlimited-alcohol-sp-all-day','unlimited-warmup-sp'])
     assert.deepEqual(JSON.parse(JSON.stringify(config.planRules[id].optionChoiceRules['item-1783049580653']['mango-mix'])),['牛乳'],`${id} allows mango juice with milk`);
   assert.equal(config.planCatalog.length,13);assert.equal(new Set(config.planCatalog.map(p=>p.id)).size,13);
