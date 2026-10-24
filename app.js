@@ -2906,6 +2906,11 @@
         </button>`
       : "";
     const note = displayOrderNote(order.notes);
+    const noteHtml = note.isOptions
+      ? note.text.split(" / ").map((choice) => /^hot$/i.test(choice)
+        ? `<span class="order-option-hot">${escapeHtml(choice)}</span>`
+        : escapeHtml(choice)).join(" / ")
+      : escapeHtml(note.text);
     const isCanceled = order.status === "canceled";
     const interactionLabel = isCompleting
       ? `${order.drink_name}を提供済みにしています。もう一度タップすると取り消します`
@@ -2935,7 +2940,7 @@
             ${manualButton}
             ${quantityPill}
           </div>
-          ${note.text ? `<p class="order-note${note.isOptions ? " order-option-note" : ""}">${escapeHtml(note.text)}</p>` : ""}
+          ${note.text ? `<p class="order-note${note.isOptions ? " order-option-note" : ""}">${noteHtml}</p>` : ""}
         </div>
       </article>
     `;

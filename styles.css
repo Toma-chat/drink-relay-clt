@@ -2391,6 +2391,10 @@ button:focus-visible {
   font-weight: 800;
 }
 
+.order-option-hot {
+  color: #dc2626;
+}
+
 .order-side {
   min-width: 250px;
   display: flex;
