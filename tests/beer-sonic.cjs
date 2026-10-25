@@ -1,0 +1,27 @@
+const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),assert=require('node:assert/strict');
+const {PGlite}=require(path.join(process.env.TEMP,'warmup-validation/node_modules/@electric-sql/pglite'));
+(async()=>{
+  const context={window:{}};
+  vm.runInNewContext(fs.readFileSync('initial-settings.js','utf8'),context);
+  const menu=JSON.parse(JSON.stringify(context.window.DRINK_RELAY_INITIAL_SETTINGS.menu));
+  const newIds=['orange-beer','kahlua-beer','diesel','sonic'];
+  for(const category of menu)category.items=(category.items||[]).filter(item=>!newIds.includes(item.id));
+  const db=new PGlite();
+  await db.exec('create table public.drink_app_settings(id text primary key,menu jsonb,updated_at timestamptz);create schema warmup_private;create table warmup_private.stores(id text primary key,profile jsonb)');
+  await db.query("insert into public.drink_app_settings(id,menu) values('main',$1)",[JSON.stringify(menu)]);
+  await db.query("insert into warmup_private.stores(id,profile) values('casinolivetokyo',$1)",[JSON.stringify({includeItemIds:['oolong-tea']})]);
+  const migration=fs.readFileSync('supabase/add-beer-sonic-20261025.sql','utf8');
+  await db.exec(migration);
+  await db.exec(migration);
+  const saved=(await db.query("select menu from public.drink_app_settings where id='main'")).rows[0].menu;
+  const beers=saved.find(category=>category.id==='alcohol').items.filter(item=>item.subcategory_id==='beer');
+  assert.deepEqual(beers.slice(3).map(item=>item.id),['orange-beer','kahlua-beer','diesel']);
+  for(const item of beers.slice(3))assert.equal(item.price,800);
+  const juices=saved.find(category=>category.id==='juice').items;
+  assert.equal(juices.findIndex(item=>item.id==='sonic'),juices.findIndex(item=>item.id==='item-1783049531455')+1);
+  assert.equal(juices.find(item=>item.id==='sonic').price,600);
+  const profile=(await db.query("select profile from warmup_private.stores where id='casinolivetokyo'")).rows[0].profile;
+  assert.deepEqual(profile.includeItemIds,['oolong-tea','sonic']);
+  await db.close();
+  console.log('PASS beer cocktails and Sonic added once to single menu, Sonic enabled in weekday Warmup');
+})().catch(error=>{console.error(error);process.exitCode=1});

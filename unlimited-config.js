@@ -8,6 +8,7 @@
     "sparkling-water",
     "iced-coffee",
     "item-1783049531455",
+    "sonic",
     "melon-soda",
     "item-1783049599311",
     "item-1783049610093",
@@ -58,6 +59,9 @@
   const ALCOHOL_SP_EXTRA = [
     "beer",
     "item-1783052901930",
+    "orange-beer",
+    "kahlua-beer",
+    "diesel",
     "item-1783052950604",
     "item-1783052961537",
     "tiffin",

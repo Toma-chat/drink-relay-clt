@@ -7,6 +7,12 @@ const {PGlite}=require(path.join(process.env.TEMP,'warmup-validation/node_module
   const whiskeyIds=['whiskey-rock','whiskey-straight'];
   for(const plan of config.planCatalog)for(const id of whiskeyIds)
     assert.equal(config.planRules[plan.id].includeItemIds.includes(id),plan.profile==='アルコールSTD'||plan.profile==='アルコールSP',`${plan.id} whiskey ${id}`);
+  for(const plan of config.planCatalog){
+    const ids=config.planRules[plan.id].includeItemIds;
+    assert(ids.includes('sonic'),`${plan.id} includes Sonic`);
+    for(const id of ['orange-beer','kahlua-beer','diesel'])
+      assert.equal(ids.includes(id),plan.profile==='アルコールSP',`${plan.id} beer cocktail ${id}`);
+  }
   for(const id of ['oolong-tea','sparkling-water'])assert.ok(config.planRules['unlimited-warmup-sp'].includeItemIds.includes(id),`Warm Up includes ${id}`);
   for(const plan of config.planCatalog.filter(p=>p.profile==='アルコールSTD'))for(const id of ['item-1783052950604','item-1783052961537']){
     assert(!config.planRules[plan.id].includeItemIds.includes(id),`${plan.id} does not include premium whiskey ${id}`);

@@ -28,8 +28,9 @@ async function main() {
  await db.exec(fs.readFileSync('supabase/warmup-tea-hot-20261019.sql','utf8'));
  await db.exec(fs.readFileSync('supabase/warmup-water-label-20261019.sql','utf8'));
  await db.exec(fs.readFileSync('supabase/add-whiskey-rock-straight-20261025.sql','utf8'));
+ await db.exec(fs.readFileSync('supabase/add-beer-sonic-20261025.sql','utf8'));
  const st=(await db.query('select * from warmup_private.stores')).rows[0];
- for(const id of ['oolong-tea','sparkling-water'])assert.ok(st.profile.includeItemIds.includes(id),`Weekday Warmup includes ${id}`);
+ for(const id of ['oolong-tea','sparkling-water','sonic'])assert.ok(st.profile.includeItemIds.includes(id),`Weekday Warmup includes ${id}`);
  for(const id of ['whiskey-rock','whiskey-straight'])assert.ok(st.profile.includeItemIds.includes(id),`Weekday Warmup includes ${id}`);
  for(const id of ['green-tea','item-1783049172799','item-1783049181927','item-1783049320701'])assert.deepEqual(st.profile.optionChoiceRules[id].hot,['hot']);
  const user='11111111-1111-4111-8111-111111111111';
@@ -78,6 +79,8 @@ async function main() {
  await db.exec("update public.drink_orders set status='served' where warmup_session_id is not null");
  await assert.rejects(call('order',{item:'whiskey-rock',quantity:1,options:[]}),/必須オプション/);ok(true,'whiskey chaser selection required');
  ok((await call('order',{item:'whiskey-rock',quantity:1,options:['チェイサーあり']})).order.drink_name==='ウイスキーロック','weekday Warmup accepts whiskey rock with chaser');
+ await db.exec("update public.drink_orders set status='served' where warmup_session_id is not null");
+ ok((await call('order',{item:'sonic',quantity:1,options:[]})).order.drink_name==='ソニック','weekday Warmup accepts Sonic');
  await db.exec("update public.drink_orders set status='served' where warmup_session_id is not null");
  await assert.rejects(call('order',{item:'beer',quantity:1}),/対象外/);ok(true,'nonstandard item rejected');
  await assert.rejects(call('order',{item,quantity:1,options:['forged-choice']}),/オプション/);ok(true,'forged option rejected');

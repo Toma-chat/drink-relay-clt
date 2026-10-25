@@ -2778,6 +2778,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         item("iced-coffee", "コーラ", 600, "default", [ice]),
         item("melon-soda", "メロンソーダ", 600, "default", [ice]),
         item("item-1783049531455", "ジンジャーエール", 600, "default", [ice]),
+        item("sonic", "ソニック", 600, "default", [ice], "炭酸水とトニックウォーターを合わせる"),
         item("item-1783049570152", "カルピス", 600, "default", [
           option("calpis-mix", "割り方", ["炭酸", "水", "牛乳", "マンゴー", "オレンジ"], true),
           strength,
@@ -2847,6 +2848,9 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
           [iceIn],
           "生ビールとジンジャーエールを1:1で注ぐ\n軽くステアする"
         ),
+        item("orange-beer", "オレンジビール", 800, "beer", [], "生ビールとオレンジジュースを合わせる"),
+        item("kahlua-beer", "カルーアビール", 800, "beer", [], "生ビールとカルーアを合わせる"),
+        item("diesel", "ディーゼル", 800, "beer", [], "生ビールとコーラを合わせる"),
         item("nikka-highball", "ハイボール", 800, "whiskey", [strength, straw, ice], "ブラックニッカを炭酸で割る"),
         item("nikka-cola-high", "コークハイ", 800, "whiskey", [strength, straw, ice], "ブラックニッカをコーラで割る"),
         item("nikka-ginger-high", "ジンジャーハイ", 800, "whiskey", [strength, straw, ice], "ブラックニッカをジンジャーエールで割る"),
