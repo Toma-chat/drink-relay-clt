@@ -24,6 +24,8 @@
     "nikka-highball",
     "nikka-cola-high",
     "nikka-ginger-high",
+    "whiskey-rock",
+    "whiskey-straight",
     "item-1783053231839",
     "item-1783053242905",
     "calpis-sour",

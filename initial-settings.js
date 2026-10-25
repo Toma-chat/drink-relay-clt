@@ -2850,6 +2850,8 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         item("nikka-highball", "ハイボール", 800, "whiskey", [strength, straw, ice], "ブラックニッカを炭酸で割る"),
         item("nikka-cola-high", "コークハイ", 800, "whiskey", [strength, straw, ice], "ブラックニッカをコーラで割る"),
         item("nikka-ginger-high", "ジンジャーハイ", 800, "whiskey", [strength, straw, ice], "ブラックニッカをジンジャーエールで割る"),
+        item("whiskey-rock", "ウイスキーロック", 800, "whiskey", [option("chaser", "チェイサー", ["チェイサーあり", "チェイサーなし"], true)], "ブラックニッカを氷入りグラスに注ぐ"),
+        item("whiskey-straight", "ウイスキーストレート", 800, "whiskey", [option("chaser", "チェイサー", ["チェイサーあり", "チェイサーなし"], true)], "ブラックニッカをストレートで提供する"),
         item("item-1783052950604", "メーカーズマーク", 800, "whiskey", [whiskeyMix, strength], whiskeyRecipe),
         item("item-1783052961537", "ジャックダニエル", 800, "whiskey", [
           whiskeyMix,

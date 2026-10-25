@@ -39,6 +39,8 @@ const COMPILED_PROFILES = {
       "nikka-highball",
       "nikka-cola-high",
       "nikka-ginger-high",
+      "whiskey-rock",
+      "whiskey-straight",
       "item-1783053231839",
       "item-1783053242905",
       "calpis-sour",
@@ -86,7 +88,9 @@ const COMPILED_PROFILES = {
         "hot": []
       },
       "item-1783049580653": {
-        "mango-mix": ["牛乳"]
+        "mango-mix": [
+          "牛乳"
+        ]
       },
       "item-1783053519044": {
         "spirit-mix": [
@@ -148,6 +152,8 @@ const COMPILED_PROFILES = {
       "nikka-highball",
       "nikka-cola-high",
       "nikka-ginger-high",
+      "whiskey-rock",
+      "whiskey-straight",
       "item-1783053231839",
       "item-1783053242905",
       "calpis-sour",
@@ -270,7 +276,9 @@ const COMPILED_PROFILES = {
         "hot": []
       },
       "item-1783049580653": {
-        "mango-mix": ["牛乳"]
+        "mango-mix": [
+          "牛乳"
+        ]
       }
     }
   }

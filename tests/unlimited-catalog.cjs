@@ -4,6 +4,9 @@ const {PGlite}=require(path.join(process.env.TEMP,'warmup-validation/node_module
 (async()=>{
   const window={};vm.runInNewContext(fs.readFileSync('unlimited-config.js','utf8'),{window});
   const config=window.DRINK_RELAY_UNLIMITED_CONFIG;
+  const whiskeyIds=['whiskey-rock','whiskey-straight'];
+  for(const plan of config.planCatalog)for(const id of whiskeyIds)
+    assert.equal(config.planRules[plan.id].includeItemIds.includes(id),plan.profile==='アルコールSTD'||plan.profile==='アルコールSP',`${plan.id} whiskey ${id}`);
   for(const id of ['oolong-tea','sparkling-water'])assert.ok(config.planRules['unlimited-warmup-sp'].includeItemIds.includes(id),`Warm Up includes ${id}`);
   for(const plan of config.planCatalog.filter(p=>p.profile==='アルコールSTD'))for(const id of ['item-1783052950604','item-1783052961537']){
     assert(!config.planRules[plan.id].includeItemIds.includes(id),`${plan.id} does not include premium whiskey ${id}`);
@@ -18,6 +21,9 @@ const {PGlite}=require(path.join(process.env.TEMP,'warmup-validation/node_module
   const mango={id:'item-1783049580653',optionGroups:[{id:'mango-mix',choices:['ソーダ','牛乳'],required:false}]};
   assert.deepEqual(JSON.parse(JSON.stringify(scope.validateOptions(mango,'unlimited-soft-sp-2h',['牛乳']))),['牛乳']);
   assert.throws(()=>scope.validateOptions(mango,'unlimited-soft-sp-2h',['ソーダ']),/選択できないカスタム/);
+  const chaser={id:'whiskey-rock',optionGroups:[{id:'chaser',choices:['チェイサーあり','チェイサーなし'],required:true}]};
+  assert.deepEqual(JSON.parse(JSON.stringify(scope.validateOptions(chaser,'unlimited-alcohol-2h',['チェイサーあり']))),['チェイサーあり']);
+  assert.throws(()=>scope.validateOptions(chaser,'unlimited-alcohol-2h',[]),/必須のカスタム/);
   for(const plan of config.planCatalog){
     const rule=config.planRules[plan.id],server=scope.testRules[plan.id];
     assert.deepEqual([...server.items], [...rule.includeItemIds]);
