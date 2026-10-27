@@ -62,3 +62,9 @@ node scripts/serve.cjs
 追加ファイルは `warmup-client.js`（専用Gateway）、`warmup-admin.js`（管理UI）、`supabase/warmup.sql`、`supabase/warmup-bootstrap.sql`、`supabase/functions/warmup/index.ts`、`supabase/config.toml`、生成・ローカル配信スクリプト、DB/UIテスト、この文書です。
 
 今回の検証結果: DB 38項目、DOM画面操作・JS/Edge構文16項目、既存受付・通常メニュー・バー・設定・提供済み処理・飲み放題の回帰6項目が通過。DOMテストのAPI通信はモック、DBテストは実SQL実行です。ローカルHTTPの受付、お客様、場所変更、追加JSは200応答。`git diff --check` にエラーなし、`store-config.js` に差分なし。実ブラウザの描画・実Supabaseへの通信は未検証です。
+# STDメニュー公開時の同期
+
+`unlimited-config.js` の通常STDを変更したら、`node scripts/build-warmup-profile.cjs` を実行し、生成した `supabase/warmup-menu-update.sql` を対象Supabaseへ適用します。
+このSQLは既存商品47件の参照ルールを同期し、商品本体は複製しません。対象商品が共有メニューに存在するかを検証し、変更前後のプロファイルを監査ログへ記録します。QR・日替わりコード・端末認証・注文は維持します。再実行時に同じ設定なら監査ログを重複追加しません。
+検証: `node tests/warmup-profile-sync.cjs`。公開後は実際のWarmup `status` APIの `profile` と通常STD設定の一致を確認してください。
+
