@@ -2731,6 +2731,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
     ["ロック", "ストレート", "炭酸", "水", "お湯", "コーラ", "ジンジャーエール"],
     true
   );
+  const shochuMix = { ...whiskeyMix, choices: [...whiskeyMix.choices, "緑茶", "烏龍茶", "紅茶"] };
   const spiritMix = option(
     "spirit-mix",
     "割り方",
@@ -2872,8 +2873,8 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         item("item-1783053301898", "緑茶ハイ", 800, "tea-highs", [strength, straw, ice], "サワーベース30mlを入れる\n緑茶で満たして軽くステアする"),
         item("item-1783053313814", "ジャスミンハイ", 800, "tea-highs", [strength, straw, ice], "サワーベース30mlを入れる\nジャスミン茶で満たして軽くステアする"),
 
-        item("ichiryuno-mugi", "二階堂（麦）", 800, "shochu", [whiskeyMix, strength]),
-        item("tomino-hozan", "黒霧島（芋）", 800, "shochu", [whiskeyMix, strength]),
+        item("ichiryuno-mugi", "二階堂（麦）", 800, "shochu", [shochuMix, strength]),
+        item("tomino-hozan", "黒霧島（芋）", 800, "shochu", [shochuMix, strength]),
         item("jasmine-jj", "JJ", 800, "shochu", [straw, ice]),
         item("jasmine-jr", "JR", 800, "shochu", [straw, ice]),
         item("jasmine-jk", "JK", 800, "shochu", [straw, ice]),
