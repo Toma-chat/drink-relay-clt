@@ -9,6 +9,7 @@
     "iced-coffee",
     "item-1783049531455",
     "sonic",
+    "tonic",
     "melon-soda",
     "item-1783049599311",
     "item-1783049610093",

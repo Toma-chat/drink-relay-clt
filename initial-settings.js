@@ -2779,6 +2779,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
         item("melon-soda", "メロンソーダ", 600, "default", [ice]),
         item("item-1783049531455", "ジンジャーエール", 600, "default", [ice]),
         item("sonic", "ソニック", 600, "default", [ice], "炭酸水とトニックウォーターを合わせる"),
+        item("tonic", "トニック", 600, "default", [ice], "トニックウォーターを注ぐ"),
         item("item-1783049570152", "カルピス", 600, "default", [
           option("calpis-mix", "割り方", ["炭酸", "水", "牛乳", "マンゴー", "オレンジ"], true),
           strength,
