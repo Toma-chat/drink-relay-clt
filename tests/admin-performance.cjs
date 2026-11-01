@@ -1,0 +1,32 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const timers = new Map();
+let timerId = 0, reads = 0, draws = 0;
+const cards = [{ id: 'card-1', status: 'active' }];
+const gateway = { loadCards: async () => { reads++; return cards; } };
+const window = { DrinkRelayUnlimited: { normalizeCardCatalog: value => value },
+  clearTimeout: id => timers.delete(id), setTimeout: fn => { timers.set(++timerId, fn); return timerId; } };
+const document = { addEventListener() {} };
+let source = fs.readFileSync('unlimited-admin.js', 'utf8');
+const end = source.lastIndexOf('})();');
+source = source.slice(0, end) + 'window.adminPerf={handleGatewayChange, setup(g,c,draw){gateway=g;cards=c;renderCards=draw;}};' + source.slice(end);
+vm.runInNewContext(source, { window, document });
+window.adminPerf.setup(gateway, cards, () => { draws++; });
+(async () => {
+  window.adminPerf.handleGatewayChange('orders-changed');
+  assert.equal(timers.size, 0, 'order changes must not fetch sessions or regenerate QR codes');
+  window.adminPerf.handleGatewayChange('session-changed');
+  assert.equal(timers.size, 1, 'session changes still schedule session refresh');
+  timers.clear();
+  window.adminPerf.handleGatewayChange('cards-changed');
+  assert.equal(timers.size, 1);
+  const callback = [...timers.values()][0]; timers.clear(); await callback();
+  assert.equal(reads, 1); assert.equal(draws, 0, 'identical catalog must not regenerate QR codes');
+  gateway.loadCards = async () => [...cards, { id: 'card-2', status: 'active' }];
+  window.adminPerf.handleGatewayChange('cards-changed');
+  const changed = [...timers.values()][0]; timers.clear(); await changed();
+  assert.equal(draws, 1, 'changed catalog still regenerates QR codes');
+  assert.equal(timers.size, 1, 'changed catalog refreshes session card labels');
+  console.log('PASS order/session/card event isolation, identical catalog skip, and changed catalog refresh');
+})().catch(error => { console.error(error); process.exitCode = 1; });

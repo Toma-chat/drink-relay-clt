@@ -53,10 +53,7 @@
       renderCardPlanOptions();
       renderCards();
       updateCardOriginNote();
-      gateway.onChange(() => {
-        scheduleRefresh();
-        scheduleCardRefresh();
-      });
+      gateway.onChange(handleGatewayChange);
       await renderSessions();
       refreshTimer = window.setInterval(renderSessions, 10000);
       window.addEventListener("pagehide", () => window.clearInterval(refreshTimer), { once: true });
@@ -71,12 +68,20 @@
     scheduleRefresh.timer = window.setTimeout(renderSessions, 250);
   }
 
+  function handleGatewayChange(type) {
+    if (["session-changed", "unlimited-session-changed", "storage-changed"].includes(type)) scheduleRefresh();
+    if (["cards-changed", "storage-changed"].includes(type)) scheduleCardRefresh();
+  }
+
   function scheduleCardRefresh() {
     window.clearTimeout(scheduleCardRefresh.timer);
     scheduleCardRefresh.timer = window.setTimeout(async () => {
       try {
-        cards = U.normalizeCardCatalog(await gateway.loadCards());
+        const next = U.normalizeCardCatalog(await gateway.loadCards());
+        if (JSON.stringify(next) === JSON.stringify(cards)) return;
+        cards = next;
         renderCards();
+        scheduleRefresh();
       } catch {
       }
     }, 300);
