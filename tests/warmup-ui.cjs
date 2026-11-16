@@ -37,6 +37,8 @@ async function main(){
  $('#saveCurrentLocation').click();await tick();ok(!$('#orderState').hidden && !$('#locationDialog').open,'saved destination opens authenticated order screen');
  const beforePoll=apiCalls.length;await poll();ok(!$('#orderState').hidden && !$('#locationDialog').open,'confirmed session is not prompted again');
  assert.deepEqual(apiCalls.slice(beforePoll),['status'],'one status request and no menu fetch per active refresh');
+ const originalNow=w.Date.now;const later=originalNow()+600000;w.Date.now=()=>later;
+ const beforeLater=apiCalls.length;await poll();assert.deepEqual(apiCalls.slice(beforeLater),['status'],'no periodic menu fetch even after ten minutes');w.Date.now=originalNow;
  ok($('#activePlanName').textContent==='Warmup飲み放題','Warmup plan label');ok($('#remainingTime').textContent.includes('本日23:59まで'),'expiry label');
  ok($('#customer-group-alcohol-tea-highs h2')?.textContent==='お茶ハイ','tea highs have their own visible category');
  ok($('#customer-group-alcohol-tea-highs')?.querySelectorAll('[data-item-id]').length===4,'tea-high category displays all four drinks');

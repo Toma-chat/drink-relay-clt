@@ -11,7 +11,7 @@
     submitting: false, pendingOrder: null, orderStatusLoading: true, orderStatusError: false,
     orderAvailabilityInitialized: false, locationSaving: false,
     pollTimer: null, clockTimer: null, toastTimer: null,
-    checking: false, stopped: false, menuCheckedAt: 0, failures: 0,
+    checking: false, stopped: false, failures: 0,
   };
 
   document.addEventListener("DOMContentLoaded", init);
@@ -42,7 +42,6 @@
         state.gateway.loadMenu(),
       ]);
       state.menu = menu;
-      state.menuCheckedAt = Date.now();
       state.plan = U.findPlan(state.menu, planId);
       if (warmup && state.plan) state.plan = { ...state.plan, name: "Warmup飲み放題" };
       state.rule = U.CONFIG.planRules[planId];
@@ -72,11 +71,6 @@
     const data = await state.gateway.status();
     state.session = data.session;
     state.rule = data.profile;
-    if (Date.now() - state.menuCheckedAt >= 300000) {
-      const freshMenu = await state.gateway.loadMenu();
-      state.menuCheckedAt = Date.now();
-      if (JSON.stringify(freshMenu) !== JSON.stringify(state.menu)) { state.menu = freshMenu; $("#menuSections").replaceChildren(); state.cart = []; }
-    }
     if (data.reason !== 'weekday' || data.stopped || !data.session) {
       closeDialogs(true); state.cart = []; renderCartBadge();
       showOnly('warmupActivation');
