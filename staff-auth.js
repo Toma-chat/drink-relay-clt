@@ -27,13 +27,38 @@
     resolveReady(true);
   }
 
+  function publicError(message) {
+    const error = new Error(message);
+    error.userMessage = message;
+    return error;
+  }
+
+  function loginErrorMessage(error, fallback = "ログインできませんでした。時間をおいて再試行し、続く場合は管理者へ連絡してください。") {
+    if (error?.userMessage) return error.userMessage;
+    const status = Number(error?.status || error?.originalError?.status || 0);
+    const code = String(error?.code || "");
+    const message = String(error?.message || "");
+    if (status === 402 || /exceed_.*quota|project.*restricted|payment required/i.test(message)) {
+      return "認証サービスが利用枠・課金設定の制限により停止しています。管理者がSupabaseの利用量・契約状況を確認してください。";
+    }
+    if (status === 429 || /rate_limit/.test(code)) return "ログインの試行回数が制限されています。少し時間をおいてから再試行してください。";
+    if (status >= 500) return "認証サーバーで障害が発生しています。時間をおいて再試行してください。";
+    if (code === "invalid_credentials" || /^invalid login credentials$/i.test(message)) return "メールアドレスまたはパスワードを確認してください。";
+    if (code === "email_not_confirmed") return "メールアドレスの確認が完了していません。確認メールのリンクを開いてからログインしてください。";
+    if (code === "user_banned") return "このアカウントは利用停止中です。管理者へ連絡してください。";
+    if (["session_not_found", "session_expired", "refresh_token_not_found", "refresh_token_already_used", "bad_jwt"].includes(code)) return "ログインの有効期限が切れています。もう一度ログインしてください。";
+    if (error?.name === "AbortError" || /timeout|timed out/i.test(message)) return "認証サーバーの応答が時間内に届きませんでした。通信状態を確認して再試行してください。";
+    if (navigator.onLine === false || ["TypeError", "AuthRetryableFetchError"].includes(error?.name) || /failed to fetch|fetch failed|load failed|network/i.test(message)) return "認証サーバーと通信できません。インターネット接続を確認して再試行してください。";
+    return fallback;
+  }
+
   async function isAllowedStaff() {
     const { data, error } = await client.rpc("is_drink_staff");
     if (error) {
-      const missing = error.code === "PGRST202" || /is_drink_staff/i.test(error.message || "");
-      throw new Error(missing
+      const missing = error.code === "PGRST202" || error.code === "42883";
+      throw publicError(missing
         ? "セキュリティ更新がSupabaseへ未適用です。管理者へ連絡してください。"
-        : "スタッフ権限を確認できませんでした。");
+        : loginErrorMessage(error, "スタッフ権限を確認できませんでした。管理者へ連絡してください。"));
     }
     return data === true;
   }
@@ -42,7 +67,7 @@
     if (!session?.user) return false;
     if (!await isAllowedStaff()) {
       await client.auth.signOut();
-      throw new Error("このアカウントには店舗管理画面の利用権限がありません。");
+      throw publicError("このアカウントには店舗管理画面の利用権限がありません。");
     }
     revealApplication(session.user);
     return true;
@@ -75,10 +100,10 @@
           email: String(values.get("email") || "").trim(),
           password: String(values.get("password") || ""),
         });
-        if (error) throw new Error("メールアドレスまたはパスワードを確認してください。");
-        await acceptSession(data.session);
+        if (error) throw error;
+        if (!await acceptSession(data?.session)) throw publicError("ログイン情報を取得できませんでした。もう一度ログインしてください。");
       } catch (error) {
-        setStatus(error.message || "ログインできませんでした。", "error");
+        setStatus(loginErrorMessage(error), "error");
       } finally {
         if (button && !ready) button.disabled = false;
       }
@@ -103,7 +128,7 @@
         setStatus("スタッフアカウントでログインしてください。");
       }
     } catch (error) {
-      setStatus(error.message || "ログイン状態を確認できませんでした。", "error");
+      setStatus(loginErrorMessage(error, "ログイン状態を確認できませんでした。再試行し、続く場合は管理者へ連絡してください。"), "error");
     }
   }
 
