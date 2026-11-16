@@ -51,7 +51,7 @@
       const {data:next,error}=await client.rpc('drink_sales_summary',{p_store:window.DRINK_RELAY_STORE_CONFIG.instanceId,p_start:start,p_end:end});
       if(error) throw new Error(error.code==='PGRST202'?'集計用SQLが未適用です。管理者へ連絡してください。':error.message);
       if(revision!==generation) return;
-      data=next;render(data);$('salesStatus').textContent=`対象期間：${data.start}〜${data.end} · 更新：${new Date(data.generatedAt).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'})}`;
+      data=next;render(data);$('salesStatus').textContent=`対象期間：${data.start}〜${data.end} · 更新：${new Date(data.generatedAt).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'})} · 自動更新なし（最新の値は更新ボタンで取得）`;
     } catch(error) {$('salesStatus').textContent='更新できませんでした。'+error.message+' 前回の値を保持しています。';$('salesStatus').dataset.error='true';$('salesRetry').hidden=false;}
     finally{busy=false;$('salesRefresh').disabled=false;$('salesCsv').disabled=!data;if(queued){queued=false;schedule();}}
   }
@@ -73,10 +73,7 @@
       const a=document.createElement('a');a.href=url;a.download=`CLT集計_${data.start}_${data.end}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     });
     document.addEventListener('drink-view-changed',e=>{visible=e.detail==='sales';if(visible)refresh();});
-    client.channel('staff-sales-updates').on('postgres_changes',{event:'*',schema:'public',table:'drink_orders'},schedule)
-      .on('postgres_changes',{event:'*',schema:'public',table:'drink_app_settings'},schedule).subscribe();
-    setInterval(()=>{if(visible&&!document.hidden) refresh();},30000);
-    document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});window.addEventListener('online',schedule);
+
   }
   document.addEventListener('DOMContentLoaded',initialize);
 })();

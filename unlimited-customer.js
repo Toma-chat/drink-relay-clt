@@ -12,12 +12,16 @@
     orderAvailabilityInitialized: false, locationSaving: false,
     pollTimer: null, clockTimer: null, toastTimer: null,
     checking: false, stopped: false, failures: 0,
+    idle: false, lastActivityAt: performance.now(),
   };
 
   document.addEventListener("DOMContentLoaded", init);
 
   async function init() {
     wireControls();
+    for (const event of ["pointerdown", "touchstart", "keydown", "scroll"]) {
+      document.addEventListener(event, noteActivity, { passive: true, capture: true });
+    }
     if (!U) {
       showError("画面を読み込めませんでした", "再読み込みしても直らない場合は受付スタッフへお声がけください。", true);
       return;
@@ -123,27 +127,56 @@
     }
   }
 
+  function canIdle() {
+    return state.session?.status === "active" && state.orderAvailabilityInitialized
+      && !state.pendingOrder && !state.orderStatusError && !state.failures
+      && !state.submitting && !state.locationSaving;
+  }
+
+  function isIdle() {
+    return canIdle() && performance.now() - state.lastActivityAt >= 120000;
+  }
+
+  function noteActivity() {
+    const resume = state.idle || isIdle();
+    state.lastActivityAt = performance.now();
+    state.idle = false;
+    if (resume && !state.stopped && !document.hidden) scheduleSessionCheck();
+  }
+
   function scheduleNextCheck() {
     window.clearTimeout(state.pollTimer);
     if (state.stopped || document.hidden) return;
-    const delay = state.failures ? Math.min(60000, 10000 * state.failures)
+    if (isIdle()) { state.idle = true; return; }
+    let delay = state.failures ? Math.min(60000, 10000 * state.failures)
       : state.session?.status === "pending" ? 5000 : state.pendingOrder ? 10000 : 30000;
+    if (canIdle()) delay = Math.min(delay, Math.max(1, 120000 - (performance.now() - state.lastActivityAt)));
     state.pollTimer = window.setTimeout(() => checkSession(false), delay);
   }
 
   function resumeChecks() {
     window.clearTimeout(state.pollTimer);
-    if (!document.hidden && !state.stopped) scheduleSessionCheck();
+    if (!document.hidden && !state.stopped) {
+      state.lastActivityAt = performance.now();
+      state.idle = false;
+      scheduleSessionCheck();
+    }
   }
 
   function scheduleSessionCheck() {
     window.clearTimeout(scheduleSessionCheck.timer);
-    if (document.hidden || state.stopped) return;
+    if (document.hidden || state.stopped || isIdle()) return;
     scheduleSessionCheck.timer = window.setTimeout(() => checkSession(false), 500);
   }
 
   async function checkSession(createIfMissing) {
     if (!state.gateway || !state.cardHash || state.checking || document.hidden || (state.stopped && !createIfMissing)) return;
+    if (!createIfMissing && isIdle()) {
+      state.idle = true;
+      window.clearTimeout(state.pollTimer);
+      return;
+    }
+    state.idle = false;
     state.checking = true;
     window.clearTimeout(state.pollTimer);
     try {

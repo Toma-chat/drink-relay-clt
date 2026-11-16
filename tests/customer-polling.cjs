@@ -2,12 +2,13 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const {JSDOM}=require(path.join(process.env.TEMP,'warmup-validation/node_modules/jsdom'));
 (async()=>{
 const dom=new JSDOM(fs.readFileSync('unlimited-customer.html','utf8'),{url:'https://example.test/unlimited-customer.html',runScripts:'outside-only',pretendToBeVisual:true});const w=dom.window;
-const timers=new Map();let n=0,hidden=false,calls=0,release;
+const timers=new Map();let n=0,hidden=false,calls=0,release,clock=0;
+Object.defineProperty(w.performance,"now",{value:()=>clock});
 w.setTimeout=(fn,delay)=>{timers.set(++n,{fn,delay});return n;};w.clearTimeout=id=>timers.delete(id);w.clearInterval=()=>{};w.setInterval=()=>1;
 Object.defineProperty(w.document,'hidden',{get:()=>hidden});w.document.addEventListener=()=>{};
 w.HTMLDialogElement.prototype.close=function(){this.open=false};
 for(const file of ['initial-settings.js','unlimited-config.js','unlimited-shared.js'])w.eval(fs.readFileSync(file,'utf8'));
-let src=fs.readFileSync('unlimited-customer.js','utf8');const end=src.lastIndexOf('})();');src=src.slice(0,end)+'window.pollTest={state,checkSession,scheduleNextCheck,resumeChecks,showEnded};showOrder=()=>{};renderOrderAvailability=()=>{};'+src.slice(end);w.eval(src);const t=w.pollTest;
+let src=fs.readFileSync('unlimited-customer.js','utf8');const end=src.lastIndexOf('})();');src=src.slice(0,end)+'window.pollTest={state,checkSession,scheduleNextCheck,resumeChecks,showEnded,noteActivity,updateClock};showOrder=()=>{};renderOrderAvailability=()=>{};'+src.slice(end);w.eval(src);const t=w.pollTest;
 const session={sessionId:'current',planId:'unlimited-soft-2h',status:'active',expiresAt:new Date(Date.now()+3600000).toISOString(),locationConfirmed:true};
 t.state.cardHash='hash';t.state.plan={id:session.planId};t.state.gateway={ensureServerClock:async()=>{},now:()=>Date.now(),customerSnapshot:async()=>{calls++;return {session,pendingOrder:null}},getUnlimitedOrderState:async()=>{throw new Error('redundant order query')}};
 await t.checkSession(false);assert.equal(calls,1);assert.equal([...timers.values()].at(-1).delay,30000);
@@ -17,6 +18,13 @@ t.state.pendingOrder={id:'pending'};t.scheduleNextCheck();assert.equal([...timer
 t.state.session.status='pending';t.scheduleNextCheck();assert.equal([...timers.values()].at(-1).delay,5000);t.state.session.status='active';
 t.state.gateway.customerSnapshot=async()=>{calls++;await new Promise(r=>{release=r});return {session,pendingOrder:null}};
 const first=t.checkSession(false);await Promise.resolve();await Promise.resolve();await t.checkSession(false);assert.equal(calls,2,'concurrent checks coalesced');release();await first;
-t.showEnded();assert.ok(![...timers.values()].some(x=>[500,5000,10000,30000,60000].includes(x.delay)));await t.checkSession(false);assert.equal(calls,2);
-console.log('PASS single snapshot per check, no extra order request, hidden/ended stop, visible resume, state-specific intervals and overlap prevention');dom.window.close();
+let pending=null;
+t.state.gateway.customerSnapshot=async()=>{calls++;return {session,pendingOrder:pending}};
+clock=119999;t.scheduleNextCheck();assert.equal(timers.get(t.state.pollTimer).delay,1,'idle boundary is exactly two minutes');
+clock=120000;await t.checkSession(false);assert.equal(calls,2,'no automatic request after two idle minutes');assert.ok(t.state.idle);
+t.noteActivity();assert.equal([...timers.values()].at(-1).delay,500,'activity resumes with a debounced refresh');await t.checkSession(false);assert.equal(calls,3);
+clock=600000;t.state.pendingOrder=pending={id:'still-pending',status:'ordered'};await t.checkSession(false);assert.equal(calls,4,'pending order keeps polling despite no activity');assert.equal(timers.get(t.state.pollTimer).delay,10000);
+pending=null;clock=610000;await t.checkSession(false);assert.equal(calls,5);assert.ok(t.state.idle,'confirming served order resumes idle suspension');assert.ok(!timers.has(t.state.pollTimer));
+t.state.gateway.now=()=>Date.now()+7200000;t.updateClock();assert.ok(t.state.stopped,'expiry still ends an idle session');t.noteActivity();await t.checkSession(false);assert.equal(calls,5,'expired session never restarts polling');
+console.log('PASS single snapshot per check, no extra order request, hidden/ended stop, visible resume, state-specific intervals overlap prevention, exact two-minute idle boundary, input resume, pending/served transition and idle expiry');dom.window.close();
 })().catch(e=>{console.error(e);process.exitCode=1});
