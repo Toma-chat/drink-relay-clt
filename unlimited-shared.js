@@ -310,6 +310,16 @@
       return Object.values(readJson(SESSION_KEY, {}));
     }
 
+    async customerSnapshot(cardHash, sessionId) {
+      if (this.mode === "supabase") return this.edgeApi("snapshot", { sessionId });
+      const cards = await this.loadCards();
+      const card = cards.find((entry) => entry.token === this.customerContext?.card);
+      if (!card || card.status !== "active" || card.planId !== this.customerContext?.plan) throw new Error("このQRカードは利用できません");
+      const session = await this.getSession(cardHash);
+      const orders = session?.status === "active" ? await this.getUnlimitedOrderState(session.sessionId) : {};
+      return { session, pendingOrder: orders.pendingOrder || null };
+    }
+
     async saveSession(session) {
       const id = this.sessionRowId(session.cardHash);
       const value = { ...session, updatedAt: new Date(this.now()).toISOString() };

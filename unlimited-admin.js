@@ -54,8 +54,12 @@
       renderCards();
       updateCardOriginNote();
       gateway.onChange(handleGatewayChange);
-      await renderSessions();
-      refreshTimer = window.setInterval(renderSessions, 10000);
+      if (managementVisible()) await renderSessions();
+      const resume = () => { if (managementVisible()) { scheduleRefresh(); scheduleCardRefresh(); } };
+      document.addEventListener("drink-view-changed", resume);
+      document.addEventListener("visibilitychange", resume);
+      document.addEventListener("drink-management-changed", resume);
+      refreshTimer = window.setInterval(() => { if (managementVisible()) void renderSessions(); }, 30000);
       window.addEventListener("pagehide", () => window.clearInterval(refreshTimer), { once: true });
     } catch (error) {
       setStatus(error.message || "飲み放題カードの状態を読み込めません", "error");
@@ -63,9 +67,14 @@
     }
   }
 
+  function managementVisible() {
+    return !document.hidden && Boolean($("#unlimitedSessionList")?.getClientRects().length);
+  }
+
   function scheduleRefresh() {
+    if (!managementVisible()) return;
     window.clearTimeout(scheduleRefresh.timer);
-    scheduleRefresh.timer = window.setTimeout(renderSessions, 250);
+    scheduleRefresh.timer = window.setTimeout(() => { if (managementVisible()) void renderSessions(); }, 250);
   }
 
   function handleGatewayChange(type) {
@@ -74,8 +83,10 @@
   }
 
   function scheduleCardRefresh() {
+    if (!managementVisible()) return;
     window.clearTimeout(scheduleCardRefresh.timer);
     scheduleCardRefresh.timer = window.setTimeout(async () => {
+      if (!managementVisible()) return;
       try {
         const next = U.normalizeCardCatalog(await gateway.loadCards());
         if (JSON.stringify(next) === JSON.stringify(cards)) return;

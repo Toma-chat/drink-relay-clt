@@ -21,7 +21,7 @@ const tick=()=>new Promise(r=>setTimeout(r,40));
   G.getUnlimitedOrderState=async()=>({orders,pendingOrder:orders.find(x=>x.status==='ordered')||null});
   G.saveSession=async()=>{saves++;return session;};
   let code=fs.readFileSync('unlimited-customer.js','utf8');code=code.replace(/\}\)\(\);\s*$/, 'window.cardTest={state,checkSession,submitOrder,saveCurrentLocation};})();');w.eval(code);await tick();
-  return {dom,w,$:s=>w.document.querySelector(s),poll:()=>poll()};
+  return {dom,w,$:s=>w.document.querySelector(s),poll:()=>w.cardTest.checkSession(false)};
  }
  const one=await browser(),two=await browser();
  assert.equal(one.$('#orderState').hidden,false);assert.equal(two.$('#orderState').hidden,false);assert.equal(saves,0,'no activation write for fresh browser');

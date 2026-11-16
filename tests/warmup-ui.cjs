@@ -10,16 +10,17 @@ async function main(){
  const evaluate=file=>w.eval(fs.readFileSync(file,'utf8'));
  evaluate('store-config.js');evaluate('initial-settings.js');evaluate('unlimited-config.js');evaluate('unlimited-shared.js');
  w.DrinkRelayUnlimited.Gateway.prototype.init=async function(){return this;};
+ const apiCalls=[];
  let session=null,orders=[],stopped=false,reason='weekday',fail=false;
  const profile=w.DRINK_RELAY_UNLIMITED_CONFIG.planRules['unlimited-alcohol-all-day'];
  w.fetch=async(url,request)=>{
-  if(fail)throw new Error('network unavailable');const p=JSON.parse(request.body);let error;
+  if(fail)throw new Error('network unavailable');const p=JSON.parse(request.body);apiCalls.push(p.action);let error;
   if(p.action==='activate'){if(p.code!=='1234')error='コードが違います';else session={sessionId:'test-session',status:'active',deviceBinding:p.device,expiresAt:'2099-10-06T00:00:00+09:00',currentLocation:{target:'bar',tableNo:'',seatNo:''},planId:'unlimited-alcohol-all-day'};}
   if(p.action==='order'){if(orders.some(o=>o.status==='ordered'))error='提供待ち';else orders.push({id:'test-order',quantity:1,status:'ordered',target:'bar',drink_name:'Drink'});}
   if(p.action==='location')session.currentLocation=p.location;
   return {ok:true,json:async()=>error?{error}:{reason,stopped,profile,session,orders,token:p.action==='activate'?'random-test-token':null,serverNow:new Date().toISOString(),order:orders.at(-1)}};
  };
- evaluate('warmup-client.js');evaluate('unlimited-customer.js');await tick();
+ evaluate('warmup-client.js');w.eval(fs.readFileSync('unlimited-customer.js','utf8').replace(/\}\)\(\);\s*$/, 'window.warmupPoll=()=>checkSession(false);})();'));poll=()=>w.warmupPoll();await tick();
  const $=s=>w.document.querySelector(s);let count=0;const ok=(v,label)=>{assert.ok(v,label);console.log('PASS '+label);count++;};
  ok(!$('#warmupActivation').hidden && !$('#warmupForm').hidden,'code entry screen');
  $('#warmupCode').value='9999';$('#warmupForm').dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();ok($('#warmupAuthError').textContent.includes('違い'),'code error rendered');
@@ -34,7 +35,8 @@ async function main(){
  $('[data-location-choice="tableNo"][data-location-value="B"]').click();
  $('[data-location-choice="seatNo"][data-location-value="3"]').click();
  $('#saveCurrentLocation').click();await tick();ok(!$('#orderState').hidden && !$('#locationDialog').open,'saved destination opens authenticated order screen');
- await poll();ok(!$('#orderState').hidden && !$('#locationDialog').open,'confirmed session is not prompted again');
+ const beforePoll=apiCalls.length;await poll();ok(!$('#orderState').hidden && !$('#locationDialog').open,'confirmed session is not prompted again');
+ assert.deepEqual(apiCalls.slice(beforePoll),['status'],'one status request and no menu fetch per active refresh');
  ok($('#activePlanName').textContent==='Warmup飲み放題','Warmup plan label');ok($('#remainingTime').textContent.includes('本日23:59まで'),'expiry label');
  ok($('#customer-group-alcohol-tea-highs h2')?.textContent==='お茶ハイ','tea highs have their own visible category');
  ok($('#customer-group-alcohol-tea-highs')?.querySelectorAll('[data-item-id]').length===4,'tea-high category displays all four drinks');

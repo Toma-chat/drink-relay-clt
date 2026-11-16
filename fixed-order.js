@@ -41,6 +41,7 @@
           const open = toggle.getAttribute('aria-expanded') !== 'true';
           toggle.setAttribute('aria-expanded',String(open));
           document.getElementById('view-reception').classList.toggle('fixed-management-open',open);
+          document.dispatchEvent(new CustomEvent('drink-management-changed'));
           toggle.textContent = open ? '注文入力へ戻る' : '飲み放題・Warmup・QR管理を開く';
         });
       }

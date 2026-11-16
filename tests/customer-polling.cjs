@@ -1,0 +1,22 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {JSDOM}=require(path.join(process.env.TEMP,'warmup-validation/node_modules/jsdom'));
+(async()=>{
+const dom=new JSDOM(fs.readFileSync('unlimited-customer.html','utf8'),{url:'https://example.test/unlimited-customer.html',runScripts:'outside-only',pretendToBeVisual:true});const w=dom.window;
+const timers=new Map();let n=0,hidden=false,calls=0,release;
+w.setTimeout=(fn,delay)=>{timers.set(++n,{fn,delay});return n;};w.clearTimeout=id=>timers.delete(id);w.clearInterval=()=>{};w.setInterval=()=>1;
+Object.defineProperty(w.document,'hidden',{get:()=>hidden});w.document.addEventListener=()=>{};
+w.HTMLDialogElement.prototype.close=function(){this.open=false};
+for(const file of ['initial-settings.js','unlimited-config.js','unlimited-shared.js'])w.eval(fs.readFileSync(file,'utf8'));
+let src=fs.readFileSync('unlimited-customer.js','utf8');const end=src.lastIndexOf('})();');src=src.slice(0,end)+'window.pollTest={state,checkSession,scheduleNextCheck,resumeChecks,showEnded};showOrder=()=>{};renderOrderAvailability=()=>{};'+src.slice(end);w.eval(src);const t=w.pollTest;
+const session={sessionId:'current',planId:'unlimited-soft-2h',status:'active',expiresAt:new Date(Date.now()+3600000).toISOString(),locationConfirmed:true};
+t.state.cardHash='hash';t.state.plan={id:session.planId};t.state.gateway={ensureServerClock:async()=>{},now:()=>Date.now(),customerSnapshot:async()=>{calls++;return {session,pendingOrder:null}},getUnlimitedOrderState:async()=>{throw new Error('redundant order query')}};
+await t.checkSession(false);assert.equal(calls,1);assert.equal([...timers.values()].at(-1).delay,30000);
+hidden=true;t.resumeChecks();assert.equal(timers.size,0);await t.checkSession(false);assert.equal(calls,1);
+hidden=false;t.resumeChecks();assert.equal([...timers.values()].at(-1).delay,500);timers.clear();
+t.state.pendingOrder={id:'pending'};t.scheduleNextCheck();assert.equal([...timers.values()].at(-1).delay,10000);
+t.state.session.status='pending';t.scheduleNextCheck();assert.equal([...timers.values()].at(-1).delay,5000);t.state.session.status='active';
+t.state.gateway.customerSnapshot=async()=>{calls++;await new Promise(r=>{release=r});return {session,pendingOrder:null}};
+const first=t.checkSession(false);await Promise.resolve();await Promise.resolve();await t.checkSession(false);assert.equal(calls,2,'concurrent checks coalesced');release();await first;
+t.showEnded();assert.ok(![...timers.values()].some(x=>[500,5000,10000,30000,60000].includes(x.delay)));await t.checkSession(false);assert.equal(calls,2);
+console.log('PASS single snapshot per check, no extra order request, hidden/ended stop, visible resume, state-specific intervals and overlap prevention');dom.window.close();
+})().catch(e=>{console.error(e);process.exitCode=1});

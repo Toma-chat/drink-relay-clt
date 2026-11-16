@@ -646,6 +646,14 @@ async function customerAction(action: string, body: JsonObject) {
     immutable: context.card.immutable === true,
   } };
   if (action === "status") return { session: safeSession(session, context.device), serverNow: new Date().toISOString() };
+  if (action === "snapshot") {
+    const usable = session?.status === "active" && Date.parse(session.expiresAt) > Date.now()
+      && (!body.sessionId || body.sessionId === session.sessionId);
+    const orders = usable ? await sessionOrders(session.sessionId) : [];
+    return { session: safeSession(session, context.device),
+      pendingOrder: orders.find((order) => OPEN_STATUSES.includes(order.status)) || null,
+      serverNow: new Date().toISOString() };
+  }
 
   if (action === "save-session") {
     const now = Date.now();

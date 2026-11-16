@@ -69,6 +69,11 @@
     };
     root.addEventListener('click', event => { const button = event.target.closest('[data-action]'); if(button) safely(button.dataset.action,{revoke:$('#warmupRevoke').checked}); });
     $('#warmupLogout').onclick = async () => { await gateway.supabase.auth.signOut(); location.reload(); };
-    await safely(); window.setInterval(()=>safely(),15000);
+    const visible = () => !document.hidden && root.getClientRects().length > 0;
+    const refreshVisible = () => { if (visible()) void safely(); };
+    refreshVisible(); window.setInterval(refreshVisible,30000);
+    document.addEventListener('visibilitychange',refreshVisible);
+    document.addEventListener('drink-view-changed',refreshVisible);
+    document.addEventListener('drink-management-changed',refreshVisible);
   });
 })();

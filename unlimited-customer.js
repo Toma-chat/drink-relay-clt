@@ -11,6 +11,7 @@
     submitting: false, pendingOrder: null, orderStatusLoading: true, orderStatusError: false,
     orderAvailabilityInitialized: false, locationSaving: false,
     pollTimer: null, clockTimer: null, toastTimer: null,
+    checking: false, stopped: false, menuCheckedAt: 0, failures: 0,
   };
 
   document.addEventListener("DOMContentLoaded", init);
@@ -41,6 +42,7 @@
         state.gateway.loadMenu(),
       ]);
       state.menu = menu;
+      state.menuCheckedAt = Date.now();
       state.plan = U.findPlan(state.menu, planId);
       if (warmup && state.plan) state.plan = { ...state.plan, name: "Warmup飲み放題" };
       state.rule = U.CONFIG.planRules[planId];
@@ -49,9 +51,14 @@
         return;
       }
 
-      state.gateway.onChange(() => scheduleSessionCheck());
+      state.gateway.onChange((type) => {
+        if (type === "cards-changed" || type === "session-changed" || type === "unlimited-session-changed") scheduleSessionCheck();
+      });
       await checkSession(true);
-      state.pollTimer = window.setInterval(() => checkSession(false), 3000);
+      scheduleNextCheck();
+      document.addEventListener("visibilitychange", resumeChecks);
+      window.addEventListener("pageshow", resumeChecks);
+      window.addEventListener("online", resumeChecks);
       window.addEventListener("pagehide", cleanup, { once: true });
     } catch (error) {
       console.error(error);
@@ -65,8 +72,11 @@
     const data = await state.gateway.status();
     state.session = data.session;
     state.rule = data.profile;
-    const freshMenu = await state.gateway.loadMenu();
-    if (JSON.stringify(freshMenu) !== JSON.stringify(state.menu)) { state.menu = freshMenu; $('#menuSections').replaceChildren(); state.cart = []; }
+    if (Date.now() - state.menuCheckedAt >= 300000) {
+      const freshMenu = await state.gateway.loadMenu();
+      state.menuCheckedAt = Date.now();
+      if (JSON.stringify(freshMenu) !== JSON.stringify(state.menu)) { state.menu = freshMenu; $("#menuSections").replaceChildren(); state.cart = []; }
+    }
     if (data.reason !== 'weekday' || data.stopped || !data.session) {
       closeDialogs(true); state.cart = []; renderCartBadge();
       showOnly('warmupActivation');
@@ -81,7 +91,7 @@
       if (!$('#locationDialog').open) openLocationDialog();
       return;
     }
-    await refreshOrderAvailability(data.session);
+    await refreshOrderAvailability(data.session, { pendingOrder: data.orders.find(o => ["ordered", "making", "made"].includes(o.status)) || null });
     showOrder(data.session);
   }
 
@@ -119,20 +129,37 @@
     }
   }
 
+  function scheduleNextCheck() {
+    window.clearTimeout(state.pollTimer);
+    if (state.stopped || document.hidden) return;
+    const delay = state.failures ? Math.min(60000, 10000 * state.failures)
+      : state.session?.status === "pending" ? 5000 : state.pendingOrder ? 10000 : 30000;
+    state.pollTimer = window.setTimeout(() => checkSession(false), delay);
+  }
+
+  function resumeChecks() {
+    window.clearTimeout(state.pollTimer);
+    if (!document.hidden && !state.stopped) scheduleSessionCheck();
+  }
+
   function scheduleSessionCheck() {
     window.clearTimeout(scheduleSessionCheck.timer);
-    scheduleSessionCheck.timer = window.setTimeout(() => checkSession(false), 200);
+    if (document.hidden || state.stopped) return;
+    scheduleSessionCheck.timer = window.setTimeout(() => checkSession(false), 500);
   }
 
   async function checkSession(createIfMissing) {
-    if (!state.gateway || !state.cardHash) return;
+    if (!state.gateway || !state.cardHash || state.checking || document.hidden || (state.stopped && !createIfMissing)) return;
+    state.checking = true;
+    window.clearTimeout(state.pollTimer);
     try {
-      if (warmup) { await checkWarmup(); return; }
+      if (warmup) { await checkWarmup(); state.failures = 0; return; }
       await state.gateway.ensureServerClock();
-      await assertCardAuthorized(state.plan?.id);
-      let session = await state.gateway.getSession(state.cardHash);
+      const snapshot = await state.gateway.customerSnapshot(state.cardHash, state.sessionId);
+      state.failures = 0;
+      let session = snapshot.session;
       if (!session && createIfMissing) session = await createActivationRequest();
-      if (!session) return;
+      if (!session) { if (state.sessionId) showEnded(); return; }
       const now = state.gateway.now();
       if (state.sessionId && state.sessionId !== session.sessionId) { showEnded(); return; }
       state.sessionId = session.sessionId;
@@ -176,7 +203,7 @@
           return;
         }
         if ($("#locationDialog").open && $("#closeLocationDialog").hidden) $("#locationDialog").close();
-        await refreshOrderAvailability(session);
+        await refreshOrderAvailability(session, snapshot);
         showOrder(session);
         return;
       }
@@ -188,11 +215,13 @@
           showActivation(renewed);
           return;
         }
+        state.stopped = true;
         showError("このQRカードは無効です", "利用が停止されています。受付スタッフへカードをご提示ください。");
         return;
       }
       showError("このQRカードは利用できません", "受付スタッフへカードをご提示ください。");
     } catch (error) {
+      state.failures++;
       console.error(error);
       if (error instanceof CardAccessError) {
         showError(error.title, error.message);
@@ -200,6 +229,9 @@
       }
       if (!warmup && !$("#orderState").hidden) return;
       showError("通信状態を確認できません", error.message || "注文画面を開くには通信が必要です。接続を確認してください。", true);
+    } finally {
+      state.checking = false;
+      scheduleNextCheck();
     }
   }
 
@@ -224,6 +256,7 @@
   }
 
   async function retryActivation() {
+    state.stopped = false;
     showOnly("loadingState");
     try {
       await assertCardAuthorized(state.plan?.id);
@@ -238,6 +271,8 @@
     } catch (error) {
       if (error instanceof CardAccessError) showError(error.title, error.message);
       else showError("再確認できませんでした", error.message || "通信状態を確認してください。", true);
+    } finally {
+      scheduleNextCheck();
     }
   }
 
@@ -289,6 +324,9 @@
   }
 
   function showEnded() {
+    state.stopped = true;
+    window.clearTimeout(state.pollTimer);
+    window.clearTimeout(scheduleSessionCheck.timer);
     closeDialogs(true);
     state.cart = [];
     state.pendingOrder = null;
@@ -802,12 +840,12 @@
     );
   }
 
-  async function refreshOrderAvailability(session) {
+  async function refreshOrderAvailability(session, supplied) {
     if (!state.gateway || !session?.sessionId) return;
     const previousPendingId = state.pendingOrder?.id || "";
     const wasInitialized = state.orderAvailabilityInitialized;
     try {
-      const result = await state.gateway.getUnlimitedOrderState(session.sessionId);
+      const result = supplied || await state.gateway.getUnlimitedOrderState(session.sessionId);
       state.pendingOrder = result.pendingOrder;
       state.orderStatusLoading = false;
       state.orderStatusError = false;
@@ -881,8 +919,10 @@
   }
 
   function cleanup() {
-    window.clearInterval(state.pollTimer);
+    window.clearTimeout(state.pollTimer);
+    window.clearTimeout(scheduleSessionCheck.timer);
     window.clearInterval(state.clockTimer);
+    state.clockTimer = null;
   }
 
   function cssEscape(value) {
