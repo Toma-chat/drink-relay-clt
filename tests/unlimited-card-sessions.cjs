@@ -11,6 +11,7 @@ const crypto=require('node:crypto').webcrypto;
  await db.exec(schema);
  const migration=fs.readFileSync('supabase/unlimited-card-sessions.sql','utf8');
  await db.exec(migration); await db.exec(migration); // rerunnable
+ await db.exec(fs.readFileSync('supabase/unlimited-read-index-20261116.sql','utf8'));
  const store='card-test',token='existing-printed-card-token',plan='unlimited-soft-2h';
  const hash=Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(store+':'+token))).toString('hex');
  const key='aycd-session-'+hash.slice(0,40);
@@ -33,6 +34,8 @@ const crypto=require('node:crypto').webcrypto;
  let gate=null;
  const rpc=async(name,p)=>{
   if(name==='drink_staff_allowed')return {data:p.p_user_id==='allowed',error:null};
+  if(name==='drink_unlimited_card')return {data:(await db.query('select public.drink_unlimited_card($1) as value',[p.p_token])).rows[0].value,error:null};
+  if(name==='drink_unlimited_read_revision')return {data:(await db.query('select public.drink_unlimited_read_revision($1) as value',[p.p_kind])).rows[0].value,error:null};
   if(gate){const fn=gate;gate=null;await fn();}
   try{return {data:(await db.query('select public.drink_unlimited_mutate($1,$2,$3,$4,$5,$6) as value',[p.p_action,p.p_store,p.p_hash,p.p_session||null,JSON.stringify(p.p_value),p.p_expected?JSON.stringify(p.p_expected):null])).rows[0].value,error:null};}
   catch(error){console.error(error);return {data:null,error};}
@@ -88,5 +91,16 @@ const crypto=require('node:crypto').webcrypto;
  assert.equal((await db.query('select count(*)::int as n from drink_orders')).rows[0].n,1,'historical orders preserved');
  assert.equal((await db.query("select menu->0->>'token' as token from drink_app_settings where id='aycd-card-catalog'")).rows[0].token,token);
  assert.equal((await db.query("select has_function_privilege('anon','public.drink_unlimited_mutate(text,text,text,text,jsonb,jsonb)','execute') as allowed")).rows[0].allowed,false);
+ const revisionBefore=(await rpc('drink_unlimited_read_revision',{p_kind:'cards'})).data;
+ await db.exec('begin');await put('aycd-card-catalog',[{...card,token:'replacement-token-123456'}]);
+ assert.equal((await rpc('drink_unlimited_card',{p_token:token})).data,null,'reissued token is immediately invalid');
+ assert.equal((await rpc('drink_unlimited_card',{p_token:'replacement-token-123456'})).data.token,'replacement-token-123456');
+ assert.notEqual((await rpc('drink_unlimited_read_revision',{p_kind:'cards'})).data,revisionBefore);
+ await db.exec('rollback');assert.equal((await rpc('drink_unlimited_card',{p_token:token})).data.token,token,'index rollback follows catalog rollback');
+ const revisionSession=(await rpc('drink_unlimited_read_revision',{p_kind:'sessions'})).data;
+ await db.exec('begin');await db.query('delete from drink_app_settings where id=$1',[key]);assert.notEqual((await rpc('drink_unlimited_read_revision',{p_kind:'sessions'})).data,revisionSession);await db.exec('rollback');
+ for(const role of ['anon','authenticated']) for(const fn of ['drink_unlimited_card','drink_unlimited_read_revision']) assert.equal((await db.query(`select has_function_privilege('${role}','public.${fn}(text)','execute') as allowed`)).rows[0].allowed,false);
+ await db.exec(fs.readFileSync('supabase/unlimited-read-index-20261116.sql','utf8'));assert.equal((await rpc('drink_unlimited_card',{p_token:token})).data.token,token,'rerun preserves printed QR');
+ console.log('PASS indexed card lookup, atomic reissue/rollback, session-delete revision, service-only grants and idempotent backfill');
  await db.close();console.log('PASS real Edge + PostgreSQL: activation, storage-free access, unchanged times, shared orders/location, 8 concurrent orders, expiry, termination/retirement races, reuse, stale CAS, history, RPC grants');
 })().catch(e=>{console.error(e);process.exitCode=1;});

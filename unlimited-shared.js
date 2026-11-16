@@ -184,7 +184,7 @@
       });
     }
 
-    async init({ realtime = true } = {}) {
+    async init({ realtime = true, orders = true } = {}) {
       const url = String(STORE_CONFIG.supabaseUrl || "").trim();
       const key = String(STORE_CONFIG.supabaseAnonKey || "").trim();
       if (url && key && !window.supabase) {
@@ -193,17 +193,19 @@
       if (url && key && window.supabase) {
         this.supabase = window.supabase.createClient(url, key);
         this.mode = "supabase";
-        if (realtime) this.channel = this.supabase
+        if (realtime) {
+        this.channel = this.supabase
           .channel(`drink_relay_unlimited_${makeId()}`)
           .on("postgres_changes", { event: "*", schema: "public", table: "drink_app_settings" }, (payload) => {
             const rowId = String(payload.new?.id || payload.old?.id || "");
             if (rowId.startsWith(SESSION_ROW_PREFIX)) this.emit("session-changed");
             if (rowId === CARD_CATALOG_ROW_ID) this.emit("cards-changed");
-          })
-          .on("postgres_changes", { event: "*", schema: "public", table: "drink_orders" }, () => {
-            this.emit("orders-changed");
-          })
-          .subscribe();
+          });
+        if (orders) this.channel.on("postgres_changes", { event: "*", schema: "public", table: "drink_orders" }, () => {
+          this.emit("orders-changed");
+        });
+        this.channel.subscribe();
+        }
         await this.syncServerClock(url, key);
       }
       return this;

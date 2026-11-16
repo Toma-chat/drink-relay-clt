@@ -279,7 +279,7 @@
     state.booted = true;
     render();
     setInterval(render, 15000);
-    setInterval(refreshSharedOrders, 60000);
+    setInterval(() => refreshSharedOrders({ historyOnly: state.view === "bar", scheduled: true }), 60000);
     setInterval(() => {
       if (state.view === "bar") refreshSharedOrders({ openOnly: true });
     }, 5000);
@@ -309,7 +309,7 @@
 
   function switchView(viewName) {
     state.view = viewName;
-    if (viewName === "bar" && state.booted) refreshSharedOrders();
+    if (["bar", "reception"].includes(viewName) && state.booted) refreshSharedOrders();
     if (viewName === "bar" && state.soundEnabled) {
       unlockAudio();
     }
@@ -2016,6 +2016,7 @@
   let sharedRefreshPending = false;
   let lastSharedClockSync = -Infinity;
   async function refreshSharedOrders(options = {}) {
+    if (options.scheduled && !["bar", "reception"].includes(state.view)) return;
     if (state.syncMode !== "supabase" || !state.supabase || document.visibilityState === "hidden") return;
     if (sharedRefreshPending) return;
     sharedRefreshPending = true;
@@ -2028,7 +2029,7 @@
           console.warn("時刻同期に失敗しました", error);
         });
       }
-      const changed = await loadOrders({ openOnly: options.openOnly === true });
+      const changed = await loadOrders({ openOnly: options.openOnly === true || (options.scheduled && state.view === "reception"), historyOnly: options.historyOnly === true });
       detectNewOrders();
       if (changed) render();
     } catch (error) {
@@ -2331,12 +2332,12 @@
     return Array.isArray(row?.menu) && row.menu.length > 0;
   }
 
-  async function loadOrders({ openOnly = false } = {}) {
+  async function loadOrders({ openOnly = false, historyOnly = false } = {}) {
     if (state.syncMode === "supabase" && state.supabase) {
       const before = JSON.stringify(state.orders);
       const historyCutoff = new Date(orderNow() - COMPLETED_HISTORY_MS).toISOString();
       const [openResult, historyResult] = await Promise.all([
-        state.supabase
+        historyOnly ? Promise.resolve({ data: state.orders.filter((order) => ["ordered", "making", "made"].includes(order.status)), error: null }) : state.supabase
           .from("drink_orders")
           .select("*")
           .in("status", ["ordered", "making", "made"])

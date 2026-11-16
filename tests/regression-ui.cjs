@@ -13,7 +13,7 @@ async function main(){
  assert.ok(w.document.querySelector('[data-drink-picker] button'));console.log('PASS normal reception menu renders');
  w.document.querySelector('#headerBarButton').click();await tick();assert.ok(w.document.querySelector('#view-bar').classList.contains('active'));console.log('PASS bar switches');
  w.document.querySelector('#headerConfigButton').click();await tick();assert.ok(w.document.querySelector('#menuEditor').children.length);console.log('PASS menu settings render');
- const original=execFileSync('git',['show','HEAD:app.js'],{encoding:'utf8'}),current=fs.readFileSync('app.js','utf8');
+ const original=execFileSync('git',['show','HEAD:app.js'],{encoding:'utf8'}),current=fs.readFileSync('app.js','utf8').replaceAll('\r\n','\n');
  // Whole original completion routine, including the 1.6s delay, must stay byte-equivalent.
  const index=original.indexOf('}, 1600);');assert.ok(index>0);assert.ok(current.includes(original.slice(index-1400,index+30).replaceAll('\r\n','\n')));console.log('PASS bar completion routine unchanged');
  dom.window.close();

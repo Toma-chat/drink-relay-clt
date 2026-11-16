@@ -476,8 +476,8 @@ async function cardContext(body: JsonObject) {
   const plan = String(body.plan || "").trim();
   const device = String(body.device || "").trim();
   if (token.length < 16 || !PLAN_RULES[plan]) throw new ApiError("無効なQRコードです", 403);
-  const catalog = await cards();
-  const card = catalog.find((entry: JsonObject) => entry?.token === token);
+  const { data: card, error: cardError } = await admin.rpc("drink_unlimited_card", { p_token: token });
+  if (cardError) throw new ApiError("QRカード情報を確認できません", 500);
   if (!card || card.status !== "active" || card.planId !== plan) throw new ApiError("このQRカードは利用できません", 403);
   const cardHash = await digest(`${store}:${token}`);
   return { store, token, plan, device, card, cardHash };
@@ -579,6 +579,12 @@ async function pendingSessionOrder(sessionId: string) {
     .in("status", OPEN_STATUSES).order("created_at", { ascending: true }).limit(1);
   if (error) throw new ApiError("注文状況を確認できません", 500);
   return data?.[0] ? { id: data[0].id, status: data[0].status } : null;
+}
+
+async function readRevision(kind: string) {
+  const { data, error } = await admin.rpc("drink_unlimited_read_revision", { p_kind: kind });
+  if (error || data == null) throw new ApiError("更新状態を確認できません", 500);
+  return `read-v1:${data}`;
 }
 
 async function conditionalValue(body: JsonObject, name: string, value: unknown) {
@@ -736,7 +742,11 @@ async function staffAction(req: Request, action: string, body: JsonObject) {
   await requireStaff(req);
   assertStore(body);
 
-  if (action === "staff-list-cards") return conditionalValue(body, "cards", await cards());
+  if (action === "staff-list-cards") {
+    const revision = await readRevision("cards");
+    if (body.revision === revision) return { revision, unchanged: true };
+    return { revision, cards: await cards() };
+  }
   if (action === "staff-save-cards") {
     const value = Array.isArray(body.cards) ? body.cards : null;
     if (!value || value.length > 1000) throw new ApiError("QRカード情報が無効です");
@@ -744,9 +754,11 @@ async function staffAction(req: Request, action: string, body: JsonObject) {
     return { cards: value };
   }
   if (action === "staff-list-sessions") {
+    const revision = await readRevision("sessions");
+    if (body.revision === revision) return { revision, unchanged: true };
     const result = await admin.from("drink_app_settings").select("menu").like("id", `${SESSION_PREFIX}%`);
     if (result.error) throw new ApiError("飲み放題カードの状態を読み込めません", 500);
-    return conditionalValue(body, "sessions", (result.data || []).map((row) => row.menu).filter((value) => value && !Array.isArray(value)));
+    return { revision, sessions: (result.data || []).map((row) => row.menu).filter((value) => value && !Array.isArray(value)) };
   }
   if (action === "staff-save-session") {
     const desired = body.session || {};

@@ -44,8 +44,37 @@
     $("#unlimitedSessionLocationCancel")?.addEventListener("click", closeSessionLocationDialog);
     $("#unlimitedSessionLocationSave")?.addEventListener("click", saveSessionLocation);
 
-    try {
-      gateway = await new U.Gateway().init();
+    const resume = () => {
+      if (!managementVisible()) return;
+      const existing = Boolean(gateway);
+      void ensureManagementLoaded().then(() => {
+        scheduleRefresh();
+        if (existing) scheduleCardRefresh();
+      }).catch(showManagementError);
+    };
+    document.addEventListener("drink-view-changed", resume);
+    document.addEventListener("visibilitychange", resume);
+    document.addEventListener("drink-management-changed", resume);
+    refreshTimer = window.setInterval(() => {
+      if (managementVisible()) void ensureManagementLoaded().then(renderSessions).catch(showManagementError);
+    }, 30000);
+    window.addEventListener("pagehide", () => window.clearInterval(refreshTimer), { once: true });
+    resume();
+  }
+
+  let managementLoad = null;
+  function showManagementError(error) {
+    setStatus(error.message || "飲み放題カードの状態を読み込めません", "error");
+    renderEmpty("通信エラー。管理欄を開き直して再試行してください。");
+  }
+
+  async function ensureManagementLoaded() {
+    if (managementLoad) return managementLoad;
+    managementLoad = (async () => {
+      if (!gateway) {
+        gateway = await new U.Gateway().init({ orders: false });
+        gateway.onChange(handleGatewayChange);
+      }
       menu = await gateway.loadMenu();
       const loadedCards = await gateway.loadCards();
       cards = U.normalizeCardCatalog(loadedCards);
@@ -53,18 +82,8 @@
       renderCardPlanOptions();
       renderCards();
       updateCardOriginNote();
-      gateway.onChange(handleGatewayChange);
-      if (managementVisible()) await renderSessions();
-      const resume = () => { if (managementVisible()) { scheduleRefresh(); scheduleCardRefresh(); } };
-      document.addEventListener("drink-view-changed", resume);
-      document.addEventListener("visibilitychange", resume);
-      document.addEventListener("drink-management-changed", resume);
-      refreshTimer = window.setInterval(() => { if (managementVisible()) void renderSessions(); }, 30000);
-      window.addEventListener("pagehide", () => window.clearInterval(refreshTimer), { once: true });
-    } catch (error) {
-      setStatus(error.message || "飲み放題カードの状態を読み込めません", "error");
-      renderEmpty("通信エラー。接続を確認してください。");
-    }
+    })().catch((error) => { managementLoad = null; throw error; });
+    return managementLoad;
   }
 
   function managementVisible() {
@@ -514,7 +533,7 @@
 
   async function activateByCode(event) {
     event.preventDefault();
-    if (!gateway) return;
+    try { await ensureManagementLoaded(); } catch (error) { showManagementError(error); return; }
     const input = $("#unlimitedActivationCode");
     const button = $("#unlimitedActivateButton");
     const code = input.value.trim();

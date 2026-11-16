@@ -10,8 +10,9 @@ const crypto=require('node:crypto').webcrypto;
     {id:'aycd-card-catalog',menu:[{token,status:'active',planId:plan}]},
     {id:'aycd-session-'+hash.slice(0,40),menu:{sessionId:'test-session',cardHash:hash,planId:plan,planName:'テスト',status:'active',deviceBinding:device,activatedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),currentLocation:{target:'bar',tableNo:'',seatNo:''}}}];
   const orders=[];
+  let queryReads=0;
   class Query {
-    constructor(name){this.rows=name==='drink_orders'?orders:settings;this.tests=[];this.operation='read';}
+    constructor(name){queryReads++;this.rows=name==='drink_orders'?orders:settings;this.tests=[];this.operation='read';}
     select(){return this;} eq(k,v){this.tests.push(x=>x[k]===v);return this;}
     like(k,v){this.tests.push(x=>x[k].startsWith(v.replace('%','')));return this;}
     filter(k,op,v){const expected=JSON.parse(v)[0];this.tests.push(x=>x[k].some(e=>Object.keys(expected).every(k=>e[k]===expected[k])));return this;}
@@ -24,6 +25,8 @@ const crypto=require('node:crypto').webcrypto;
   }
   const admin={from:name=>new Query(name),auth:{getUser:async(jwt)=>({data:{user:jwt==='allowed'||jwt==='denied'?{id:jwt}:null},error:null})},rpc:async(name,p)=>{
     if(name==='drink_staff_allowed')return {data:p.p_user_id==='allowed',error:null};
+    if(name==='drink_unlimited_card')return {data:settings.find(x=>x.id==='aycd-card-catalog')?.menu.find(c=>c.token===p.p_token)||null,error:null};
+    if(name==='drink_unlimited_read_revision')return {data:JSON.stringify(settings.filter(x=>p.p_kind==='cards'?x.id==='aycd-card-catalog':x.id.startsWith('aycd-session-'))),error:null};
     const row=settings.find(x=>x.id==='aycd-session-'+p.p_hash.slice(0,40));
     if(p.p_action==='save'){row.menu=p.p_value;return {data:{session:p.p_value},error:null};}
     if(p.p_action==='order'){orders.push(p.p_value);return {data:{order:p.p_value},error:null};}
@@ -43,7 +46,7 @@ const crypto=require('node:crypto').webcrypto;
   const menuReply=await (await request('menu')).json();assert.ok(menuReply.menu);assert.ok(menuReply.revision);
   assert.equal((await (await request('menu',{revision:menuReply.revision})).json()).unchanged,true);
   const listReply=await (await request('staff-list-sessions',{},'allowed')).json();
-  assert.equal((await (await request('staff-list-sessions',{revision:listReply.revision},'allowed')).json()).unchanged,true);
+  const readsBefore=queryReads;assert.equal((await (await request('staff-list-sessions',{revision:listReply.revision},'allowed')).json()).unchanged,true);assert.equal(queryReads,readsBefore,'unchanged list does not read session bodies');
   assert.equal((await request('staff-list-sessions',{revision:listReply.revision})).status,401);
   assert.equal((await request('card')).status,200,'existing fixed QR');
   const snapshot=await request('snapshot');assert.equal(snapshot.status,200);assert.equal((await snapshot.json()).session.sessionId,'test-session');

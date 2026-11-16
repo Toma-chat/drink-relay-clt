@@ -1,9 +1,11 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),crypto=require('node:crypto').webcrypto;
 (async()=>{
  const window={DRINK_RELAY_STORE_CONFIG:{instanceId:'test',supabaseUrl:'https://example.test',supabaseAnonKey:'test'},addEventListener(){}};
- vm.runInNewContext(fs.readFileSync('unlimited-shared.js','utf8'),{window,Date,localStorage:{getItem(){return null}},location:{origin:'https://example.test'}});
+ vm.runInNewContext(fs.readFileSync('unlimited-shared.js','utf8'),{window,Date,crypto,localStorage:{getItem(){return null}},location:{origin:'https://example.test'}});
  window.supabase={createClient:()=>({channel(){throw new Error('unneeded Realtime subscription')}})};window.DrinkRelayClock={sync:async()=>true};
  await new window.DrinkRelayUnlimited.Gateway().init({realtime:false});
+ const subscriptions=[];const channel={on(e,filter){subscriptions.push(filter.table);return this},subscribe(){return this}};
+ window.supabase={createClient:()=>({channel:()=>channel})};await new window.DrinkRelayUnlimited.Gateway().init({orders:false});assert.deepEqual(subscriptions,['drink_app_settings'],'management does not subscribe to orders');
  const g=new window.DrinkRelayUnlimited.Gateway();g.mode='supabase';let revision='a',value=[{id:'first'}],calls=0;
  g.edgeApi=async(action,p)=>{calls++;const key=action==='menu'?'menu':action==='staff-list-cards'?'cards':'sessions';return p.revision===revision?{unchanged:true,revision}:{[key]:value,revision}};
  for(const name of ['loadMenu','loadCards','listSessions']){

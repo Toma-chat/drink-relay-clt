@@ -41,6 +41,10 @@ const { JSDOM } = require(path.join(process.env.TEMP, 'warmup-validation/node_mo
   assert.deepEqual(filters[0], ['ordered', 'making', 'made']);
   assert.ok(t.state.orders.some(item => item.id === 'history'), 'existing history retained');
   assert.equal(await t.loadOrders({ openOnly: true }), false, 'unchanged results skip redraw');
+  filters.length = 0;result = {data:[history],error:null};
+  await t.loadOrders({historyOnly:true});assert.equal(filters.length,1,'history refresh performs no duplicate open-order query');
+  assert.deepEqual(filters[0],['served','canceled']);assert.ok(t.state.orders.some(item=>item.id===order.id),'history-only refresh retains open orders');
+  const beforeHidden=filters.length;t.state.view='sales';await t.refreshSharedOrders({scheduled:true});assert.equal(filters.length,beforeHidden,'sales/config views do not poll orders');t.state.view='reception';
   result = { data: [], error: null };
   await t.loadOrders({ openOnly: true });
   assert.ok(!t.state.orders.some(item => item.id === order.id), 'orders completed elsewhere disappear from open list');
