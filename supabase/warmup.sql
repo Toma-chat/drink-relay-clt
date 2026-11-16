@@ -180,8 +180,13 @@ begin
    'Warmup / '||coalesce((select string_agg(v,' / ') from jsonb_array_elements_text(coalesce(p->'options','[]')) v),''),'ordered',
    jsonb_build_array(jsonb_build_object('type','ordered','at',now(),'source','warmup','sessionId',s.id,'itemId',item->>'id','orderLocation',loc)),s.id) returning * into o;
  end if;
- select coalesce(jsonb_agg(x),'[]') into orders from public.drink_orders x where warmup_session_id=s.id;
- return jsonb_build_object('day',today,'reason',reason,'stopped',d.stopped,'profile',st.profile,'serverNow',now(),'token',token,'order',to_jsonb(o),'orders',orders,
+ if coalesce((p->>'compact')::boolean,false) then
+  select coalesce(jsonb_agg(jsonb_build_object('id',x.id,'status',x.status)),'[]') into orders
+   from (select id,status from public.drink_orders where warmup_session_id=s.id and status in ('ordered','making','made') limit 1) x;
+ else
+  select coalesce(jsonb_agg(x),'[]') into orders from public.drink_orders x where warmup_session_id=s.id;
+ end if;
+ return jsonb_build_object('day',today,'reason',reason,'stopped',d.stopped,'profile',st.profile,'serverNow',now(),'token',token,'order',to_jsonb(o),'orders',orders,'hasOrders',exists(select 1 from public.drink_orders where warmup_session_id=s.id),
   'session',case when s.id is null then null else jsonb_build_object('sessionId',s.id,'status','active','deviceBinding',s.device,'expiresAt',s.expires,'currentLocation',s.location,'planId','unlimited-alcohol-all-day') end);
 end $$;
 revoke all on function public.warmup_api(jsonb,uuid,text) from public,anon,authenticated;

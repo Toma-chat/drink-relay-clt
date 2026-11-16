@@ -47,6 +47,7 @@ async function main() {
  ok((await call('status')).session.sessionId===auth.session.sessionId,'reload uses token');
  const item=st.profile.includeItemIds[0];
  let order=await call('order',{item,quantity:1,options:[]});ok(order.order.quantity===1,'first cup created');
+ const compactStatus=await call('status',{compact:true});ok(compactStatus.hasOrders===true && compactStatus.orders.length===1 && Object.keys(compactStatus.orders[0]).length===2,'compact response contains only pending ID/status');
  await assert.rejects(call('order',{item,quantity:1}),/提供済み/);ok(true,'second cup rejected');
  await assert.rejects(call('order',{item,quantity:2}),/数量/);ok(true,'quantity tampering rejected');
  await call('location',{location:{target:'tournament',tableNo:'B',seatNo:'3'}});
@@ -99,6 +100,13 @@ async function main() {
  await db.exec(`set test.actor='${user}';`);
  await db.exec("update public.drink_orders set status='served' where warmup_session_id is not null");ok(true,'allowlisted staff bar completion');
  await db.exec(`insert into public.drink_orders(id,source,drink_name,quantity,target,payment_status,payment_method,status) values(gen_random_uuid(),'reception','Normal drink',3,'bar','paid','cash','ordered')`);ok(true,'ordinary order quantity unrestricted');
+ const beforeMigration=(await db.query("select pg_get_functiondef('public.warmup_api(jsonb,uuid,text)'::regprocedure) as definition")).rows[0].definition;
+ const legacyDefinition=beforeMigration.replace(/ if coalesce\(\(p->>'compact'\)::boolean,false\) then[\s\S]*?\n end if;/," select coalesce(jsonb_agg(x),'[]') into orders from public.drink_orders x where warmup_session_id=s.id;").replace("'hasOrders',exists(select 1 from public.drink_orders where warmup_session_id=s.id),",'');
+ assert.ok(!legacyDefinition.includes("p->>'compact'"));await db.exec(legacyDefinition);
+ await db.exec(fs.readFileSync('supabase/compact-warmup-responses-20261116.sql','utf8'));
+ await db.exec(fs.readFileSync('supabase/compact-warmup-responses-20261116.sql','utf8'));
+ const afterMigration=(await db.query("select pg_get_functiondef('public.warmup_api(jsonb,uuid,text)'::regprocedure) as definition")).rows[0].definition;
+ ok(beforeMigration.replaceAll("\r\n","\n")===afterMigration.replaceAll("\r\n","\n"),'response migration is idempotent and retains deployed water label and validation');
  console.log(`${count} checks passed`); await db.close();
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});

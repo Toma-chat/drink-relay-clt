@@ -184,7 +184,7 @@
       });
     }
 
-    async init() {
+    async init({ realtime = true } = {}) {
       const url = String(STORE_CONFIG.supabaseUrl || "").trim();
       const key = String(STORE_CONFIG.supabaseAnonKey || "").trim();
       if (url && key && !window.supabase) {
@@ -193,7 +193,7 @@
       if (url && key && window.supabase) {
         this.supabase = window.supabase.createClient(url, key);
         this.mode = "supabase";
-        this.channel = this.supabase
+        if (realtime) this.channel = this.supabase
           .channel(`drink_relay_unlimited_${makeId()}`)
           .on("postgres_changes", { event: "*", schema: "public", table: "drink_app_settings" }, (payload) => {
             const rowId = String(payload.new?.id || payload.old?.id || "");
@@ -282,8 +282,11 @@
       let menu = readJson(MENU_KEY, null);
       if (!Array.isArray(menu) || !menu.length) menu = clone(INITIAL_SETTINGS.menu || []);
       if (this.mode === "supabase") {
-        const data = await this.edgeApi("menu");
+        const data = await this.edgeApi("menu", { revision: this.menuRevision });
+        if (data.unchanged && this.menuCache) return this.menuCache;
         if (Array.isArray(data.menu) && data.menu.length) menu = data.menu;
+        this.menuRevision = data.revision;
+        this.menuCache = menu;
       }
       return menu;
     }
@@ -305,7 +308,11 @@
 
     async listSessions() {
       if (this.mode === "supabase") {
-        return (await this.edgeApi("staff-list-sessions", {}, true)).sessions || [];
+        const data = await this.edgeApi("staff-list-sessions", { revision: this.sessionsRevision }, true);
+        if (data.unchanged && this.sessionsCache) return this.sessionsCache;
+        this.sessionsCache = data.sessions || [];
+        this.sessionsRevision = data.revision;
+        return this.sessionsCache;
       }
       return Object.values(readJson(SESSION_KEY, {}));
     }
@@ -342,7 +349,11 @@
           const data = await this.edgeApi("card");
           return data.card ? [data.card] : [];
         }
-        return (await this.edgeApi("staff-list-cards", {}, true)).cards || [];
+        const data = await this.edgeApi("staff-list-cards", { revision: this.cardsRevision }, true);
+        if (data.unchanged && this.cardsCache) return this.cardsCache;
+        this.cardsCache = data.cards || [];
+        this.cardsRevision = data.revision;
+        return this.cardsCache;
       }
       return readJson(CARD_KEY, []);
     }
@@ -364,7 +375,7 @@
 
       let orders;
       if (this.mode === "supabase") {
-        if (this.customerContext) return this.edgeApi("order-state", { sessionId: normalizedSessionId });
+        if (this.customerContext) return this.edgeApi("order-state", { sessionId: normalizedSessionId, compact: true });
         const { data, error } = await this.supabase
           .from("drink_orders")
           .select("id,created_at,updated_at,status,quantity,drink_name,target,table_no,seat_no,events")
@@ -460,6 +471,10 @@
     async createUnlimitedOrder(item) {
       const sessionId = String(item?.sessionId || "").trim();
       if (!sessionId) throw new Error("飲み放題セッションを確認できませんでした");
+      if (this.mode === "supabase") {
+        if (!this.customerContext) throw new Error("お客様用セッションを確認できませんでした");
+        return (await this.edgeApi("order", { item, sessionId })).order;
+      }
 
       const orderState = await this.getUnlimitedOrderState(sessionId);
       if (orderState.pendingOrder) throw unlimitedOrderPendingError();
@@ -484,10 +499,7 @@
         }],
       };
 
-      if (this.mode === "supabase") {
-        if (!this.customerContext) throw new Error("お客様用セッションを確認できませんでした");
-        return (await this.edgeApi("order", { item, sessionId: item.sessionId })).order;
-      } else {
+      {
         const orders = readJson(ORDER_KEY, []);
         const hasPending = orders.some((order) =>
           unlimitedOrderSessionId(order) === sessionId && UNLIMITED_OPEN_ORDER_STATUSES.has(order.status)

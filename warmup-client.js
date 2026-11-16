@@ -6,15 +6,27 @@
   let device = localStorage.getItem(`${key}-device`);
   if (!device) { device = crypto.randomUUID(); localStorage.setItem(`${key}-device`, device); }
   let latest = null;
+  let profileRevision = "";
+  let cachedProfile = null;
+  let cachedStaff = null;
+  let staffRevision = "";
   async function api(action, extra = {}, jwt = '') {
     const response = await fetch(`${config.supabaseUrl}/functions/v1/warmup`, {
       method: 'POST', headers: { apikey: config.supabaseAnonKey, 'Content-Type': 'application/json',
         ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}) },
       body: JSON.stringify({ store: U.STORE_ID, qr: new URLSearchParams(location.search).get('card'),
-        device, token: localStorage.getItem(`${key}-token`) || '', action, ...extra }),
+        compact: !action.startsWith("staff"), profileRevision, revision: action === "staff-status" ? staffRevision : undefined, device, token: localStorage.getItem(`${key}-token`) || '', action, ...extra }),
     });
     const data = await response.json();
     if (!response.ok || data.error) throw new Error(data.error || '通信エラー');
+    if (data.profileRevision) profileRevision = data.profileRevision;
+    if (data.profile) cachedProfile = data.profile;
+    else if (cachedProfile) data.profile = cachedProfile;
+    if (action === "staff-status") {
+      if (data.unchanged && cachedStaff) return { ...cachedStaff, unchanged: true };
+      cachedStaff = data;
+      staffRevision = data.revision || "";
+    }
     return data;
   }
   class Gateway extends U.Gateway {
@@ -23,7 +35,7 @@
       if (latest.session) {
         latest.session.locationConfirmed = localStorage.getItem(`${key}-location-${latest.session.sessionId}`) === 'confirmed'
           || latest.session.currentLocation?.target !== 'bar'
-          || latest.orders.length > 0;
+          || latest.hasOrders === true || latest.orders.length > 0;
       }
       this.serverOffsetMs = Date.parse(latest.serverNow) - (window.DrinkRelayClock?.now() ?? Date.now());
       return latest;
@@ -32,7 +44,7 @@
     async activate(code) {
       const data = await api('activate', { code });
       if (data.token) localStorage.setItem(`${key}-token`, data.token);
-      return this.status();
+      return data;
     }
     async getUnlimitedOrderState() {
       const data = await this.status();

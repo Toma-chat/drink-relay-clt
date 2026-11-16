@@ -15,7 +15,7 @@ const crypto=require('node:crypto').webcrypto;
     select(){return this;} eq(k,v){this.tests.push(x=>x[k]===v);return this;}
     like(k,v){this.tests.push(x=>x[k].startsWith(v.replace('%','')));return this;}
     filter(k,op,v){const expected=JSON.parse(v)[0];this.tests.push(x=>x[k].some(e=>Object.keys(expected).every(k=>e[k]===expected[k])));return this;}
-    order(){return this;} in(k,vs){this.tests.push(x=>vs.includes(x[k]));return this;}
+    limit(){return this;} order(){return this;} in(k,vs){this.tests.push(x=>vs.includes(x[k]));return this;}
     insert(row){this.rows.push(row);return this;} upsert(row){const i=this.rows.findIndex(x=>x.id===row.id);if(i<0)this.rows.push(row);else this.rows[i]=row;return this;}
     update(patch){this.operation='update';this.patch=patch;return this;}
     result(){let rows=this.rows.filter(x=>this.tests.every(t=>t(x)));if(this.operation==='update')rows.forEach(x=>Object.assign(x,this.patch));return rows;}
@@ -34,12 +34,17 @@ const crypto=require('node:crypto').webcrypto;
   }};
   let handler;
   const context={createClient:()=>admin,Deno:{env:{get:name=>name==='DRINK_RELAY_STORE_ID'?'casinolivetokyo':''},serve:fn=>{handler=fn;}},crypto,TextEncoder,Date,Uint32Array,Request,Response,console};
-  const source=fs.readFileSync('supabase/functions/unlimited/index.ts','utf8').replace(/^import .*\n/,'');
+  const source=fs.readFileSync('supabase/functions/unlimited/index.ts','utf8').replace(/^import [^\n]*\n/,'');
   vm.runInNewContext(stripTypeScriptTypes(source),context);
   const request=(action,extra={},jwt='')=>handler(new Request('https://test/unlimited',{method:'POST',headers:{'content-type':'application/json',...(jwt?{Authorization:'Bearer '+jwt}:{})},body:JSON.stringify({action,store:'casinolivetokyo',card:token,plan,device,sessionId:settings.find(x=>x.id.startsWith('aycd-session-'))?.menu.sessionId,...extra})}));
   assert.equal((await request('staff-list-sessions')).status,401);
   assert.equal((await request('staff-list-sessions',{},'denied')).status,403);
   assert.equal((await request('staff-list-sessions',{},'allowed')).status,200);
+  const menuReply=await (await request('menu')).json();assert.ok(menuReply.menu);assert.ok(menuReply.revision);
+  assert.equal((await (await request('menu',{revision:menuReply.revision})).json()).unchanged,true);
+  const listReply=await (await request('staff-list-sessions',{},'allowed')).json();
+  assert.equal((await (await request('staff-list-sessions',{revision:listReply.revision},'allowed')).json()).unchanged,true);
+  assert.equal((await request('staff-list-sessions',{revision:listReply.revision})).status,401);
   assert.equal((await request('card')).status,200,'existing fixed QR');
   const snapshot=await request('snapshot');assert.equal(snapshot.status,200);assert.equal((await snapshot.json()).session.sessionId,'test-session');
   assert.equal((await request('snapshot',{card:'invalid-card-token'})).status,403);

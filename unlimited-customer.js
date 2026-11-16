@@ -35,7 +35,7 @@
 
       state.cardHash = await U.digest(`${U.STORE_ID}:${cardToken}`);
       state.deviceBinding = warmup ? window.DrinkRelayWarmup.device : "";
-      state.gateway = await new (warmup ? window.DrinkRelayWarmup.Gateway : U.Gateway)().init();
+      state.gateway = await new (warmup ? window.DrinkRelayWarmup.Gateway : U.Gateway)().init({ realtime: false });
       if (!warmup) state.gateway.configureCustomer({ cardToken, deviceBinding: state.deviceBinding, planId });
       const [, menu] = await Promise.all([
         warmup ? Promise.resolve() : assertCardAuthorized(planId),

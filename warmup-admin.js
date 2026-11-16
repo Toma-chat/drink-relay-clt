@@ -5,7 +5,7 @@
     const U = window.DrinkRelayUnlimited, W = window.DrinkRelayWarmup;
     if (!root) return;
     if (window.DrinkRelayStaffAuth) await window.DrinkRelayStaffAuth.requireStaff();
-    const gateway = await new U.Gateway().init();
+    const gateway = await new U.Gateway().init({ realtime: false });
     root.innerHTML = `<h2>Warmup管理</h2><form id="warmupLogin"><label>スタッフメール<input name="email" type="email" autocomplete="username" required></label><label>パスワード<input name="password" type="password" autocomplete="current-password" required></label><button class="button">ログイン</button></form><div id="warmupControls" hidden><p id="warmupSummary"></p><strong id="warmupDailyCode" style="font-size:40px"></strong><div id="warmupQr"></div><a id="warmupUrl" target="_blank" rel="noopener">Warmup注文画面を開く</a><p><button data-action="staff-stop">本日停止</button> <button data-action="staff-resume">本日再開</button> <button data-action="staff-regenerate">コードを再生成</button></p><label><input id="warmupRevoke" type="checkbox">再生成時に既存端末も無効化（未選択なら維持）</label><div id="warmupSessions"></div><button id="warmupLogout">ログアウト</button></div><p id="warmupStaffError" role="status"></p>`;
     const $ = selector => root.querySelector(selector);
     let busy = false;
@@ -14,7 +14,7 @@
       const { data } = await gateway.supabase.auth.getSession();
       if (!data.session) { $('#warmupControls').hidden = true; return; }
       const value = await W.api(action, extra, data.session.access_token);
-      if (action === 'staff-location') return value;
+      if (action === 'staff-location' || value.unchanged) return value;
       $('#warmupLogin').hidden = true; $('#warmupControls').hidden = false;
       $('#warmupSummary').textContent = `${value.day} / ${ { weekday:'平日',weekend:'土日',holiday:'祝日',closed:'店舗休業日',calendar_missing:'祝日カレンダー未設定' }[value.reason]} / ${value.stopped ? '本日停止中' : value.reason === 'weekday' ? '利用可能' : '利用不可'} / 認証端末 ${value.devices} / 注文 ${value.orders} / 最終停止・再開 ${value.changedAt ? new Date(value.changedAt).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}) : 'なし'}`;
       $('#warmupDailyCode').textContent = value.code;

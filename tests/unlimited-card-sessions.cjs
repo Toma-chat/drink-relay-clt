@@ -24,6 +24,8 @@ const crypto=require('node:crypto').webcrypto;
   like(k,v){this.params.push(v);this.where.push(`${k} like $${this.params.length}`);return this;}
   filter(k,op,v){assert.equal(op,'cs');this.params.push(v);this.where.push(`${k} @> $${this.params.length}::jsonb`);return this;}
   order(k){this.sort=` order by ${k}`;return this;}
+  limit(){return this;}
+  in(k,vs){this.params.push(vs);this.where.push(`${k}=any($${this.params.length})`);return this;}
   async result(){try{return {data:(await db.query(`select * from ${this.table}${this.where.length?' where '+this.where.join(' and '):''}${this.sort}`,this.params)).rows,error:null};}catch(error){return {data:null,error};}}
   async maybeSingle(){const r=await this.result();return {...r,data:r.data?.[0]||null};}
   then(a,b){return this.result().then(a,b);}
@@ -36,7 +38,7 @@ const crypto=require('node:crypto').webcrypto;
   catch(error){console.error(error);return {data:null,error};}
  };
  const admin={from:t=>new Query(t),rpc,auth:{getUser:async jwt=>({data:{user:['allowed','denied'].includes(jwt)?{id:jwt}:null}})}};
- let handler;vm.runInNewContext(stripTypeScriptTypes(fs.readFileSync('supabase/functions/unlimited/index.ts','utf8').replace(/^import .*\n/,'')),{createClient:()=>admin,Deno:{env:{get:k=>k==='DRINK_RELAY_STORE_ID'?store:''},serve:f=>handler=f},crypto,TextEncoder,Date,Uint32Array,Request,Response,console});
+ let handler;vm.runInNewContext(stripTypeScriptTypes(fs.readFileSync('supabase/functions/unlimited/index.ts','utf8').replace(/^import [^\n]*\n/,'')),{createClient:()=>admin,Deno:{env:{get:k=>k==='DRINK_RELAY_STORE_ID'?store:''},serve:f=>handler=f},crypto,TextEncoder,Date,Uint32Array,Request,Response,console});
  const request=async(action,extra={},jwt='')=>{const response=await handler(new Request('https://local.test/unlimited',{method:'POST',headers:{'content-type':'application/json',...(jwt?{Authorization:'Bearer '+jwt}:{})},body:JSON.stringify({store,card:token,plan,action,...extra})}));return {status:response.status,...await response.json()};};
  const activate=async()=>{
   const pending=await request('save-session');assert.equal(pending.status,200);assert.match(pending.session.activationCode,/^\d{4}$/);

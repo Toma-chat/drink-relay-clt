@@ -17,6 +17,19 @@ Deno.serve(async (req) => {
     if (!ip && body.action === 'activate') throw new Error('IPを確認できません');
     const { data, error } = await admin.rpc('warmup_api', { p: body, actor: staff, ip });
     if (error) throw error;
+    if (data?.profile && body.compact === true) {
+      const encoded = new TextEncoder().encode(JSON.stringify(data.profile));
+      const hash = await crypto.subtle.digest('SHA-256', encoded);
+      const revision = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
+      if (body.profileRevision === revision) delete data.profile;
+      data.profileRevision = revision;
+    }
+    if (body.action === 'staff-status') {
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(data)));
+      const revision = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
+      if (body.revision === revision) return new Response(JSON.stringify({ unchanged: true, revision }), { headers });
+      data.revision = revision;
+    }
     return new Response(JSON.stringify(data), { headers });
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message || '通信エラー' }), { status: 400, headers });

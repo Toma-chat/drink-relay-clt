@@ -564,13 +564,26 @@ function assertActiveSession(session: JsonObject | null, context: JsonObject) {
   return session;
 }
 
-async function sessionOrders(sessionId: string) {
+async function sessionOrders(sessionId: string, compact = false) {
   const { data, error } = await admin.from("drink_orders")
-    .select("id,created_at,updated_at,status,quantity,drink_name,target,table_no,seat_no,events")
+    .select(compact ? "id,status" : "id,created_at,updated_at,status,quantity,drink_name,target,table_no,seat_no,events")
     .filter("events", "cs", JSON.stringify([{ source: "unlimited", sessionId }]))
     .order("created_at", { ascending: true });
   if (error) throw new ApiError("注文状況を確認できません", 500);
   return data || [];
+}
+
+async function pendingSessionOrder(sessionId: string) {
+  const { data, error } = await admin.from("drink_orders")
+    .select("id,status").filter("events", "cs", JSON.stringify([{ source: "unlimited", sessionId }]))
+    .in("status", OPEN_STATUSES).order("created_at", { ascending: true }).limit(1);
+  if (error) throw new ApiError("注文状況を確認できません", 500);
+  return data?.[0] ? { id: data[0].id, status: data[0].status } : null;
+}
+
+async function conditionalValue(body: JsonObject, name: string, value: unknown) {
+  const revision = await digest(JSON.stringify(value));
+  return body.revision === revision ? { revision, unchanged: true } : { revision, [name]: value };
 }
 
 async function requireStaff(req: Request) {
@@ -649,9 +662,9 @@ async function customerAction(action: string, body: JsonObject) {
   if (action === "snapshot") {
     const usable = session?.status === "active" && Date.parse(session.expiresAt) > Date.now()
       && (!body.sessionId || body.sessionId === session.sessionId);
-    const orders = usable ? await sessionOrders(session.sessionId) : [];
+    const pendingOrder = usable ? await pendingSessionOrder(session.sessionId) : null;
     return { session: safeSession(session, context.device),
-      pendingOrder: orders.find((order) => OPEN_STATUSES.includes(order.status)) || null,
+      pendingOrder,
       serverNow: new Date().toISOString() };
   }
 
@@ -673,6 +686,10 @@ async function customerAction(action: string, body: JsonObject) {
   const active = assertActiveSession(session, context);
   if (body.sessionId !== active.sessionId) throw new ApiError("この利用は終了しました", 403, "SESSION_ENDED");
   if (action === "order-state") {
+    if (body.compact === true) {
+      const pendingOrder = await pendingSessionOrder(active.sessionId);
+      return { pendingOrder, orders: pendingOrder ? [pendingOrder] : [] };
+    }
     const orders = await sessionOrders(active.sessionId);
     return { orders, pendingOrder: orders.find((order) => OPEN_STATUSES.includes(order.status)) || null, nextSequence: orders.length + 1 };
   }
@@ -685,7 +702,7 @@ async function customerAction(action: string, body: JsonObject) {
 
   if (action === "order") {
     if (active.locationConfirmed === false) throw new ApiError("最初の届け先を設定してください", 409);
-    const existing = await sessionOrders(active.sessionId);
+    const existing = await sessionOrders(active.sessionId, true);
     if (existing.some((order) => OPEN_STATUSES.includes(order.status))) {
       throw new ApiError("前のドリンクが提供済みになるまで次の注文はできません", 409, "UNLIMITED_ORDER_PENDING");
     }
@@ -719,7 +736,7 @@ async function staffAction(req: Request, action: string, body: JsonObject) {
   await requireStaff(req);
   assertStore(body);
 
-  if (action === "staff-list-cards") return { cards: await cards() };
+  if (action === "staff-list-cards") return conditionalValue(body, "cards", await cards());
   if (action === "staff-save-cards") {
     const value = Array.isArray(body.cards) ? body.cards : null;
     if (!value || value.length > 1000) throw new ApiError("QRカード情報が無効です");
@@ -729,7 +746,7 @@ async function staffAction(req: Request, action: string, body: JsonObject) {
   if (action === "staff-list-sessions") {
     const result = await admin.from("drink_app_settings").select("menu").like("id", `${SESSION_PREFIX}%`);
     if (result.error) throw new ApiError("飲み放題カードの状態を読み込めません", 500);
-    return { sessions: (result.data || []).map((row) => row.menu).filter((value) => value && !Array.isArray(value)) };
+    return conditionalValue(body, "sessions", (result.data || []).map((row) => row.menu).filter((value) => value && !Array.isArray(value)));
   }
   if (action === "staff-save-session") {
     const desired = body.session || {};
@@ -777,7 +794,7 @@ Deno.serve(async (req) => {
     const action = String(body.action || "");
     if (action === "menu") {
       assertStore(body);
-      return json(req, { menu: await menu(), serverNow: new Date().toISOString() });
+      return json(req, { ...await conditionalValue(body, "menu", await menu()), serverNow: new Date().toISOString() });
     }
     const result = action.startsWith("staff-")
       ? await staffAction(req, action, body)
