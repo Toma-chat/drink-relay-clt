@@ -638,7 +638,7 @@ function validateOptions(item: JsonObject, planId: string, requested: unknown) {
   return choices;
 }
 
-async function orderId(sessionId: string, sequence: number, store: string) {
+async function orderId(sessionId: string, sequence: number | string, store: string) {
   const hex = await digest(`${store}:unlimited-order:${sessionId}:${sequence}`);
   const variant = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
@@ -708,8 +708,22 @@ async function customerAction(action: string, body: JsonObject) {
 
   if (action === "order") {
     if (active.locationConfirmed === false) throw new ApiError("最初の届け先を設定してください", 409);
+    const requestId = String(body.item?.requestId || "");
+    if (requestId && !/^[a-zA-Z0-9_-]{8,100}$/.test(requestId)) throw new ApiError("注文番号を確認できません", 400);
+    const retryId = requestId ? await orderId(active.sessionId, `request:${requestId}`, context.store) : "";
+    if (retryId) {
+      const { data, error } = await admin.from("drink_orders").select("*").eq("id", retryId).maybeSingle();
+      if (error) throw error;
+      if (data) return { order: data };
+    }
     const existing = await sessionOrders(active.sessionId, true);
     if (existing.some((order) => OPEN_STATUSES.includes(order.status))) {
+      // Another attempt can commit between the first lookup and this read.
+      if (retryId) {
+        const { data, error } = await admin.from("drink_orders").select("*").eq("id", retryId).maybeSingle();
+        if (error) throw error;
+        if (data) return { order: data };
+      }
       throw new ApiError("前のドリンクが提供済みになるまで次の注文はできません", 409, "UNLIMITED_ORDER_PENDING");
     }
     const requested = body.item || {};
@@ -724,13 +738,13 @@ async function customerAction(action: string, body: JsonObject) {
     const sequence = existing.length + 1;
     const at = new Date().toISOString();
     const row = {
-      id: await orderId(active.sessionId, sequence, context.store),
+      id: retryId || await orderId(active.sessionId, sequence, context.store),
       created_at: at, updated_at: at, source: "table", drink_name: itemId === "oolong-tea" ? "水" : String(item.name || ""), quantity: 1,
       target: location.target, table_no: location.tableNo, seat_no: location.seatNo,
       payment_status: "paid", payment_method: "cash",
       notes: [`飲み放題: ${active.planName || active.planId}`, ...options].join(" / "),
       status: "ordered", made_at: null, served_at: null, paid_at: null,
-      events: [{ type: "ordered", at, source: "unlimited", itemId, sessionId: active.sessionId, sequence, orderLocation: location, sessionCurrentLocation: location }],
+      events: [{ type: "ordered", at, source: "unlimited", itemId, sessionId: active.sessionId, sequence, ...(requestId ? { requestId } : {}), orderLocation: location, sessionCurrentLocation: location }],
     };
     return mutate("order", { p_store: context.store, p_hash: context.cardHash, p_session: active.sessionId, p_value: row });
   }

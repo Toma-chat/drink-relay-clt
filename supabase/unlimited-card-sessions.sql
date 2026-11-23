@@ -78,6 +78,14 @@ begin
     end if;
     return jsonb_build_object('session',saved,'pendingOrder',case when pending.id is null then null else to_jsonb(pending) end);
   elsif p_action = 'order' then
+    -- A response may be lost even after the insert committed. Replay the same
+    -- request before checking pending orders, including after it was served.
+    select * into inserted from public.drink_orders where id = (p_value->>'id')::uuid
+      and p_value->'events'->0->>'requestId' is not null
+      and events @> jsonb_build_array(jsonb_build_object('source','unlimited','sessionId',p_session));
+    if inserted.id is not null then
+      return jsonb_build_object('order',to_jsonb(inserted));
+    end if;
     if pending.id is not null then
       return jsonb_build_object('error','前のドリンクの提供をお待ちください','code','UNLIMITED_ORDER_PENDING');
     end if;

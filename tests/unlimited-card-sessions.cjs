@@ -71,6 +71,13 @@ const crypto=require('node:crypto').webcrypto;
  await put(key,session);
  // Simulate termination exactly after the Edge validation and before DB mutation.
  await db.exec("update drink_orders set status='served'");
+ const retryRequest={sessionId:sid,item:{sessionId:sid,itemId:'green-tea',options:[],requestId:'retry-fixture-123'}};
+ const retries=await Promise.all(Array.from({length:5},()=>request('order',retryRequest)));
+ assert.ok(retries.every(x=>x.status===200),'same request succeeds under concurrency');
+ assert.equal(new Set(retries.map(x=>x.order.id)).size,1,'same request creates exactly one order');
+ await db.exec("update drink_orders set status='served'");
+ const replay=await request('order',retryRequest);assert.equal(replay.order.id,retries[0].order.id);assert.equal(replay.order.status,'served','lost response replay after serving does not create another cup');
+ await db.query('delete from drink_orders where id=$1',[replay.order.id]);
  gate=async()=>put(key,{...session,status:'revoked'});assert.equal((await order()).status,403);
  assert.equal((await request('staff-save-session',{session:{...await current(),status:'revoked'}},'allowed')).status,200);
  await put(key,session);

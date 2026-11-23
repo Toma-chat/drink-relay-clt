@@ -803,8 +803,9 @@
     button.disabled = true;
     setSendStatus("送信中...", "loading");
     try {
-      await assertCardAuthorized(state.plan?.id);
-      const current = await state.gateway.getSession(state.cardHash);
+      // The order endpoint validates the card, session, expiry and destination
+      // atomically. Extra preflights only add failure points on mobile networks.
+      const current = warmup ? await state.gateway.getSession(state.cardHash) : state.session;
       const now = state.gateway.now();
       if (!current || current.status !== "active" || (warmup ? current.deviceBinding !== state.deviceBinding : current.sessionId !== state.sessionId) || Date.parse(current.expiresAt) <= now) {
         throw new SessionEndedError();
@@ -812,7 +813,9 @@
       const orderLocation = U.normalizeUnlimitedLocation(current.currentLocation);
       if (!U.unlimitedLocationIsComplete(orderLocation)) throw new Error("現在の届け先を設定してください");
       const item = state.cart[0];
+      item.requestId ||= U.makeId();
       const row = {
+        requestId: item.requestId,
         drinkName: item.name, itemId: item.itemId, options: item.options,
         quantity: 1,
         location: orderLocation,
@@ -820,7 +823,7 @@
         notes: [`飲み放題: ${state.plan.name}`, ...item.options].join(" / "),
       };
       const createdOrder = await state.gateway.createUnlimitedOrder(row);
-      state.pendingOrder = createdOrder;
+      state.pendingOrder = ["ordered", "making", "made"].includes(createdOrder.status) ? createdOrder : null;
       state.orderStatusError = false;
       state.orderStatusLoading = false;
       state.cart = [];

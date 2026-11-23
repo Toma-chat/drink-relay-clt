@@ -220,7 +220,7 @@
       return this;
     }
 
-    async edgeApi(action, payload = {}, staff = false) {
+    async edgeApi(action, payload = {}, staff = false, attempt = 0) {
       if (this.mode !== "supabase") throw new Error("共有接続が必要です");
       let accessToken = "";
       if (staff) {
@@ -231,8 +231,13 @@
         }
         if (!accessToken) throw new Error("スタッフログインが必要です");
       }
+      const retryableOrder = action === "order" && Boolean(payload.item?.requestId);
+      const controller = retryableOrder ? new AbortController() : null;
+      const timeout = controller ? window.setTimeout(() => controller.abort(), 12000) : null;
+      try {
       const response = await fetch(`${STORE_CONFIG.supabaseUrl}/functions/v1/unlimited`, {
         method: "POST",
+        ...(controller ? { signal: controller.signal } : {}),
         headers: {
           apikey: STORE_CONFIG.supabaseAnonKey,
           "Content-Type": "application/json",
@@ -246,13 +251,26 @@
         }),
       });
       const value = await response.json().catch(() => ({}));
+      if (retryableOrder && response.ok && !value.error && !value.order?.id) throw new Error("注文の応答を確認できません");
       if (!response.ok || value.error) {
         const error = new Error(value.error || "通信エラーが発生しました");
+        error.status = response.status;
         if (value.code) error.code = value.code;
         throw error;
       }
       if (value.serverNow) this.serverOffsetMs = Date.parse(value.serverNow) - (window.DrinkRelayClock?.now() ?? Date.now());
       return value;
+      } catch (error) {
+        if (retryableOrder && attempt < 2 && (!error.status || [408, 502, 503, 504].includes(error.status))) {
+          if (timeout !== null) window.clearTimeout(timeout);
+          await new Promise(resolve => window.setTimeout(resolve, 500 * (attempt + 1)));
+          return this.edgeApi(action, payload, staff, attempt + 1);
+        }
+        if (retryableOrder && !error.status) error.message = "送信結果を確認できません。同じ注文をもう一度送信してください（重複しません）。";
+        throw error;
+      } finally {
+        if (timeout !== null) window.clearTimeout(timeout);
+      }
     }
 
     onChange(listener) {
