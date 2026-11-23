@@ -637,9 +637,10 @@
   function renderSessionLocationChoices(location) {
     const normalized = U.normalizeUnlimitedLocation(location);
     const targets = [
-      ["bar", "バーカウンター"],
-      ["ring", "リング"],
       ["tournament", "トーナメント"],
+      ["ring", "リング"],
+      ["casino", "カジノ"],
+      ["bar", "バーカウンター"],
     ];
     $("#unlimitedSessionTargetChoices").innerHTML = targets.map(([value, label]) => `
       <button type="button" class="unlimited-location-choice ${value === normalized.target ? "active" : ""}" data-session-location-choice="target" data-location-value="${value}">${label}</button>`).join("");

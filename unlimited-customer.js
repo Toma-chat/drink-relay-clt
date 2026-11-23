@@ -712,9 +712,10 @@
   function renderLocationChoices(location) {
     const normalized = U.normalizeUnlimitedLocation(location);
     const targets = [
-      { id: "bar", label: "バーカウンター" },
-      { id: "ring", label: "リング" },
       { id: "tournament", label: "トーナメント" },
+      { id: "ring", label: "リング" },
+      { id: "casino", label: "カジノ" },
+      { id: "bar", label: "バーカウンター" },
     ];
     $("#locationTargetChoices").innerHTML = targets.map((target) => `
       <button class="location-choice-button ${target.id === normalized.target ? "active" : ""}" type="button" data-location-choice="target" data-location-value="${target.id}">${target.label}</button>

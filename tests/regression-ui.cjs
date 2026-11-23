@@ -10,6 +10,8 @@ async function main(){
  w.eval(fs.readFileSync('initial-settings.js','utf8'));w.DRINK_RELAY_STORE_CONFIG={instanceId:'regression',supabaseUrl:'',supabaseAnonKey:''};
  w.eval(fs.readFileSync('app.js','utf8'));await tick();
  assert.ok(w.document.querySelector('#view-reception').classList.contains('active'));console.log('PASS reception initializes');
+ for(const name of ['target','editTarget'])assert.deepEqual(Array.from(w.document.querySelectorAll('input[name="'+name+'"]'),el=>el.value),['tournament','ring','casino','bar']);
+ console.log('PASS reception and editing use four destination choices');
  assert.ok(w.document.querySelector('[data-drink-picker] button'));console.log('PASS normal reception menu renders');
  w.document.querySelector('#headerBarButton').click();await tick();assert.ok(w.document.querySelector('#view-bar').classList.contains('active'));console.log('PASS bar switches');
  w.document.querySelector('#headerConfigButton').click();await tick();assert.ok(w.document.querySelector('#menuEditor').children.length);console.log('PASS menu settings render');

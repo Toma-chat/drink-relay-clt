@@ -10,8 +10,8 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
 const SESSION_PREFIX = "aycd-session-";
 const CARD_CATALOG_ID = "aycd-card-catalog";
 const OPEN_STATUSES = ["ordered", "making", "made"];
-const LOCATION_TARGETS = new Set(["bar", "ring", "tournament"]);
-const LOCATION_TABLES = new Set(["A", "B", "C", "D", "E", "F", "G", "H"]);
+const LOCATION_TARGETS = new Set(["tournament", "ring", "casino", "bar"]);
+const LOCATION_TABLES = new Set(["A", "B", "C", "D", "E", "F", "G"]);
 const LOCATION_SEATS = new Set(["1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
 // BEGIN GENERATED PLANS (scripts/build-unlimited-catalog.cjs)

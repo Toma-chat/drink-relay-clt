@@ -58,10 +58,10 @@ begin
   end if;
   if p_action = 'location' then
     destination := p_value - 'source';
-    if destination->>'target' not in ('bar','ring','tournament')
+    if destination->>'target' not in ('tournament','ring','casino','bar')
       or destination->>'target' is null
       or (destination->>'target' <> 'bar' and
-        (coalesce(destination->>'tableNo','') not in ('A','B','C','D','E','F','G','H')
+        (coalesce(destination->>'tableNo','') not in ('A','B','C','D','E','F','G')
          or coalesce(destination->>'seatNo','') not in ('1','2','3','4','5','6','7','8','9'))) then
       raise exception 'Invalid delivery location';
     end if;

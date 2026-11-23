@@ -17,8 +17,8 @@
   const CARD_KINDS = new Set(["permanent", "additional"]);
   const CARD_STATUSES = new Set(["active", "disabled", "retired"]);
   const UNLIMITED_OPEN_ORDER_STATUSES = new Set(["ordered", "making", "made"]);
-  const LOCATION_TARGETS = ["bar", "ring", "tournament"];
-  const LOCATION_TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  const LOCATION_TARGETS = ["tournament", "ring", "casino", "bar"];
+  const LOCATION_TABLES = ["A", "B", "C", "D", "E", "F", "G"];
   const LOCATION_SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
   const CONFIG = window.DRINK_RELAY_UNLIMITED_CONFIG || {};
 
@@ -141,7 +141,7 @@
   function formatUnlimitedLocation(location) {
     const normalized = normalizeUnlimitedLocation(location);
     if (normalized.target === "bar") return "バーカウンター";
-    const target = normalized.target === "ring" ? "リング" : "トーナメント";
+    const target = ({ tournament: "トーナメント", ring: "リング", casino: "カジノ" })[normalized.target];
     if (!normalized.tableNo || !normalized.seatNo) return `${target}（席未設定）`;
     return `${target} ${normalized.tableNo}卓 ${normalized.seatNo}番席`;
   }

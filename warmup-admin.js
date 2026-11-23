@@ -47,7 +47,7 @@
         button.addEventListener('click', async () => {
           const dialog = document.createElement('dialog');
           dialog.innerHTML = '<h3>届け先変更</h3><div class="warmup-locations"></div><button class="warmup-close">閉じる</button>';
-          const choices = [{target:'bar',tableNo:'',seatNo:''}, ...['ring','tournament'].flatMap(target=>U.LOCATION_TABLES.flatMap(tableNo=>U.LOCATION_SEATS.map(seatNo=>({target,tableNo,seatNo}))))];
+          const choices = [...['tournament','ring','casino'].flatMap(target=>U.LOCATION_TABLES.flatMap(tableNo=>U.LOCATION_SEATS.map(seatNo=>({target,tableNo,seatNo})))), {target:'bar',tableNo:'',seatNo:''}];
           for (const loc of choices) {
             const choice = document.createElement('button'); choice.textContent = U.formatUnlimitedLocation(loc); choice.style.cssText='padding:18px;margin:4px;font-size:18px';
             choice.onclick = async () => { try { await run('staff-location',{session:session.id,location:loc}); dialog.close(); dialog.remove(); await run(); } catch(e) { $('#warmupStaffError').textContent=e.message; } };

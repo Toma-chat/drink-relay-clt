@@ -44,7 +44,7 @@
     { id: "cast", label: "キャスドリ" },
     { id: "unmade10", label: "未作成10分", defaultChoice: "nurse-call" },
   ];
-  const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  const TABLES = ["A", "B", "C", "D", "E", "F", "G"];
   const CAST_BAR_TABLE = "バーカウンター";
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
   const DEFAULT_PRICE_SUGGESTIONS = [600, 700, 800, 1000];
@@ -2816,7 +2816,7 @@
 
   function orderEditTarget() {
     const value = $("input[name='editTarget']:checked")?.value || "ring";
-    return ["tournament", "ring", "cast", "bar"].includes(value) ? value : "ring";
+    return ["tournament", "ring", "casino", "bar"].includes(value) ? value : "ring";
   }
 
   function orderEditPaymentStatus() {

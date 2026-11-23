@@ -29,6 +29,13 @@ async function main() {
  await db.exec(fs.readFileSync('supabase/warmup-water-label-20261019.sql','utf8'));
  await db.exec(fs.readFileSync('supabase/add-whiskey-rock-straight-20261025.sql','utf8'));
  await db.exec(fs.readFileSync('supabase/add-beer-sonic-20261025.sql','utf8'));
+ await db.exec(fs.readFileSync('supabase/unlimited-card-sessions.sql','utf8'));
+ for(const signature of ['public.drink_unlimited_mutate(text,text,text,text,jsonb,jsonb)','public.warmup_api(jsonb,uuid,text)']) {
+  const definition=(await db.query('select pg_get_functiondef($1::regprocedure) as source',[signature])).rows[0].source;
+  await db.exec(definition.replaceAll("('tournament','ring','casino','bar')","('bar','ring','tournament')").replaceAll("('A','B','C','D','E','F','G')","('A','B','C','D','E','F','G','H')").replaceAll('^[A-G]$','^[A-H]$'));
+ }
+ await db.exec(fs.readFileSync('supabase/location-choices-20261123.sql','utf8'));
+ await db.exec(fs.readFileSync('supabase/location-choices-20261123.sql','utf8'));
  const st=(await db.query('select * from warmup_private.stores')).rows[0];
  for(const id of ['oolong-tea','sparkling-water','sonic'])assert.ok(st.profile.includeItemIds.includes(id),`Weekday Warmup includes ${id}`);
  for(const id of ['whiskey-rock','whiskey-straight'])assert.ok(st.profile.includeItemIds.includes(id),`Weekday Warmup includes ${id}`);
@@ -45,6 +52,10 @@ async function main() {
  await db.exec("update public.test_clock set at=at+interval '16 minutes'");
  let auth=await call('activate',{code:status.code}); params.token=auth.token;ok(auth.session,'correct code authenticates');
  ok((await call('status')).session.sessionId===auth.session.sessionId,'reload uses token');
+ const located=await call('location',{location:{target:'casino',tableNo:'G',seatNo:'9'}});
+ ok(located.session.currentLocation.target==='casino','casino destination accepted');
+ await assert.rejects(call('location',{location:{target:'casino',tableNo:'H',seatNo:'9'}}),/卓・席/);ok(true,'H table rejected');
+ await call('location',{location:{target:'bar',tableNo:'',seatNo:''}});
  const item=st.profile.includeItemIds[0];
  let order=await call('order',{item,quantity:1,options:[]});ok(order.order.quantity===1,'first cup created');
  const compactStatus=await call('status',{compact:true});ok(compactStatus.hasOrders===true && compactStatus.orders.length===1 && Object.keys(compactStatus.orders[0]).length===2,'compact response contains only pending ID/status');

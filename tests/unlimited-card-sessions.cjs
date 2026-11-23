@@ -57,6 +57,8 @@ const crypto=require('node:crypto').webcrypto;
  const order=(id=sid)=>request('order',{sessionId:id,item:{sessionId:id,itemId:'green-tea',options:[]}});
  assert.equal((await request("order",{item:{itemId:"green-tea"}})).status,403,"missing session ID rejected");
  assert.equal((await order()).status,409);
+ assert.equal((await request('location',{sessionId:sid,location:{target:'casino',tableNo:'G',seatNo:'9'}})).status,200,'casino G9 accepted');
+ assert.equal((await request('location',{sessionId:sid,location:{target:'casino',tableNo:'H',seatNo:'9'}})).status,400,'H rejected by Edge');
  const location={target:'ring',tableNo:'A',seatNo:'1'};
  assert.equal((await request('location',{sessionId:sid,location})).status,200);
  assert.deepEqual((await request('status')).session.currentLocation,location);

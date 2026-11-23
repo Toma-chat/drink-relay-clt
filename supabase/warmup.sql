@@ -145,8 +145,8 @@ begin
  end if;
  if action in ('location','staff-location') then
   loc := p->'location';
-  if loc->>'target' not in ('bar','ring','tournament') or loc->>'target' is null then raise exception '届け先が無効です'; end if;
-  if loc->>'target'<>'bar' and (coalesce(loc->>'tableNo','') !~ '^[A-H]$' or coalesce(loc->>'seatNo','') !~ '^[1-9]$') then raise exception '卓・席が無効です'; end if;
+  if loc->>'target' not in ('tournament','ring','casino','bar') or loc->>'target' is null then raise exception '届け先が無効です'; end if;
+  if loc->>'target'<>'bar' and (coalesce(loc->>'tableNo','') !~ '^[A-G]$' or coalesce(loc->>'seatNo','') !~ '^[1-9]$') then raise exception '卓・席が無効です'; end if;
   update warmup_private.sessions set location=loc where id=s.id returning * into s;
   update public.drink_orders set target=loc->>'target',table_no=loc->>'tableNo',seat_no=loc->>'seatNo',updated_at=now(),
    events=events||jsonb_build_array(jsonb_build_object('type','location-changed','at',now(),'location',loc,'actor',actor))
