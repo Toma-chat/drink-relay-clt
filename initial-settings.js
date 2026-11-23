@@ -590,7 +590,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
                 "ライム",
                 "なし"
               ],
-              "required": true
+              "required": false
             }
           ],
           "subcategory_id": "default"
@@ -2840,7 +2840,7 @@ window.DRINK_RELAY_INITIAL_SETTINGS = Object.freeze({
           "生ビール入れる\nそのあと生ビールを入れて\n最後に生ビールを入れる"
         ),
         item("highball", "コロナビール", 800, "beer", [
-          option("lemon-lime", "レモンライム", ["レモン", "ライム", "なし"], true),
+          option("lemon-lime", "レモンライム", ["レモン", "ライム", "なし"]),
         ]),
         item(
           "item-1783052901930",
