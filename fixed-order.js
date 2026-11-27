@@ -28,6 +28,14 @@
         <button type="button" data-fixed-undo>直前の商品を取り消す</button>
         <button type="submit" data-fixed-send>注文送信</button>`;
       form.append(this.panel);
+      this.mobileNav = document.createElement('nav');
+      this.mobileNav.className = 'fixed-mobile-nav';
+      this.mobileNav.setAttribute('aria-label', 'ハンディ注文操作');
+      this.mobileNav.innerHTML = '<button type="button" data-fixed-screen="menu" aria-pressed="true">商品を選ぶ</button><button type="button" data-fixed-screen="cart" aria-pressed="false"><span data-mobile-summary>0杯 · ¥0</span><strong>注文内容を確認</strong></button>';
+      form.append(this.mobileNav);
+      this.form.dataset.mobileScreen = 'menu';
+      this.panel.id = 'fixedOrderCart';
+      this.mobileNav.querySelector('[data-fixed-screen="cart"]').setAttribute('aria-controls', this.panel.id);
       destination.classList.add('fixed-legacy-destination');
       const delivery=this.panel.querySelector('.fixed-delivery');
       delivery.innerHTML=`<label>追加する杯の届け先<select name="fixedTarget">${Object.entries(TARGETS).map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select></label>`;
@@ -127,6 +135,7 @@
       this.panel.querySelector('[data-fixed-cart-pages]').innerHTML=total>1?this.pages('cart',this.cartPage,total):'';
       this.panel.querySelector('[data-fixed-count]').textContent=`${cart.reduce((n,x)=>n+x.quantity,0)}杯`;
       this.panel.querySelector('[data-fixed-total]').textContent=`合計 ${yen(cart.reduce((n,x)=>n+x.quantity*x.price,0))}`;
+      this.mobileNav.querySelector('[data-mobile-summary]').textContent = `${cart.reduce((n,x)=>n+x.quantity,0)}杯 · ${yen(cart.reduce((n,x)=>n+x.quantity*x.price,0))}`;
       this.panel.querySelector('[data-fixed-send]').disabled=!cart.length || this.busy || this.status==='complete';
       this.panel.querySelector('[data-fixed-send]').textContent=this.busy?'送信中…':this.status==='complete'?'送信しました':this.batch?'同じ注文を再送信':'注文送信';
       this.panel.querySelector('[data-fixed-undo]').disabled=!this.undo.length || !!this.batch;
@@ -145,9 +154,16 @@
     }
     click(e) {
       const b=e.target.closest('button'); if(!b || b.disabled) return;
+      if(b.dataset.fixedScreen) {
+        this.form.dataset.mobileScreen = b.dataset.fixedScreen;
+        this.mobileNav.querySelectorAll('[data-fixed-screen]').forEach(button => button.setAttribute('aria-pressed', String(button === b)));
+        const main = this.form.closest('main');
+        if(main) main.scrollTop = 0;
+        return;
+      }
       if(b.hasAttribute('data-fixed-refresh')) {this.refreshPopular();return;}
-      if(b.dataset.fixedCategory) {this.active=b.dataset.fixedCategory;this.page=0;this.render();return;}
-      if(b.dataset.fixedPage) {const key={category:'categoryPage',product:'page',cart:'cartPage'}[b.dataset.fixedPage];this[key]+=Number(b.dataset.step);this.render();return;}
+      if(b.dataset.fixedCategory) {this.active=b.dataset.fixedCategory;this.page=0;this.render();this.form.querySelector('[data-drink-buttons]').scrollTop=0;return;}
+      if(b.dataset.fixedPage) {const key={category:'categoryPage',product:'page',cart:'cartPage'}[b.dataset.fixedPage];this[key]+=Number(b.dataset.step);this.render();if(key==='page')this.form.querySelector('[data-drink-buttons]').scrollTop=0;return;}
       if(this.batch || this.status==='complete') return;
       const cart=this.api.cart();
       if(b.dataset.fixedItem) {
