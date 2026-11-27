@@ -79,7 +79,8 @@ const COMPILED_PROFILES = {
       "item-1783052950604",
       "item-1783052961537",
       "tiffin",
-      "dita"
+      "dita",
+      "amaretto"
     ],
     "options": {
       "item-1783049570152": {
@@ -135,6 +136,14 @@ const COMPILED_PROFILES = {
         "dita-mix": [
           "炭酸",
           "グレープフルーツジュース"
+        ]
+      },
+      "amaretto": {
+        "amaretto-mix": [
+          "ミルク",
+          "ジンジャーエール",
+          "コーラ",
+          "烏龍茶"
         ]
       }
     }

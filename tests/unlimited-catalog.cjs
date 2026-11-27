@@ -21,7 +21,7 @@ const {PGlite}=require(path.join(process.env.TEMP,'warmup-validation/node_module
   for(const id of ['unlimited-soft-sp-2h','unlimited-soft-sp-all-day','unlimited-alcohol-sp-2h','unlimited-alcohol-sp-all-day','unlimited-warmup-sp'])
     assert.deepEqual(JSON.parse(JSON.stringify(config.planRules[id].optionChoiceRules['item-1783049580653']['mango-mix'])),['牛乳'],`${id} allows mango juice with milk`);
   assert.equal(config.planCatalog.length,13);assert.equal(new Set(config.planCatalog.map(p=>p.id)).size,13);
-  const edge=fs.readFileSync('supabase/functions/unlimited/index.ts','utf8').replace(/^import .*\n/,'');
+  const edge=fs.readFileSync('supabase/functions/unlimited/index.ts','utf8').replace(/^import [^\r\n]*\r?\n/,'');
   const scope={Deno:{env:{get:()=>''},serve(){}},createClient:()=>({})};
   vm.runInNewContext(stripTypeScriptTypes(edge)+'\nthis.testRules=PLAN_RULES;this.expiry=expiryFor;this.validateOptions=validateOptions;',scope);
   const mango={id:'item-1783049580653',optionGroups:[{id:'mango-mix',choices:['ソーダ','牛乳'],required:false}]};

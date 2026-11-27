@@ -67,6 +67,7 @@
     "item-1783052961537",
     "tiffin",
     "dita",
+    "amaretto",
   ];
 
   // 空配列は、そのプランでは該当オプショングループを表示しない指定です。
@@ -84,6 +85,9 @@
     "item-1783053351523": { "malibu-mix": ["コーラ", "炭酸", "マンゴージュース", "牛乳"] },
     "item-1783053374220": { "kahlua-mix": ["牛乳", "コーヒー"] },
     dita: { "dita-mix": ["炭酸", "グレープフルーツジュース"] },
+  };
+  const ALCOHOL_SP_OPTIONS = {
+    amaretto: { "amaretto-mix": ["ミルク", "ジンジャーエール", "コーラ", "烏龍茶"] },
   };
 
   const mergeOptions = (...rules) => Object.assign({}, ...rules);
@@ -109,7 +113,7 @@
   const alcoholSpRule = (duration) => makeRule(
     duration,
     [...SOFT_STANDARD, ...SOFT_SP_EXTRA, ...ALCOHOL_STANDARD, ...ALCOHOL_SP_EXTRA],
-    mergeOptions(SOFT_SP_OPTIONS, ALCOHOL_OPTIONS)
+    mergeOptions(SOFT_SP_OPTIONS, ALCOHOL_OPTIONS, ALCOHOL_SP_OPTIONS)
   );
 
   window.DRINK_RELAY_UNLIMITED_CONFIG = Object.freeze({
